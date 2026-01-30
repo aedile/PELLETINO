@@ -177,8 +177,8 @@ void audio_transmit(void)
     if (!i2s_tx_handle) return;
 
     size_t bytes_written = 0;
-    // Use short timeout - don't block too long but avoid underruns
-    i2s_channel_write(i2s_tx_handle, sample_buffer, sizeof(sample_buffer), &bytes_written, pdMS_TO_TICKS(5));
+    // Non-blocking write - if buffer full, skip this update (DMA buffers provide headroom)
+    i2s_channel_write(i2s_tx_handle, sample_buffer, sizeof(sample_buffer), &bytes_written, 0);
 }
 
 void audio_set_volume(uint8_t volume)
