@@ -16,7 +16,7 @@ extern "C" {
 // Audio configuration
 #define AUDIO_SAMPLE_RATE   24000   // 24 kHz (matches Galagino)
 #define AUDIO_BUFFER_SIZE   256     // Samples per buffer (larger = smoother)
-#define AUDIO_DMA_BUFFERS   4       // Number of DMA buffers
+#define AUDIO_DMA_BUFFERS   8       // Number of DMA buffers (more = less underruns)
 
 // I2S Pin definitions (FIESTA26)
 #define PIN_I2S_MCK     GPIO_NUM_19

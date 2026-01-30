@@ -261,8 +261,8 @@ void pacman_video_render_frame(const uint8_t *memory)
         // Write tile row using pre-swapped colors for faster DMA
         display_write_preswapped(frame_buffer, GAME_WIDTH * TILE_HEIGHT);
 
-        // Update audio every 12 rows (larger buffer = less frequent updates needed)
-        if (row % 12 == 0) {
+        // Update audio every 5 rows (7 updates per frame for smooth playback)
+        if (row % 5 == 0) {
             audio_update();
         }
     }
