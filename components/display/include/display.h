@@ -50,6 +50,18 @@ void display_init(void);
 void display_write(const uint16_t *data, uint32_t len);
 
 /**
+ * Write pre-byte-swapped pixel data (faster, no copy needed)
+ * @param data Pointer to pre-swapped RGB565 pixel data
+ * @param len Number of pixels (not bytes)
+ */
+void display_write_preswapped(const uint16_t *data, uint32_t len);
+
+/**
+ * Wait for pending DMA transfer to complete
+ */
+void display_wait_done(void);
+
+/**
  * Set the drawing window
  * @param x X coordinate (0-239)
  * @param y Y coordinate (0-279)

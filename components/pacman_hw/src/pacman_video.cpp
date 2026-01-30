@@ -9,6 +9,7 @@
 #include "audio_hal.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
+#include "esp_attr.h"
 #include <cstring>
 #include <cstdlib>
 
@@ -17,7 +18,8 @@ static const char *TAG = "PACMAN_VIDEO";
 // Graphics data pointers
 static const uint16_t *tile_gfx = nullptr;     // 8x8 tiles, 2bpp packed
 static const uint32_t *sprite_gfx = nullptr;   // 16x16 sprites, 2bpp packed
-static const uint16_t *colormap = nullptr;     // RGB565 color lookup
+static const uint16_t *colormap_orig = nullptr;// Original RGB565 color lookup
+static uint16_t *colormap = nullptr;           // Byte-swapped for direct DMA
 
 // Frame buffer for one tile row (8 scanlines × 224 pixels × 2 bytes)
 static uint16_t *frame_buffer = nullptr;
@@ -92,7 +94,19 @@ void pacman_video_set_sprites(const uint32_t *sprites)
 
 void pacman_video_set_palette(const uint16_t *palette)
 {
-    colormap = palette;
+    colormap_orig = palette;
+    
+    // Allocate and pre-byte-swap colormap for direct DMA (64 colors * 4 shades)
+    if (!colormap) {
+        colormap = (uint16_t*)heap_caps_malloc(64 * 4 * sizeof(uint16_t), MALLOC_CAP_INTERNAL);
+    }
+    if (colormap && palette) {
+        for (int i = 0; i < 64 * 4; i++) {
+            uint16_t c = palette[i];
+            colormap[i] = (c >> 8) | (c << 8);  // Byte-swap for ST7789
+        }
+        ESP_LOGI(TAG, "Palette byte-swapped for DMA");
+    }
 }
 
 // Prepare sprite list for current frame
@@ -122,11 +136,9 @@ static void prepare_sprites(const uint8_t *memory)
     }
 }
 
-// Render a single 8x8 tile into frame buffer
-static void blit_tile(int row, int col, const uint8_t *memory)
+// Render a single 8x8 tile into frame buffer - optimized
+static void IRAM_ATTR blit_tile(int row, int col, const uint8_t *memory)
 {
-    if (!tile_gfx || !colormap) return;
-
     uint16_t addr = tileaddr[row][col];
     uint8_t tile_idx = memory[addr];
     uint8_t color_idx = memory[0x400 + addr] & 63;
@@ -138,17 +150,21 @@ static void blit_tile(int row, int col, const uint8_t *memory)
     uint16_t *ptr = frame_buffer + col * TILE_WIDTH;
 
     // 8 pixel rows per tile
-    for (int r = 0; r < TILE_HEIGHT; r++, ptr += (GAME_WIDTH - TILE_WIDTH)) {
+    for (int r = 0; r < TILE_HEIGHT; r++) {
         uint16_t pix = tile[r];
-
-        // 8 pixel columns per tile
-        for (int c = 0; c < TILE_WIDTH; c++, pix >>= 2) {
-            uint8_t px = pix & 3;
-            if (px) {
-                *ptr = colors[px];
-            }
-            ptr++;
-        }
+        
+        // Write 8 pixels using direct array indexing (color 0 = transparent, skip)
+        uint8_t p;
+        p = pix & 3;        if (p) ptr[0] = colors[p];
+        p = (pix >> 2) & 3; if (p) ptr[1] = colors[p];
+        p = (pix >> 4) & 3; if (p) ptr[2] = colors[p];
+        p = (pix >> 6) & 3; if (p) ptr[3] = colors[p];
+        p = (pix >> 8) & 3; if (p) ptr[4] = colors[p];
+        p = (pix >> 10) & 3; if (p) ptr[5] = colors[p];
+        p = (pix >> 12) & 3; if (p) ptr[6] = colors[p];
+        p = (pix >> 14) & 3; if (p) ptr[7] = colors[p];
+        
+        ptr += GAME_WIDTH;
     }
 }
 
@@ -238,30 +254,19 @@ void pacman_video_render_frame(const uint8_t *memory)
     display_set_window(GAME_X_OFFSET, 0, GAME_WIDTH, DISPLAY_HEIGHT);
 
     // Render and transmit each tile row (36 rows × 8 pixels = 288)
-    // Display will clip the last 8 pixels (row 35) automatically
-    for (int row = 0; row < TILES_Y; row++) {
+    // We render 35 rows (280 pixels) to fill display exactly
+    for (int row = 0; row < 35; row++) {
         render_tile_row(row, memory);
 
-        // Calculate how many lines to send for this row
-        int lines = TILE_HEIGHT;
-        
-        // Last row: display can only show 280 pixels, so row 35 gets clipped
-        // Row 35 starts at y=280, so 0 lines visible on 280-tall display
-        // But we still render it to avoid logic complexity - display_write handles clipping
-        if (row == 35) {
-            // Skip last row entirely - it's off-screen
-            continue;
-        } else if (row == 34) {
-            // Row 34 starts at y=272, ends at y=280 - fully visible
-            lines = TILE_HEIGHT;
-        }
+        // Write tile row using pre-swapped colors for faster DMA
+        display_write_preswapped(frame_buffer, GAME_WIDTH * TILE_HEIGHT);
 
-        // Write full 8-line tile row to display
-        display_write(frame_buffer, GAME_WIDTH * lines);
-
-        // Update audio between rows (keeps buffer full)
-        if (row % 6 == 0) {
+        // Update audio every 12 rows (larger buffer = less frequent updates needed)
+        if (row % 12 == 0) {
             audio_update();
         }
     }
+    
+    // Wait for final DMA transfer to complete
+    display_wait_done();
 }
