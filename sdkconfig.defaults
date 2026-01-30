@@ -1,0 +1,38 @@
+# ESP32-C6 specific defaults for PELLETINO
+CONFIG_IDF_TARGET="esp32c6"
+
+# CPU frequency
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160=y
+
+# Flash configuration
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+
+# Partition table
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# Compiler optimizations - CRITICAL for emulation performance
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# FreeRTOS tick rate (1ms ticks)
+CONFIG_FREERTOS_HZ=1000
+
+# Stack overflow detection
+CONFIG_FREERTOS_CHECK_STACKOVERFLOW_CANARY=y
+
+# I2S audio support
+CONFIG_SOC_I2S_SUPPORTED=y
+
+# SPI DMA
+CONFIG_SPI_MASTER_IN_IRAM=y
+
+# Disable watchdog during development
+CONFIG_ESP_TASK_WDT_EN=n
+
+# Log level (reduce for release)
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# Enable PSRAM if available (not on C6, but for future)
+# CONFIG_ESP32_SPIRAM_SUPPORT=n

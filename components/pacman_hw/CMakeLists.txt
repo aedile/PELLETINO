@@ -1,0 +1,13 @@
+idf_component_register(
+    SRCS
+        "src/pacman_hw.cpp"
+        "src/pacman_video.cpp"
+        "src/pacman_input.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        driver
+        z80_cpu
+        display
+        audio_hal
+)

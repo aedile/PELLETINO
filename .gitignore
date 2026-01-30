@@ -1,0 +1,49 @@
+# Build artifacts
+build/
+sdkconfig
+sdkconfig.old
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# ROM files - DO NOT DISTRIBUTE
+# These must be extracted from original arcade hardware
+main/roms/*.h
+main/roms/*.bin
+
+# Original ROM files (if copied here)
+*.6e
+*.6f
+*.6h
+*.6j
+*.5e
+*.5f
+*.7f
+*.1m
+*.3m
+*.4a
+82s123.*
+82s126.*
+pacman.*
+
+# Z80 emulator (must be downloaded separately)
+Z80.c
+Z80.h
+Z80-*.zip
+
+# Generated files from ROM conversion
+*_rom.h
+*_tilemap.h
+*_spritemap.h
+*_cmap.h
+*_wavetable.h
+*_logo.h
+tileaddr.h
