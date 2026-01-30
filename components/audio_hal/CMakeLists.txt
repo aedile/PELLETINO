@@ -1,0 +1,9 @@
+idf_component_register(
+    SRCS
+        "src/audio_hal.cpp"
+        "src/namco_wsg.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        driver
+)

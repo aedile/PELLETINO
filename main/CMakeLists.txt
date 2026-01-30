@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS 
+        "src/main.cpp"
+    INCLUDE_DIRS 
+        "include"
+        "roms"
+    REQUIRES
+        driver
+        esp_timer
+        audio_hal
+        display
+        z80_cpu
+        pacman_hw
+)
