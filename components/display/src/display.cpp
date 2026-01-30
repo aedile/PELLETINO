@@ -14,7 +14,10 @@
 static const char *TAG = "DISPLAY";
 
 static spi_device_handle_t spi_handle;
-static uint8_t *dma_buffer = nullptr;
+static uint8_t *dma_buffer[2] = {nullptr, nullptr};  // Double buffer
+static int current_buffer = 0;
+static spi_transaction_t trans[2];  // Transaction descriptors
+static bool trans_pending = false;
 static constexpr size_t DMA_BUFFER_SIZE = GAME_WIDTH * 8 * 2;  // One tile row
 
 // ST7789 Commands
@@ -132,12 +135,15 @@ void display_init(void)
     devcfg.pre_cb = lcd_spi_pre_transfer_callback;
     ESP_ERROR_CHECK(spi_bus_add_device(LCD_SPI_HOST, &devcfg, &spi_handle));
 
-    // Allocate DMA buffer
-    dma_buffer = (uint8_t*)heap_caps_malloc(DMA_BUFFER_SIZE, MALLOC_CAP_DMA);
-    if (!dma_buffer) {
-        ESP_LOGE(TAG, "Failed to allocate DMA buffer!");
+    // Allocate double DMA buffers for async operation
+    dma_buffer[0] = (uint8_t*)heap_caps_malloc(DMA_BUFFER_SIZE, MALLOC_CAP_DMA);
+    dma_buffer[1] = (uint8_t*)heap_caps_malloc(DMA_BUFFER_SIZE, MALLOC_CAP_DMA);
+    if (!dma_buffer[0] || !dma_buffer[1]) {
+        ESP_LOGE(TAG, "Failed to allocate DMA buffers!");
         return;
     }
+    memset(&trans[0], 0, sizeof(spi_transaction_t));
+    memset(&trans[1], 0, sizeof(spi_transaction_t));
 
     // ST7789 initialization sequence
     send_cmd(ST7789_SWRESET);
@@ -178,19 +184,72 @@ void display_init(void)
 
 void display_write(const uint16_t *data, uint32_t len)
 {
-    // Copy to DMA buffer with byte swap (ESP32 is little-endian, ST7789 expects big-endian)
     size_t bytes = len * 2;
     if (bytes > DMA_BUFFER_SIZE) {
         bytes = DMA_BUFFER_SIZE;
     }
 
-    const uint8_t *src = (const uint8_t*)data;
-    for (size_t i = 0; i < bytes; i += 2) {
-        dma_buffer[i] = src[i + 1];
-        dma_buffer[i + 1] = src[i];
+    // Wait for previous transfer to complete
+    if (trans_pending) {
+        spi_transaction_t *rtrans;
+        spi_device_get_trans_result(spi_handle, &rtrans, portMAX_DELAY);
+        trans_pending = false;
     }
 
-    send_data_dma(dma_buffer, bytes);
+    // Copy to current DMA buffer with byte swap
+    uint8_t *dst = dma_buffer[current_buffer];
+    const uint8_t *src = (const uint8_t*)data;
+    for (size_t i = 0; i < bytes; i += 2) {
+        dst[i] = src[i + 1];
+        dst[i + 1] = src[i];
+    }
+
+    // Start async transfer
+    trans[current_buffer].length = bytes * 8;
+    trans[current_buffer].tx_buffer = dst;
+    trans[current_buffer].user = (void*)1;  // DC = 1 for data
+    spi_device_queue_trans(spi_handle, &trans[current_buffer], portMAX_DELAY);
+    trans_pending = true;
+
+    // Swap buffers
+    current_buffer = 1 - current_buffer;
+}
+
+void display_write_preswapped(const uint16_t *data, uint32_t len)
+{
+    // For pre-byte-swapped data - no copy needed, just DMA directly
+    size_t bytes = len * 2;
+    if (bytes > DMA_BUFFER_SIZE) {
+        bytes = DMA_BUFFER_SIZE;
+    }
+
+    // Wait for previous transfer
+    if (trans_pending) {
+        spi_transaction_t *rtrans;
+        spi_device_get_trans_result(spi_handle, &rtrans, portMAX_DELAY);
+        trans_pending = false;
+    }
+
+    // Copy to DMA buffer (data already byte-swapped)
+    memcpy(dma_buffer[current_buffer], data, bytes);
+
+    // Start async transfer
+    trans[current_buffer].length = bytes * 8;
+    trans[current_buffer].tx_buffer = dma_buffer[current_buffer];
+    trans[current_buffer].user = (void*)1;
+    spi_device_queue_trans(spi_handle, &trans[current_buffer], portMAX_DELAY);
+    trans_pending = true;
+
+    current_buffer = 1 - current_buffer;
+}
+
+void display_wait_done(void)
+{
+    if (trans_pending) {
+        spi_transaction_t *rtrans;
+        spi_device_get_trans_result(spi_handle, &rtrans, portMAX_DELAY);
+        trans_pending = false;
+    }
 }
 
 void display_fill(uint16_t color)
@@ -200,9 +259,9 @@ void display_fill(uint16_t color)
 
     display_set_window(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-    // Fill in chunks
+    // Fill in chunks using buffer 0
     size_t chunk_pixels = DMA_BUFFER_SIZE / 2;
-    uint16_t *buf = (uint16_t*)dma_buffer;
+    uint16_t *buf = (uint16_t*)dma_buffer[0];
     for (size_t i = 0; i < chunk_pixels; i++) {
         buf[i] = swapped;
     }
@@ -210,7 +269,7 @@ void display_fill(uint16_t color)
     size_t total_pixels = DISPLAY_WIDTH * DISPLAY_HEIGHT;
     while (total_pixels > 0) {
         size_t pixels = (total_pixels > chunk_pixels) ? chunk_pixels : total_pixels;
-        send_data_dma(dma_buffer, pixels * 2);
+        send_data_dma(dma_buffer[0], pixels * 2);
         total_pixels -= pixels;
     }
 }
