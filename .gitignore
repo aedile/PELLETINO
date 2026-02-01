@@ -2,24 +2,29 @@
 build/
 sdkconfig
 sdkconfig.old
+dependencies.lock
 
-# IDE
+# IDE and editors
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.bak
 
 # OS files
 .DS_Store
 Thumbs.db
+.directory
 
-# ROM files - DO NOT DISTRIBUTE
-# These must be extracted from original arcade hardware
-main/roms/*.h
-main/roms/*.bin
+# Documentation PDFs (datasheets, manuals)
+*.pdf
 
-# Original ROM files (if copied here)
+# ROM files - MUST BE OBTAINED LEGALLY
+# These files are NOT distributed with this project
+# See README.md for legal acquisition instructions
+
+# Original ROM files (if placed in project directory)
 *.6e
 *.6f
 *.6h
@@ -33,13 +38,16 @@ main/roms/*.bin
 82s123.*
 82s126.*
 pacman.*
+boot1
+boot2
+boot3
+boot4
+boot5
+boot6
 
-# Z80 emulator (must be downloaded separately)
-Z80.c
-Z80.h
-Z80-*.zip
-
-# Generated files from ROM conversion
+# Generated ROM header files
+main/roms/*.h
+main/roms/*.bin
 *_rom.h
 *_tilemap.h
 *_spritemap.h
@@ -47,3 +55,35 @@ Z80-*.zip
 *_wavetable.h
 *_logo.h
 tileaddr.h
+
+# Z80 emulator source (must be downloaded separately)
+# Download from: http://fms.komkon.org/EMUL8/
+components/z80_cpu/Z80.c
+components/z80_cpu/Z80.h
+components/z80_cpu/Z80-*.zip
+Z80.c
+Z80.h
+
+# Build logs
+*.log
+build_log.txt
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# ROM conversion output (if generated in tools/)
+tools/*.h
+tools/output/
+
+# User-specific configuration
+# Add your local paths/configs here, not in the repo
+local_config.h
+user_settings.h
