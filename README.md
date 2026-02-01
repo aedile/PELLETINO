@@ -10,6 +10,14 @@ A faithful recreation of the classic Pac-Man arcade game running on the ESP32-C6
 [![License](https://img.shields.io/badge/license-check_source-orange)](LICENSE)
 [![Hardware](https://img.shields.io/badge/hardware-ESP32--C6-green)](https://www.espressif.com/en/products/socs/esp32-c6)
 
+<p align="center">
+  <img src="model/20260201_063826_cropped.jpg" alt="PELLETINO Device" width="600"/>
+</p>
+
+<p align="center">
+  <em>Fully assembled PELLETINO Fiesta medal with 3D printed enclosure</em>
+</p>
+
 ## 🎮 Features
 
 - **Authentic Arcade Emulation**
@@ -100,9 +108,13 @@ A faithful recreation of the classic Pac-Man arcade game running on the ESP32-C6
 
 ### 3D Printable Enclosure
 
-🎨 **Print your own case!** The `model/` directory contains STL files and OpenSCAD source for a custom-designed press-fit enclosure:
+🎨 **Print your own case!** The `model/` directory contains STL files and device photos:
 
-- **Download ready-to-print STL**: Check the `model/` folder
+<p align="center">
+  <img src="model/20260201_063813.jpg" alt="PELLETINO Front View" width="400"/>
+</p>
+
+- **STL file**: `model/Konomi_Body_wiresandring.stl` - Ready to print!
 - **Reference design**: [MakerWorld - Waveshare ESP32-S3 Enclosure](https://makerworld.com/en/models/1619751-waveshare-esp32s3-1-69-lcd-enclosure#profileId-1709654) (similar form factor)
 - **Features**: Battery compartment, button access, speaker cavity, lanyard loop for wearing as Fiesta medal
 
