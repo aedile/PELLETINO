@@ -584,6 +584,7 @@ This project is not affiliated with, endorsed by, or sponsored by Bandai Namco E
 - **Marat Fayzullin** - Z80 CPU emulator core
 - **Espressif Systems** - ESP-IDF framework
 - **Namco** - Original Pac-Man arcade hardware and game design
+- **Claude Opus & Sonnet 4.5** - Coding and documentation assistance
 - **Community Contributors** - Bug reports, testing, and improvements
 
 ## 📜 License
