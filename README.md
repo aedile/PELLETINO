@@ -581,7 +581,7 @@ This project is not affiliated with, endorsed by, or sponsored by Bandai Namco E
 
 - **Till Harbaum** - [Galagino project](https://github.com/harbaum/galagino) for ROM conversion insights and ESP32 arcade emulation techniques
 - **MAME Development Team** - [MAME](https://www.mamedev.org/) hardware documentation and reference implementation
-- **Marat Fayzullin** - Z80 CPU emulator core
+- **Marat Fayzullin** - [Z80 CPU emulator core](http://fms.komkon.org/EMUL8/)
 - **Espressif Systems** - ESP-IDF framework
 - **Namco** - Original Pac-Man arcade hardware and game design
 - **Claude Opus & Sonnet 4.5** - Coding and documentation assistance
