@@ -170,8 +170,8 @@ void display_init(void) {
   send_cmd(ST7789_DISPON);
   vTaskDelay(pdMS_TO_TICKS(10));
 
-  // Set backlight
-  display_set_backlight(255);
+  // Set backlight to 60% for power saving (approx 153/255)
+  display_set_backlight(153);
 
   // Clear screen
   display_fill(0x0000);
