@@ -67,11 +67,6 @@ extern "C" void app_main(void) {
   ESP_LOGI(TAG, "Initializing display...");
   display_init();
 
-  // Play intro video at boot
-  ESP_LOGI(TAG, "Playing FIESTA intro video...");
-  play_fiesta_video();
-  ESP_LOGI(TAG, "Video playback complete");
-
   // Initialize audio (ES8311 + I2S)
   ESP_LOGI(TAG, "Initializing audio...");
   audio_init();
@@ -167,12 +162,11 @@ extern "C" void app_main(void) {
     // 7. Trigger VBLANK interrupt if enabled
     pacman_vblank_interrupt();
 
-    // 8. Check for game over and play video
-    if (check_game_over(pacman_get_memory())) {
-      ESP_LOGI(TAG, "Game Over! Playing FIESTA video...");
-      vTaskDelay(pdMS_TO_TICKS(1000)); // 1 second delay
+    // 8. Check for attract mode start (after arcade boot or after game over) and play video
+    if (check_attract_mode_start(pacman_get_memory())) {
+      ESP_LOGI(TAG, "Attract mode starting - playing FIESTA video...");
       play_fiesta_video();
-      ESP_LOGI(TAG, "Video complete");
+      ESP_LOGI(TAG, "Video complete, attract mode will continue");
     }
 
     // Frame timing - wait for 16.667ms total
