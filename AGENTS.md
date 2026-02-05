@@ -40,6 +40,9 @@ idf.py flash monitor
 # Monitor only
 idf.py monitor
 
+# Kill stuck monitor processes
+ps -eaf | grep "idf_monitor\|esp_idf" | grep -v grep | awk '{print $2}' | xargs kill 2>/dev/null
+
 # Clean build
 idf.py fullclean
 
