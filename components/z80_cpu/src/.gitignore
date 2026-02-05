@@ -1,0 +1,6 @@
+# Z80 emulator source files (Marat Fayzullin)
+# These should not be checked into the repository
+*.c
+*.h
+# Except our wrapper
+!z80_cpu.c
