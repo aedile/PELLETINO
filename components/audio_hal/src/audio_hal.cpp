@@ -239,3 +239,24 @@ void audio_set_power_state(bool enabled)
         ESP_LOGI(TAG, "Audio amplifier disabled (silence detected)");
     }
 }
+
+// Mute state for user-toggled mute
+static bool audio_muted = false;
+
+bool audio_toggle_mute(void)
+{
+    audio_muted = !audio_muted;
+    
+    if (audio_muted) {
+        // Mute by setting DAC volume to 0
+        es8311_write_reg(ES8311_REG_DAC_VOL, 0x00);
+        ESP_LOGI(TAG, "Audio muted");
+    } else {
+        // Unmute by restoring DAC volume
+        es8311_write_reg(ES8311_REG_DAC_VOL, 0xBF);
+        ESP_LOGI(TAG, "Audio unmuted");
+    }
+    
+    return audio_muted;
+}
+
