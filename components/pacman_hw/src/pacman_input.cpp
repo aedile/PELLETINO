@@ -6,6 +6,7 @@
 
 #include "pacman_input.h"
 #include "qmi8658.h"
+#include "audio_hal.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -23,8 +24,8 @@ static const char *TAG = "PACMAN_INPUT";
 #define TILT_THRESHOLD_ON   25   // Threshold to activate direction
 #define TILT_THRESHOLD_OFF  15   // Threshold to deactivate (hysteresis)
 
-// Power button long press threshold (in update cycles at ~60fps)
-#define PWR_LONG_PRESS_FRAMES  60  // ~1 second
+// Button long press threshold (in update cycles at ~60fps)
+#define LONG_PRESS_FRAMES  60  // ~1 second
 
 // Current input state
 static uint8_t current_buttons = 0;
@@ -39,8 +40,10 @@ static bool tilt_down_active = false;
 static bool tilt_left_active = false;
 static bool tilt_right_active = false;
 
-// Power button state for long press detection
+// Button state for long press detection
 static uint32_t pwr_press_counter = 0;
+static uint32_t boot_press_counter = 0;
+static bool boot_long_press_handled = false;  // Prevent repeated triggers
 
 void pacman_input_init(void)
 {
@@ -75,7 +78,7 @@ void pacman_input_init(void)
         ESP_LOGW(TAG, "IMU not available, using buttons only");
     }
 
-    ESP_LOGI(TAG, "Input initialized (BOOT=coin/start, PWR long-press=power off)");
+    ESP_LOGI(TAG, "Input initialized (BOOT short=coin/start, BOOT long=mute toggle, PWR long=power off)");
 }
 
 void pacman_input_update(void)
@@ -86,15 +89,28 @@ void pacman_input_update(void)
     bool boot_pressed = (gpio_get_level(PIN_BTN_BOOT) == 0);
     bool pwr_pressed = (gpio_get_level(PIN_BTN_PWR) == 0);
 
-    // BOOT button: Coin + Start (with timing)
+    // BOOT button: Short press = Coin + Start, Long press = Toggle sound
     if (boot_pressed) {
-        current_buttons |= BTN_COIN;
+        boot_press_counter++;
+        if (boot_press_counter == LONG_PRESS_FRAMES && !boot_long_press_handled) {
+            ESP_LOGI(TAG, "BOOT long press - toggling audio");
+            audio_toggle_mute();
+            boot_long_press_handled = true;  // Don't trigger again until released
+        }
+        // Only register as coin if not a long press
+        if (boot_press_counter < LONG_PRESS_FRAMES) {
+            current_buttons |= BTN_COIN;
+        }
+    } else {
+        // On release, if it was a short press, let the coin/start state machine handle it
+        boot_press_counter = 0;
+        boot_long_press_handled = false;
     }
 
     // PWR button: Long press to power off
     if (pwr_pressed) {
         pwr_press_counter++;
-        if (pwr_press_counter == PWR_LONG_PRESS_FRAMES) {
+        if (pwr_press_counter == LONG_PRESS_FRAMES) {
             ESP_LOGI(TAG, "Power button long press - shutting down");
             gpio_set_level(PIN_BAT_EN, 0);  // Cut power
             // Device will power off if on battery
