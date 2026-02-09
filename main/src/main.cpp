@@ -151,12 +151,12 @@ extern "C" void app_main(void) {
       if (current_brightness != DISPLAY_BRIGHTNESS_IDLE) {
         display_set_backlight(DISPLAY_BRIGHTNESS_IDLE);
         current_brightness = DISPLAY_BRIGHTNESS_IDLE;
-        ESP_LOGI(TAG, "Backlight dimmed to 30%% (idle)");
+        ESP_LOGI(TAG, "Backlight dimmed to 25%% (idle)");
       }
     } else if (current_brightness != DISPLAY_BRIGHTNESS_ACTIVE) {
       display_set_backlight(DISPLAY_BRIGHTNESS_ACTIVE);
       current_brightness = DISPLAY_BRIGHTNESS_ACTIVE;
-      ESP_LOGI(TAG, "Backlight restored to 60%% (active)");
+      ESP_LOGI(TAG, "Backlight restored to 50%% (active)");
     }
 
     // 7. Trigger VBLANK interrupt if enabled
