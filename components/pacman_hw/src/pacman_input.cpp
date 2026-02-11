@@ -96,6 +96,11 @@ void pacman_input_update(void)
     if (boot_pressed) {
         boot_press_counter++;
         
+        // Debug: Log counter progress
+        if (boot_press_counter % 30 == 0) { // Every 0.5 seconds
+            ESP_LOGI(TAG, "BOOT button held: %lu frames", boot_press_counter);
+        }
+        
         // Check for long press (mute toggle)
         if (boot_press_counter == BOOT_LONG_PRESS_FRAMES && !boot_long_press_triggered) {
             boot_long_press_triggered = true;
@@ -118,6 +123,9 @@ void pacman_input_update(void)
             current_buttons |= BTN_COIN;
         }
     } else {
+        if (boot_press_counter > 0) {
+            ESP_LOGI(TAG, "BOOT button released at %lu frames (needed %d)", boot_press_counter, BOOT_LONG_PRESS_FRAMES);
+        }
         boot_press_counter = 0;
         boot_long_press_triggered = false;
     }
