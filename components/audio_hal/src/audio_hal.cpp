@@ -206,6 +206,13 @@ uint8_t* audio_get_sound_registers(void)
 void audio_set_mute(bool muted)
 {
     audio_muted = muted;
+    
+    // Power off amplifier when muting to save battery
+    if (muted) {
+        audio_set_power_state(false);
+    }
+    // Note: When unmuting, let the main loop handle amplifier power based on audio activity
+    
     ESP_LOGI(TAG, "Audio mute: %s", muted ? "ON" : "OFF");
 }
 

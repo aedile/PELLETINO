@@ -130,6 +130,9 @@ extern "C" void app_main(void) {
     pacman_poll_input();
 
     // 5. Battery optimization: Detect audio silence and power down amplifier
+    // Also respect mute state - keep amplifier off when muted
+    extern bool audio_get_mute(void);
+    bool is_muted = audio_get_mute();
     bool is_silent = true;
     uint8_t* sound_regs = audio_get_sound_registers();
     for (int ch = 0; ch < 3; ch++) {
@@ -139,7 +142,14 @@ extern "C" void app_main(void) {
       }
     }
 
-    if (is_silent) {
+    // When muted, always keep amplifier off
+    if (is_muted) {
+      if (audio_powered) {
+        audio_set_power_state(false);
+        audio_powered = false;
+      }
+      silence_frames = 0; // Reset counter
+    } else if (is_silent) {
       silence_frames++;
       if (silence_frames == SILENCE_THRESHOLD && audio_powered) {
         audio_set_power_state(false);
