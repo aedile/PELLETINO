@@ -20,6 +20,9 @@ static uint8_t sound_regs[32] = {0};
 // Audio sample buffer (unsigned 16-bit for ES8311)
 static uint16_t sample_buffer[AUDIO_BUFFER_SIZE];
 
+// Mute state
+static bool audio_muted = false;
+
 // I2S handle
 static i2s_chan_handle_t i2s_tx_handle = nullptr;
 
@@ -162,6 +165,13 @@ void audio_init(void)
 
 void audio_update(void)
 {
+    if (audio_muted) {
+        // Output silence when muted
+        memset(sample_buffer, 0, sizeof(sample_buffer));
+        audio_transmit();
+        return;
+    }
+    
     // Parse current sound register state
     wsg_parse_registers(sound_regs);
 
@@ -191,4 +201,69 @@ void audio_set_volume(uint8_t volume)
 uint8_t* audio_get_sound_registers(void)
 {
     return sound_regs;
+}
+
+void audio_set_mute(bool muted)
+{
+    audio_muted = muted;
+    
+    // Power off amplifier when muting to save battery
+    if (muted) {
+        audio_set_power_state(false);
+    }
+    // Note: When unmuting, let the main loop handle amplifier power based on audio activity
+    
+    ESP_LOGI(TAG, "Audio mute: %s", muted ? "ON" : "OFF");
+}
+
+bool audio_get_mute(void)
+{
+    return audio_muted;
+}
+
+void audio_set_power_state(bool enabled)
+{
+    if (enabled) {
+        // Power up ES8311 - need to restore full codec configuration for I2S sync
+        
+        // Clock manager - critical for I2S synchronization
+        es8311_write_reg(0x01, 0x3F);  // CLK Manager 1
+        es8311_write_reg(0x02, 0x00);  // CLK Manager 2
+        es8311_write_reg(0x03, 0x10);  // CLK Manager 3
+        es8311_write_reg(0x04, 0x10);  // CLK Manager 4
+        es8311_write_reg(0x05, 0x00);  // CLK Manager 5
+        es8311_write_reg(0x06, 0x03);  // CLK Manager 6
+        es8311_write_reg(0x07, 0x00);  // CLK Manager 7
+        es8311_write_reg(0x08, 0xFF);  // CLK Manager 8
+        
+        // Serial data port configuration (I2S format)
+        es8311_write_reg(ES8311_REG_SDPOUT, 0x00);  // 16-bit I2S
+        es8311_write_reg(ES8311_REG_SDPIN, 0x00);
+        
+        // System control and power
+        es8311_write_reg(ES8311_REG_SYS_CTRL, 0x00);
+        es8311_write_reg(0x0E, 0x02);  // System Control 2
+        es8311_write_reg(0x0F, 0x44);  // System Control 3
+        es8311_write_reg(0x10, 0x0C);  // System Power
+        es8311_write_reg(0x11, 0x00);  // System Power
+        
+        // DAC settings (critical for audio output)
+        es8311_write_reg(0x12, 0x00);
+        es8311_write_reg(0x13, 0x10);  // ADC/DAC config
+        es8311_write_reg(0x14, 0x10);
+        es8311_write_reg(ES8311_REG_DAC_VOL, 0xBF);  // DAC volume (fairly loud)
+        
+        // Enable DAC
+        es8311_write_reg(0x00, 0x80);  // Reset cleared, chip active
+        es8311_write_reg(0x01, 0x3F);  // Clocks enabled
+        
+        vTaskDelay(pdMS_TO_TICKS(10));  // Small delay for codec to stabilize
+        
+        ESP_LOGI(TAG, "Audio amplifier enabled");
+    } else {
+        // Power down ES8311 to save battery
+        es8311_write_reg(0x01, 0x00);  // Clocks disabled
+        es8311_write_reg(0x00, 0x00);  // Chip in low-power mode
+        ESP_LOGI(TAG, "Audio amplifier disabled (silence detected)");
+    }
 }

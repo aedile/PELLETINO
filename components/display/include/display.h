@@ -82,6 +82,10 @@ void display_fill(uint16_t color);
  */
 void display_set_backlight(uint8_t brightness);
 
+// Brightness levels for adaptive power management
+#define DISPLAY_BRIGHTNESS_ACTIVE  128  // 50% for active gameplay
+#define DISPLAY_BRIGHTNESS_IDLE    64   // 25% for idle/attract mode
+
 #ifdef __cplusplus
 }
 #endif
