@@ -86,6 +86,8 @@ A faithful recreation of the classic Pac-Man arcade game running on the ESP32-C6
 
 **Target Platform:** [Waveshare ESP32-C6-LCD-1.69](https://www.waveshare.com/esp32-c6-lcd-1.69.htm)
 
+**📖 Detailed Hardware Documentation:** See [`docs/HARDWARE.md`](docs/HARDWARE.md) for complete pinouts, schematics, and connection details.
+
 | Component | Specification |
 |-----------|---------------|
 | **MCU** | ESP32-C6 RISC-V @ 160MHz |
@@ -131,27 +133,34 @@ PELLETINO uses a single-core design optimized for the ESP32-C6's 160MHz RISC-V p
 ```mermaid
 graph TB
     subgraph "ESP32-C6 Main Loop @ 60Hz"
-        A[Z80 CPU Emulation] --> B[Memory & I/O]
-        B --> C[Tile Rendering]
-        C --> D[Sprite Rendering]
-        D --> E[Audio Synthesis]
-        E --> F[Input Polling]
+        A[Z80 CPU Emulation<br/>3MHz, ~50K cycles/frame] --> B[Memory & I/O]
+        B --> C[Tile Rendering<br/>224×288 → 240×280]
+        C --> D[Sprite Rendering<br/>64 sprites, 16×16]
+        D --> E[Audio Synthesis<br/>Namco WSG 3-voice]
+        E --> F[Input Polling<br/>GPIO + IMU]
         F --> A
     end
     
-    C --> G[SPI DMA]
-    G --> H[ST7789 LCD<br/>240×280]
+    C --> G[SPI DMA<br/>40MHz, 14-row chunks]
+    G --> H[ST7789 LCD<br/>240×280 RGB565]
     
-    E --> I[I2S DMA]
+    E --> I[I2S DMA<br/>20.05kHz stereo]
     I --> J[ES8311 Codec<br/>Audio Out]
     
-    F --> K[GPIO Buttons]
-    F --> L[QMI8658 IMU<br/>Tilt Control]
+    F --> K[GPIO Buttons<br/>BOOT=coin/start]
+    F --> L[QMI8658 IMU<br/>Tilt Control ±2g]
     
     style A fill:#e1f5ff
     style H fill:#ffe1e1
     style J fill:#e1ffe1
 ```
+
+**Z80 CPU Emulation:**
+- **Core:** Marat Fayzullin's portable Z80 emulator
+- **Speed:** 3MHz (original Pac-Man arcade speed)
+- **Accuracy:** Cycle-accurate instruction execution
+- **Integration:** Runs ~50,000 Z80 cycles per frame (60Hz)
+- **Memory:** 64KB address space with custom memory mapping for ROM/RAM
 
 ### Component Architecture
 
@@ -164,17 +173,18 @@ graph LR
         B[display] --> B1[ST7789 Driver]
         B --> B2[DMA Controller]
         
-        C[input] --> C1[GPIO Buttons]
-        C --> C2[IMU Driver]
+        C[pacman_hw] --> C1[GPIO Buttons]
+        C --> C2[IMU Tilt Sensor]
+        C --> C3[Memory Mapping]
+        C --> C4[I/O Ports]
     end
     
     subgraph "Emulation Core"
-        D[z80_cpu] --> D1[Z80 Emulator]
+        D[z80_cpu] --> D1[Z80 Emulator<br/>Marat Fayzullin]
         D1 --> D2[Instruction Decoder]
         
-        E[pacman_hw] --> E1[Memory Map]
-        E --> E2[I/O Ports]
-        E --> E3[Interrupts]
+        E[pacman_hw] --> E1[Hardware Simulation]
+        E --> E2[Interrupt Controller]
     end
     
     D --> E
@@ -193,10 +203,15 @@ graph LR
 
 2. **Python 3.8+**
    - Required for ROM conversion scripts
-   - Pillow library for image processing: `pip install pillow`
+   - Standard library only (no additional packages needed)
 
 3. **Git**
    - For cloning the repository
+
+4. **Z80 CPU Emulator**
+   - **Source:** Marat Fayzullin's Z80 emulator (included in `components/z80_cpu/`)
+   - **License:** Freeware for non-commercial use
+   - **No additional setup required** - already integrated into the project
 
 ### ROM Acquisition
 
@@ -267,20 +282,31 @@ git clone https://github.com/jesse-r-castro/PELLETINO.git
 cd PELLETINO
 ```
 
-#### Step 2: Convert ROM Files
+#### Z80 CPU Emulator Setup
 
-Place your ROM files in the `tools/` directory:
+**IMPORTANT:** The Z80 CPU emulator must be downloaded separately:
+
+- **Source:** Marat Fayzullin's portable Z80 emulator
+- **Download:** http://fms.komkon.org/EMUL8/
+- **Files needed:** `Z80.c`, `Z80.h`, `Tables.h`, and opcode table files
+- **Installation:** Place files in `components/z80_cpu/src/` directory
+- **License:** Freeware for non-commercial use (see credits section)
+
+The emulator provides cycle-accurate Z80 CPU simulation running at the original Pac-Man arcade speed of 3MHz.
+
+Place your ROM files in the `../rom/` directory (relative to project root):
 
 ```bash
-cd tools
-# Copy your ROM files here
-cp /path/to/your/roms/*.{6e,6f,6h,6j,5e,5f,7f,4a,1m,3m} .
+# From project root, ROMs go here:
+cd ../rom/
+# Copy your ROM files here (see required files list above)
 
-# Run the conversion script
-python3 convert_roms.py
-
-# This generates C header files in ../main/roms/
+# Return to project and run conversion
+cd PELLETINO
+python3 tools/convert_roms.py
 ```
+
+**Note:** The default ROM directory is `../../../rom/` from the tools directory, which resolves to `../rom/` from the project root.
 
 The conversion script will:
 - Validate ROM file sizes and checksums
@@ -314,10 +340,29 @@ Converting sound PROMs...
   - main/roms/pacman_wavetable.h
 ```
 
+#### Step 2.5: (Optional) Optimize FIESTA Video
+
+The project includes video optimization tools for the FIESTA intro video:
+
+```bash
+cd movie
+
+# Analyze optimal quality vs size tradeoffs
+./find_optimal_video.sh
+
+# Generate optimized video (adjusts quality automatically)
+./make_fiesta.sh Pac_Man_Fiesta_Float_Animation.mp4 3000
+```
+
+This generates `fiesta_data.h` with the compressed MJPEG video data.
+
 #### Step 3: Configure ESP-IDF
 
 ```bash
 cd ..  # Return to project root
+
+# Source ESP-IDF environment (adjust path as needed)
+source ~/esp/esp-idf/export.sh
 
 # Set ESP32-C6 as target
 idf.py set-target esp32c6
@@ -382,6 +427,11 @@ After flashing, the device will boot into Pac-Man:
 
 ### Quick Build Commands Reference
 
+**Note:** All commands require ESP-IDF environment to be sourced first:
+```bash
+source ~/esp/esp-idf/export.sh  # Adjust path as needed
+```
+
 ```bash
 # Full build and flash cycle
 idf.py build flash monitor
@@ -421,20 +471,25 @@ PELLETINO/
 │   ├── display/               # ST7789 LCD driver
 │   │   ├── st7789.c           # Display controller
 │   │   └── dma_spi.c          # DMA-accelerated SPI
-│   ├── z80_cpu/               # Z80 emulator wrapper
-│   │   ├── z80.c              # CPU core (Marat Fayzullin)
-│   │   └── z80_wrapper.c      # Integration layer
+│   ├── z80_cpu/               # Z80 emulator (Marat Fayzullin)
+│   │   ├── Z80.c              # CPU core implementation (download separately)
+│   │   ├── Z80.h              # CPU core header (download separately)
+│   │   └── z80_wrapper.c      # ESP32-C6 integration
 │   ├── pacman_hw/             # Pac-Man hardware emulation
-│   │   ├── memory_map.c       # Address space mapping
-│   │   ├── io_ports.c         # I/O port handlers
-│   │   └── interrupts.c       # Interrupt controller
-│   └── input/                 # Input handling
-│       ├── gpio_buttons.c     # Button driver
-│       └── imu_tilt.c         # IMU-based controls
+│   │   ├── pacman_hw.cpp      # Hardware abstraction
+│   │   ├── pacman_input.cpp   # GPIO + IMU input handling
+│   │   ├── pacman_video.cpp   # Tile/sprite rendering
+│   │   └── qmi8658.cpp        # IMU tilt sensor driver
+│   └── input/                 # (Deprecated - merged into pacman_hw)
 │
 ├── tools/                     # Build tools
 │   ├── convert_roms.py        # ROM converter
 │   └── verify_checksums.py    # ROM validator
+│
+├── movie/                     # FIESTA video tools
+│   ├── make_fiesta.sh         # Video encoder/optimizer
+│   ├── find_optimal_video.sh  # Quality/size analysis
+│   └── fiesta_data.h          # Generated video header
 │
 ├── docs/                      # Documentation
 │   ├── HARDWARE.md            # Hardware connections
@@ -445,9 +500,6 @@ PELLETINO/
 ├── sdkconfig.defaults         # ESP-IDF defaults
 ├── partitions.csv             # Flash partition table
 └── .gitignore                 # Excludes ROMs and builds
-```
-
-## ⚙️ Configuration
 
 ### Display Settings
 
@@ -471,12 +523,12 @@ Edit `components/audio_hal/include/wsg_synth.h`:
 
 ### Input Configuration
 
-Edit `components/input/include/input_config.h`:
+Edit `components/pacman_hw/src/pacman_input.h`:
 
 ```c
-#define BUTTON_BOOT_GPIO 9
-#define BUTTON_PWR_GPIO 18
-#define IMU_ENABLED 1            // Set to 0 to disable tilt
+#define PIN_BTN_BOOT    GPIO_NUM_9    // BOOT button
+#define PIN_BTN_PWR     GPIO_NUM_18   // PWR button
+#define IMU_ENABLED     1             // Set to 0 to disable tilt
 ```
 
 ### Memory Optimization
@@ -580,7 +632,10 @@ This project requires original Pac-Man ROM files which are **NOT included** and 
 
 ### Third-Party Code
 
-- **Z80 Emulator** by Marat Fayzullin (freeware for non-commercial use)
+- **Z80 CPU Emulator** by Marat Fayzullin ([http://fms.komkon.org/EMUL8/](http://fms.komkon.org/EMUL8/))
+  - Located in `components/z80_cpu/src/` (Z80.c, Tables.h, etc.)
+  - Freeware license for non-commercial use
+  - Provides cycle-accurate Z80 CPU emulation at 3MHz for authentic Pac-Man gameplay
 - **[Galagino](https://github.com/harbaum/galagino)** by Till Harbaum - Reference implementation patterns for arcade emulation on ESP32
 - **[MAME](https://www.mamedev.org/)** - Reference documentation for Pac-Man hardware specifications
 - **ESP-IDF** by Espressif Systems (Apache 2.0 License)
