@@ -22,6 +22,12 @@
 #include "pacman_input.h"
 #include "qmi8658.h"
 #include "z80_cpu.h"
+#include "nvs_flash.h"
+#include "esp_wifi.h"
+#ifdef CONFIG_BT_ENABLED
+#include "esp_bt.h"
+#include "esp_bt_main.h"
+#endif
 
 // Forward declare video player
 extern "C" int play_fiesta_video(void);
@@ -72,6 +78,31 @@ extern "C" void app_main(void) {
 #if !PELLETINO_DEBUG
   esp_log_level_set("*", ESP_LOG_NONE);
 #endif
+
+  // Initialize NVS (required for WiFi/BT)
+  esp_err_t ret = nvs_flash_init();
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    ret = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(ret);
+
+  // Initialize and stop WiFi (to force PHY power and clock gating off)
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  if (esp_wifi_init(&cfg) == ESP_OK) {
+      esp_wifi_stop();
+      esp_wifi_deinit();
+  }
+
+  // Initialize and stop BT (if enabled in sdkconfig)
+#ifdef CONFIG_BT_ENABLED
+  esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+  if (esp_bt_controller_init(&bt_cfg) == ESP_OK) {
+      esp_bt_controller_disable();
+      esp_bt_controller_deinit();
+  }
+#endif
+
   ESP_LOGI(TAG, "PELLETINO starting - %s", GAME_NAME);
   ESP_LOGI(TAG, "Free heap: %lu bytes", esp_get_free_heap_size());
 
