@@ -22,9 +22,12 @@
 #include "pacman_input.h"
 #include "qmi8658.h"
 #include "z80_cpu.h"
-
-// Forward declare video player
-extern "C" int play_fiesta_video(void);
+#include "nvs_flash.h"
+#include "esp_wifi.h"
+#ifdef CONFIG_BT_ENABLED
+#include "esp_bt.h"
+#include "esp_bt_main.h"
+#endif
 
 // Game selection - uncomment one:
 #define GAME_PACMAN
@@ -57,6 +60,9 @@ extern "C" int play_fiesta_video(void);
 #define GAME_WAVETABLE pacman_wavetable
 #endif
 
+// Debug logging flag - set to 1 for serial output, 0 for silent (battery saving)
+#define PELLETINO_DEBUG 0
+
 static const char *TAG = "PELLETINO";
 
 // Frame timing
@@ -66,6 +72,34 @@ static constexpr uint32_t FRAME_TIME_US = 16667; // 60 Hz = 16.667ms
 static bool running = false;
 
 extern "C" void app_main(void) {
+#if !PELLETINO_DEBUG
+  esp_log_level_set("*", ESP_LOG_NONE);
+#endif
+
+  // Initialize NVS (required for WiFi/BT)
+  esp_err_t ret = nvs_flash_init();
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    ret = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(ret);
+
+  // Initialize and stop WiFi (to force PHY power and clock gating off)
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  if (esp_wifi_init(&cfg) == ESP_OK) {
+      esp_wifi_stop();
+      esp_wifi_deinit();
+  }
+
+  // Initialize and stop BT (if enabled in sdkconfig)
+#ifdef CONFIG_BT_ENABLED
+  esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+  if (esp_bt_controller_init(&bt_cfg) == ESP_OK) {
+      esp_bt_controller_disable();
+      esp_bt_controller_deinit();
+  }
+#endif
+
   ESP_LOGI(TAG, "PELLETINO starting - %s", GAME_NAME);
   ESP_LOGI(TAG, "Free heap: %lu bytes", esp_get_free_heap_size());
 
@@ -99,7 +133,6 @@ extern "C" void app_main(void) {
   running = true;
   uint64_t frame_start;
   uint64_t frame_count = 0;
-  bool game_over_video_played = false;
 
   // Battery optimization: Audio silence detection
   uint32_t silence_frames = 0;
@@ -166,7 +199,8 @@ extern "C" void app_main(void) {
     // 6. Battery optimization: CPU frequency scaling
     // Check game state to determine if actively playing
     const uint8_t* memory = pacman_get_memory();
-    bool is_playing = (memory && memory[0x4E77] != 0); // Lives count - nonzero means active game
+    uint8_t game_mode = memory ? memory[PACMAN_ADDR_GAME_STATE - 0x4000] : 0;
+    bool is_playing = (game_mode >= 0x02);  // 0x01=attract, 0x02+=active game
     
     if (is_playing && cpu_low_power) {
       // Switch to high performance for gameplay
@@ -183,7 +217,7 @@ extern "C" void app_main(void) {
       esp_pm_config_t pm_config = {
         .max_freq_mhz = 80,
         .min_freq_mhz = 80,
-        .light_sleep_enable = false
+        .light_sleep_enable = true
       };
       esp_pm_configure(&pm_config);
       cpu_low_power = true;
@@ -191,7 +225,12 @@ extern "C" void app_main(void) {
     }
 
     // 7. Battery optimization: Adaptive backlight dimming
-    idle_frames++;
+    // Reset idle counter when actively playing (game mode >= 0x02)
+    if (is_playing) {
+      idle_frames = 0;
+    } else {
+      idle_frames++;
+    }
     if (idle_frames >= IDLE_DIM_THRESHOLD) {
       if (current_brightness != DISPLAY_BRIGHTNESS_IDLE) {
         display_set_backlight(DISPLAY_BRIGHTNESS_IDLE);
@@ -207,17 +246,13 @@ extern "C" void app_main(void) {
     // 8. Trigger VBLANK interrupt if enabled
     pacman_vblank_interrupt();
 
-    // 9. Check for attract mode start (after arcade boot or after game over) and play video
-    if (check_attract_mode_start(pacman_get_memory())) {
-      ESP_LOGI(TAG, "Attract mode starting - playing FIESTA video...");
-      play_fiesta_video();
-      ESP_LOGI(TAG, "Video complete, attract mode will continue");
-    }
-
-    // Frame timing - wait for 16.667ms total
+    // Frame timing - wait for 16.667ms total (60fps) or 33.333ms (30fps) for attract mode
     uint64_t elapsed = esp_timer_get_time() - frame_start;
-    if (elapsed < FRAME_TIME_US) {
-      vTaskDelay(pdMS_TO_TICKS((FRAME_TIME_US - elapsed) / 1000));
+    // Target 60fps for gameplay, 30fps for attract mode to save power
+    uint32_t target_frame_time = is_playing ? FRAME_TIME_US : (FRAME_TIME_US * 2);
+
+    if (elapsed < target_frame_time) {
+      vTaskDelay(pdMS_TO_TICKS((target_frame_time - elapsed) / 1000));
     }
 
     frame_count++;
