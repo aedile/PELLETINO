@@ -2,7 +2,7 @@
 
 **The Official 2026 Fiesta San Antonio Pac-Man Medal**
 
-🎮 Congratulations! You have a fully functional Pac-Man arcade game on a wearable [Fiesta medal](https://fiestamedals.saflavor.com/best-fiesta-medal-guide/)! This isn't just a collectible pin—it's a complete handheld game system featuring authentic arcade gameplay, the FIESTA intro video, and hours of entertainment.
+🎮 Congratulations! You have a fully functional Pac-Man arcade game on a wearable [Fiesta medal](https://fiestamedals.saflavor.com/best-fiesta-medal-guide/)! This isn't just a collectible pin—it's a complete handheld game system featuring authentic arcade gameplay and hours of entertainment.
 
 <p align="center">
   <img src="photos/FIESTA_MEDAL_2026_ASSEMBLED.png" alt="PELLETINO 2026 Fiesta Medal" width="600"/>
@@ -21,14 +21,13 @@
 ### How to Play
 
 **Controls:**
-- **BOOT Button (side button):** Insert coin / Start game
+- **TOP Button:** Long press to turn off/on.  
+- **Middle Button:** Insert coin / Start game.  Long press to mute/unmute audio.
+- **Bottom Button:** Reset
 - **Tilt the medal:** Move Pac-Man up, down, left, right
-- **Long press BOOT (1.5s):** Mute/unmute audio
 
 **Gameplay:**
-1. Watch the FIESTA intro video on power-up
-2. Press BOOT to insert a coin
-3. Press BOOT again to start the game
+1. Press the MIDDLE button to insert a coin and start the game
 4. Tilt the medal to guide Pac-Man through the maze
 5. Eat all the dots to advance levels
 6. Avoid ghosts (or eat them after grabbing a power pellet!)
@@ -49,7 +48,7 @@
 
 **Medal won't turn on:**
 - Charge via USB-C for at least 30 minutes
-- Try pressing the PWR button
+- Try long-pressing the PWR button
 
 **Screen is dim or flickering:**
 - Charge the battery—low voltage can affect display brightness
@@ -59,7 +58,7 @@
 - Ensure you're tilting with enough angle (±20-30°)
 
 **No sound:**
-- Check that mute isn't enabled (long press BOOT to toggle)
+- Check that mute isn't enabled (long press MIDDLE to toggle)
 - Verify speaker connections if self-assembled
 
 ---
