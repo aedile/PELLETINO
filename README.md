@@ -4,6 +4,8 @@
 
 A faithful recreation of the classic Pac-Man arcade game running on the ESP32-C6 microcontroller. Features authentic Z80 emulation, Namco WSG audio synthesis, smooth 60 FPS gameplay on a 240×280 ST7789 LCD display, and tilt-based controls via IMU sensor.
 
+> **🎉 Project Origins:** PELLETINO was originally created as the [Official 2026 Fiesta San Antonio Medal](https://fiestasanantonio.org/), a wearable collectible pin with full arcade functionality. The Fiesta-specific version with intro video and custom branding is preserved in the [`FIESTA` branch](https://github.com/jesse-r-castro/PELLETINO/tree/FIESTA).
+
 <p align="center">
   <a href="https://github.com/espressif/esp-idf"><img src="https://img.shields.io/badge/ESP--IDF-v5.x-blue" alt="ESP-IDF"></a>
   <a href="https://www.espressif.com/en/products/socs/esp32-c6"><img src="https://img.shields.io/badge/hardware-ESP32--C6-green" alt="Hardware"></a>
@@ -620,6 +622,10 @@ See [LICENSE](LICENSE) file for details.
 
 <p align="center">
   <strong>Enjoy the classic arcade experience! 🎮👾</strong>
+  <br><br>
+  <em>Looking for the 2026 Fiesta medal version?</em>
+  <br>
+  Check out the <a href="https://github.com/jesse-r-castro/PELLETINO/tree/FIESTA">FIESTA branch</a>
   <br><br>
   <em>Questions? Found a bug? Want to contribute?</em>
   <br>
