@@ -225,9 +225,12 @@ bool audio_get_mute(void)
 void audio_set_power_state(bool enabled)
 {
     if (enabled) {
-        // Re-enable I2S channel first (clocks must be running before codec init)
-        if (i2s_tx_handle) {
-            i2s_channel_enable(i2s_tx_handle);
+        // Re-enable I2S channel (if deleted)
+        if (!i2s_tx_handle) {
+            i2s_init();
+        } else {
+             // Just in case it was disabled but not deleted (shouldn't happen with current logic)
+             i2s_channel_enable(i2s_tx_handle);
         }
         
         // Power up ES8311 - need to restore full codec configuration for I2S sync
@@ -273,9 +276,11 @@ void audio_set_power_state(bool enabled)
         es8311_write_reg(0x01, 0x00);  // Clocks disabled
         es8311_write_reg(0x00, 0x00);  // Chip in low-power mode
         
-        // Disable I2S channel to stop MCLK/BCLK/LRCK toggling
+        // Disable and DELETE I2S channel to release power lock
         if (i2s_tx_handle) {
             i2s_channel_disable(i2s_tx_handle);
+            i2s_del_channel(i2s_tx_handle);
+            i2s_tx_handle = nullptr;
         }
         
         ESP_LOGI(TAG, "Audio + I2S disabled (silence detected)");
