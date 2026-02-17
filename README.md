@@ -48,7 +48,7 @@
 
 **Medal won't turn on:**
 - Charge via USB-C for at least 30 minutes
-- Try long-pressing the TOPbutton
+- Try long-pressing the TOP button
 
 **Screen is dim or flickering:**
 - Charge the battery—low voltage can affect display brightness
