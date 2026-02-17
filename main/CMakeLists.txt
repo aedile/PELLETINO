@@ -16,4 +16,10 @@ idf_component_register(
         display
         z80_cpu
         pacman_hw
+        nvs_flash
+        esp_wifi
+        esp_event
+        esp_netif
+        esp_phy
+        bt
 )
