@@ -22,8 +22,8 @@
 
 **Controls:**
 - **TOP Button:** Long press to turn off/on.  
-- **Middle Button:** Insert coin / Start game.  Long press to mute/unmute audio.
-- **Bottom Button:** Reset
+- **MIDDLE Button:** Insert coin / Start game.  Long press to mute/unmute audio.
+- **BOTTOM Button:** Reset
 - **Tilt the medal:** Move Pac-Man up, down, left, right
 
 **Gameplay:**
@@ -48,7 +48,7 @@
 
 **Medal won't turn on:**
 - Charge via USB-C for at least 30 minutes
-- Try long-pressing the PWR button
+- Try long-pressing the TOPbutton
 
 **Screen is dim or flickering:**
 - Charge the battery—low voltage can affect display brightness
