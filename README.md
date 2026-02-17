@@ -1,88 +1,134 @@
 # PELLETINO
 
-**Pac-Man Arcade Emulator for ESP32-C6**
+**The Official 2026 Fiesta San Antonio Pac-Man Medal**
 
-A faithful recreation of the classic Pac-Man arcade game running on the ESP32-C6 microcontroller, featuring authentic Z80 emulation, Namco WSG audio synthesis, and smooth 60 FPS gameplay on a 240×280 ST7789 LCD display.
-
-**Official 2026 Fiesta San Antonio Medal** - This project doubles as a wearable [Fiesta medal](https://fiestamedals.saflavor.com/best-fiesta-medal-guide/), celebrating [Fiesta San Antonio](https://fiestasanantonio.org/)'s tradition of unique, collectible pins with a fully functional handheld game!
-
-[![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v5.x-blue)](https://github.com/espressif/esp-idf)
-[![License](https://img.shields.io/badge/license-check_source-orange)](LICENSE)
-[![Hardware](https://img.shields.io/badge/hardware-ESP32--C6-green)](https://www.espressif.com/en/products/socs/esp32-c6)
+🎮 Congratulations! You have a fully functional Pac-Man arcade game on a wearable [Fiesta medal](https://fiestamedals.saflavor.com/best-fiesta-medal-guide/)! This isn't just a collectible pin—it's a complete handheld game system featuring authentic arcade gameplay and hours of entertainment.
 
 <p align="center">
-  <img src="model/20260201_063826_cropped.jpg" alt="PELLETINO Device" width="600"/>
+  <img src="photos/FIESTA_MEDAL_2026_ASSEMBLED.png" alt="PELLETINO 2026 Fiesta Medal" width="600"/>
 </p>
 
 <p align="center">
-  <em>Fully assembled PELLETINO Fiesta medal with 3D printed enclosure</em>
+  <a href="https://github.com/espressif/esp-idf"><img src="https://img.shields.io/badge/ESP--IDF-v5.x-blue" alt="ESP-IDF"></a>
+  <a href="https://www.espressif.com/en/products/socs/esp32-c6"><img src="https://img.shields.io/badge/hardware-ESP32--C6-green" alt="Hardware"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-check_source-orange" alt="License"></a>
 </p>
 
-## 🎮 Features
+---
 
-- **Authentic Arcade Emulation**
-  - Full Z80 CPU emulation at original arcade speeds
-  - Accurate Namco Pac-Man hardware simulation
-  - Original game logic and behavior preserved
+## 🎮 Quick Start Guide
 
-- **High-Performance Graphics**
-  - ST7789 240×280 LCD display (near-perfect fit for 224×288 game)
-  - SPI DMA for smooth 60 FPS rendering
-  - Hardware-accelerated sprite and tile rendering
+### How to Play
 
-- **Authentic Audio**
-  - ES8311 I2S codec with Namco WSG wavetable synthesis
-  - All original sound effects: waka-waka, ghost chomps, fruit collection
-  - Background music and intermission tunes
+**Controls:**
+- **TOP Button:** Long press to turn off/on.  
+- **MIDDLE Button:** Insert coin / Start game.  Long press to mute/unmute audio.
+- **BOTTOM Button:** Reset
+- **Tilt the medal:** Move Pac-Man up, down, left, right
 
-- **Flexible Controls**
-  - GPIO button input
-  - Optional QMI8658 IMU tilt control
-  - Responsive, arcade-accurate gameplay
+**Gameplay:**
+1. Press the MIDDLE button to insert a coin and start the game
+4. Tilt the medal to guide Pac-Man through the maze
+5. Eat all the dots to advance levels
+6. Avoid ghosts (or eat them after grabbing a power pellet!)
 
-## 📋 Table of Contents
+### Charging Your PELLETINO
 
-- [PELLETINO](#pelletino)
-  - [🎮 Features](#-features)
-  - [📋 Table of Contents](#-table-of-contents)
-  - [🔧 Hardware Requirements](#-hardware-requirements)
-    - [Where to Buy](#where-to-buy)
-    - [3D Printable Enclosure](#3d-printable-enclosure)
-  - [🏗️ Architecture](#️-architecture)
-    - [Component Architecture](#component-architecture)
-  - [🚀 Getting Started](#-getting-started)
-    - [Prerequisites](#prerequisites)
-    - [ROM Acquisition](#rom-acquisition)
-      - [Legal Options](#legal-options)
-      - [Required ROM Files](#required-rom-files)
-      - [ROM Conversion Process](#rom-conversion-process)
-    - [Building the Project](#building-the-project)
-      - [Step 1: Clone the Repository](#step-1-clone-the-repository)
-      - [Step 2: Convert ROM Files](#step-2-convert-rom-files)
-      - [Step 3: Configure ESP-IDF](#step-3-configure-esp-idf)
-      - [Step 4: Build](#step-4-build)
-      - [Step 5: Flash to Device](#step-5-flash-to-device)
-      - [Step 6: Play!](#step-6-play)
-    - [Quick Build Commands Reference](#quick-build-commands-reference)
-  - [📁 Project Structure](#-project-structure)
-  - [⚙️ Configuration](#️-configuration)
-    - [Display Settings](#display-settings)
-    - [Audio Settings](#audio-settings)
-    - [Input Configuration](#input-configuration)
-    - [Memory Optimization](#memory-optimization)
-  - [🎵 Audio System](#-audio-system)
-  - [🔧 Troubleshooting](#-troubleshooting)
-    - [Build Errors](#build-errors)
-    - [Flash Errors](#flash-errors)
-    - [Runtime Issues](#runtime-issues)
-  - [📄 Legal Notice](#-legal-notice)
-    - [ROM Files](#rom-files)
-    - [Third-Party Code](#third-party-code)
-    - [Disclaimer](#disclaimer)
-  - [🙏 Credits](#-credits)
-  - [📜 License](#-license)
+- **Charging Port:** USB-C on the side of the device
+- **Battery Life:** Several hours of gameplay on a full charge
+- **Charging Indicator:** Check the onboard LED while charging
+- **Battery Type:** 803040 3.7V LiPo 1000mAh
 
-## 🔧 Hardware Requirements
+**Power Management:**
+- The device automatically dims the backlight during attract mode to save battery
+- CPU scales between 80-160MHz based on game state
+- Audio output is optimized with silence detection
+
+### Troubleshooting
+
+**Medal won't turn on:**
+- Charge via USB-C for at least 30 minutes
+- Try long-pressing the TOP button
+
+**Screen is dim or flickering:**
+- Charge the battery—low voltage can affect display brightness
+
+**Tilt controls not responding:**
+- Calibrate by holding the medal flat when powering on
+- Ensure you're tilting with enough angle (±20-30°)
+
+**No sound:**
+- Check that mute isn't enabled (long press MIDDLE to toggle)
+- Verify speaker connections if self-assembled
+
+---
+
+## 🔨 Building Your Own PELLETINO
+
+### 3D Printing the Enclosure
+
+The `model/` directory contains all STL files needed to print your own PELLETINO case:
+
+**Required Files:**
+- `3 piece medal - back.stl` - Main housing back with battery compartment
+- `3 piece medal - middle.stl` - Middle frame for electronics
+- `3 piece medal - font.stl` - Decorative front text/logo overlay
+- `3 piece medal - buttons.stl` - Button caps
+
+**Print Settings:**
+- **Material:** PETG (recommended for durability)
+  - PLA also works but is more brittle
+- **Layer Height:** 0.2mm
+- **Infill:** 20%
+- **Supports:** Tree supports on build plate only
+- **Orientation:** Print each piece flat side down
+
+**Assembly Hardware:**
+- **4x M2×4mm screws** - For securing the front bezel
+- **4x M2×16mm screws** - For main case assembly through back to middle
+- **1x 803040 3.7V LiPo 1000mAh battery** - [Available on Amazon](https://a.co/d/05E4ZhiI)
+
+**Assembly Steps:**
+1. **Prepare the electronics:**
+   - Flash firmware to ESP32-C6-LCD-1.69 board (see Building from Source)
+   - Solder or connect battery to board's battery pads
+   
+2. **Install in case:**
+   - Place battery in the back compartment
+   - Route battery wires carefully to avoid pinching
+   - Set ESP32 board into the middle frame
+   - Ensure buttons align with holes
+
+3. **Close the case:**
+   - Place middle frame onto back housing
+   - Secure with 4× M2×16mm screws from back
+   - (Optional) Attach decorative font piece to front
+   - Secure with 4× M2×4mm screws if using front overlay
+
+4. **Final checks:**
+   - Verify buttons press smoothly
+   - Check that screen is visible through opening
+   - Test USB-C port accessibility for charging
+   - Add lanyard loop through top hole for wearing
+
+---
+
+## 🛠️ Building from Source
+
+### What You'll Need
+
+**Hardware:**
+- [Waveshare ESP32-C6-LCD-1.69](https://a.co/d/hGBAeMq) ($20 on Amazon)
+- [803040 LiPo Battery 1000mAh](https://a.co/d/05E4ZhiI) ($9 on Amazon)
+- 3D printed case (see above)
+- M2 screws (see assembly section)
+
+**Software:**
+- ESP-IDF 5.x toolchain
+- Python 3.8+
+- Pac-Man ROM files (see ROM Acquisition section)
+
+### Hardware Specifications
 
 **Target Platform:** [Waveshare ESP32-C6-LCD-1.69](https://www.waveshare.com/esp32-c6-lcd-1.69.htm)
 
@@ -95,40 +141,78 @@ A faithful recreation of the classic Pac-Man arcade game running on the ESP32-C6
 | **Flash** | 4MB |
 | **Display** | ST7789 240×280 @ 40MHz SPI |
 | **Audio** | ES8311 I2C Codec + I2S |
-| **IMU** | QMI8658 6-axis (optional) |
-| **Buttons** | GPIO9 (BOOT - Insert Coin), GPIO18 (PWR - Power) |
-| **USB** | USB-C for programming/power |
+| **IMU** | QMI8658 6-axis for tilt control |
+| **Buttons** | GPIO9 (BOOT), GPIO18 (PWR) |
+| **Battery** | 803040 3.7V LiPo 1000mAh |
+| **USB** | USB-C for programming/charging |
 
-### Where to Buy
+### ROM Acquisition & Firmware Flashing
 
-**Device:**
-- 📦 **Amazon** (faster shipping): [ESP32-C6-LCD-1.69](https://a.co/d/hGBAeMq)
-- 🌐 **Direct from Waveshare**: [Official Store](https://www.waveshare.com/esp32-c6-lcd-1.69.htm) (cheaper but slower)
+**IMPORTANT:** ROM files are **NOT included** in this repository and must be obtained legally.
 
-**Battery:**
-- 🔋 **Amazon**: [Compatible Li-Po Battery](https://a.co/d/9ljB7Lu)
+#### Where to Get ROMs
 
-### 3D Printable Enclosure
+1. **Internet Archive** (Recommended)
+   - Visit [archive.org](https://archive.org/) and search for "Pac-Man MAME ROM"
+   - Look for MAME 0.37b5 ROM set or similar public domain collections
 
-🎨 **Print your own case!** The `model/` directory contains STL files and device photos:
+2. **Own Original Hardware**
+   - Extract ROMs from your legally owned Pac-Man PCB
 
-<p align="center">
-  <img src="model/20260201_063813.jpg" alt="PELLETINO Front View" width="400"/>
-</p>
+#### Required ROM Files
 
-- **STL file**: `model/Konomi_Body_wiresandring.stl` - Ready to print!
-- **Reference design**: [MakerWorld - Waveshare ESP32-S3 Enclosure](https://makerworld.com/en/models/1619751-waveshare-esp32s3-1-69-lcd-enclosure#profileId-1709654) (similar form factor)
-- **Features**: Battery compartment, button access, speaker cavity, lanyard loop for wearing as Fiesta medal
+Place these files in the `rom/` directory (one level above the project):
 
-**Printing tips:**
-- Material: PLA or PETG
-- Layer height: 0.2mm
-- Infill: 20%
-- Supports: Not required for press-fit design
+```
+rom/
+├── pacman.6e    (4096 bytes) - Program ROM 1
+├── pacman.6f    (4096 bytes) - Program ROM 2
+├── pacman.6h    (4096 bytes) - Program ROM 3
+├── pacman.6j    (4096 bytes) - Program ROM 4
+├── pacman.5e    (4096 bytes) - Tile graphics
+├── pacman.5f    (4096 bytes) - Sprite graphics
+├── 82s123.7f    (32 bytes)   - Color PROM
+├── 82s126.4a    (256 bytes)  - Palette PROM
+├── 82s126.1m    (256 bytes)  - Sound PROM 1
+└── 82s126.3m    (256 bytes)  - Sound PROM 2
+```
 
-## 🏗️ Architecture
+#### Build & Flash Steps
 
-PELLETINO uses a single-core design optimized for the ESP32-C6's 160MHz RISC-V processor:
+```bash
+# 1. Clone repository
+git clone https://github.com/jesse-r-castro/PELLETINO.git
+cd PELLETINO
+
+# 2. Convert ROMs (place ROM files in ../rom/ first)
+python3 tools/convert_roms.py
+
+# 3. Setup ESP-IDF environment
+source ~/esp/esp-idf/export.sh  # Adjust path as needed
+idf.py set-target esp32c6
+
+# 4. Build and flash
+idf.py build flash monitor
+```
+
+For complete build documentation, see the detailed sections below.
+
+---
+
+## 🔬 Technical Details & Architecture
+
+### System Overview
+
+PELLETINO implements authentic Pac-Man arcade hardware emulation on a single-core ESP32-C6 RISC-V processor:
+
+**Key Features:**
+- **Authentic Arcade Emulation** - Full Z80 CPU at original 3MHz speed
+- **60 FPS Graphics** - Hardware-accelerated sprite and tile rendering
+- **Original Audio** - Namco WSG wavetable synthesis with all sound effects
+- **Tilt Controls** - IMU-based movement detection
+- **Power Optimized** - CPU scaling, backlight dimming, and tickless idle
+
+**Architecture Diagram:**
 
 ```mermaid
 graph TB
@@ -193,7 +277,7 @@ graph LR
     E --> C
 ```
 
-## 🚀 Getting Started
+## � Complete Build Documentation
 
 ### Prerequisites
 
@@ -213,67 +297,9 @@ graph LR
    - **License:** Freeware for non-commercial use
    - **No additional setup required** - already integrated into the project
 
-### ROM Acquisition
+### Detailed ROM Setup
 
-**IMPORTANT:** ROM files are **NOT included** in this repository and must be obtained legally.
-
-#### Legal Options
-
-1. **Internet Archive (Recommended)**
-   - Visit [archive.org](https://archive.org/) and search for "Pac-Man MAME ROM"
-   - Download from public domain collections (verify license)
-   - Example: MAME 0.37b5 ROM set (commonly available)
-
-2. **Own Original Hardware**
-   - Extract ROMs from your legally owned Pac-Man PCB
-   - Use ROM dumping hardware (e.g., TL866 programmer)
-
-3. **Licensed Collections**
-   - Some retro gaming compilations include extractable ROMs
-   - Check licensing terms before use
-
-#### Required ROM Files
-
-You need these files from the original Pac-Man arcade board:
-
-```
-📦 Pac-Man ROM Set
-├── pacman.6e    (4096 bytes) - Program ROM 1
-├── pacman.6f    (4096 bytes) - Program ROM 2  
-├── pacman.6h    (4096 bytes) - Program ROM 3
-├── pacman.6j    (4096 bytes) - Program ROM 4
-├── pacman.5e    (4096 bytes) - Tile graphics
-├── pacman.5f    (4096 bytes) - Sprite graphics
-├── 82s123.7f    (32 bytes)   - Color PROM
-├── 82s126.4a    (256 bytes)  - Palette PROM
-├── 82s126.1m    (256 bytes)  - Sound PROM 1
-└── 82s126.3m    (256 bytes)  - Sound PROM 2
-```
-
-**ROM Checksums** (for verification):
-
-| File | CRC32 | SHA-1 |
-|------|-------|-------|
-| pacman.6e | 0c944964 | 06ef227747a440831c9a3a613b76693d52fd2e2c |
-| pacman.6f | 8c3e6de6 | 1a6fb2d4a4722b637d77e3e5edcfa54f0e3b6c2d |
-| pacman.6h | 368cb165 | bcdd1beb1e04dc5b5e1c8f9d3e2c6e3c3f1d1e51 |
-| pacman.6j | 3bf4b6a5 | 817d94e3445d5b84eeb0e5c5f1c4b7e5d1e0d5f5 |
-
-#### ROM Conversion Process
-
-```mermaid
-flowchart LR
-    A[Download ROMs<br/>from Archive.org] --> B[Verify Checksums]
-    B --> C[Place in<br/>tools/ directory]
-    C --> D[Run convert_roms.py]
-    D --> E[Headers generated<br/>in main/roms/]
-    E --> F[Ready to build!]
-    
-    style A fill:#ffe1e1
-    style F fill:#e1ffe1
-```
-
-### Building the Project
+### Step-by-Step Build Process
 
 #### Step 1: Clone the Repository
 
@@ -576,7 +602,7 @@ graph TD
 - Intermission music
 - Level start jingle
 
-## 🔧 Troubleshooting
+## 🔧 Developer Troubleshooting
 
 ### Build Errors
 
@@ -618,6 +644,18 @@ graph TD
 - Set CPU to 160MHz in menuconfig
 - Enable compiler optimizations (`CONFIG_COMPILER_OPTIMIZATION_PERF`)
 - Check for debug logging overhead
+
+---
+
+## 📚 Additional Resources
+
+- **[Hardware Documentation](docs/HARDWARE.md)** - Complete pinouts, schematics, and wiring diagrams
+- **[ROM Setup Guide](docs/ROM_SETUP.md)** - Detailed ROM conversion and format information  
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+- **[Changelog](CHANGELOG.md)** - Version history and updates
+- **[Agent Notes](AGENTS.md)** - AI agent development notes
+
+---
 
 ## 📄 Legal Notice
 
@@ -662,4 +700,10 @@ See [LICENSE](LICENSE) file for details.
 
 ---
 
-**Enjoy the classic arcade experience! 🎮👾**
+<p align="center">
+  <strong>¡Viva Fiesta! 🎉 Enjoy your PELLETINO! 🎮👾</strong>
+  <br><br>
+  <em>Questions? Found a bug? Want to contribute?</em>
+  <br>
+  Open an issue or PR on <a href="https://github.com/jesse-r-castro/PELLETINO">GitHub</a>
+</p>
