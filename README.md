@@ -1,12 +1,8 @@
 # PELLETINO
 
-**The Official 2026 Fiesta San Antonio Pac-Man Medal**
+**Pac-Man Arcade Emulator for ESP32-C6**
 
-🎮 Congratulations! You have a fully functional Pac-Man arcade game on a wearable [Fiesta medal](https://fiestamedals.saflavor.com/best-fiesta-medal-guide/)! This isn't just a collectible pin—it's a complete handheld game system featuring authentic arcade gameplay and hours of entertainment.
-
-<p align="center">
-  <img src="photos/FIESTA_MEDAL_2026_ASSEMBLED.png" alt="PELLETINO 2026 Fiesta Medal" width="600"/>
-</p>
+A faithful recreation of the classic Pac-Man arcade game running on the ESP32-C6 microcontroller. Features authentic Z80 emulation, Namco WSG audio synthesis, smooth 60 FPS gameplay on a 240×280 ST7789 LCD display, and tilt-based controls via IMU sensor.
 
 <p align="center">
   <a href="https://github.com/espressif/esp-idf"><img src="https://img.shields.io/badge/ESP--IDF-v5.x-blue" alt="ESP-IDF"></a>
@@ -14,125 +10,28 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-check_source-orange" alt="License"></a>
 </p>
 
----
+## ✨ Features
 
-## 🎮 Quick Start Guide
-
-### How to Play
-
-**Controls:**
-- **TOP Button:** Long press to turn off/on.  
-- **MIDDLE Button:** Insert coin / Start game.  Long press to mute/unmute audio.
-- **BOTTOM Button:** Reset
-- **Tilt the medal:** Move Pac-Man up, down, left, right
-
-**Gameplay:**
-1. Press the MIDDLE button to insert a coin and start the game
-4. Tilt the medal to guide Pac-Man through the maze
-5. Eat all the dots to advance levels
-6. Avoid ghosts (or eat them after grabbing a power pellet!)
-
-### Charging Your PELLETINO
-
-- **Charging Port:** USB-C on the side of the device
-- **Battery Life:** Several hours of gameplay on a full charge
-- **Charging Indicator:** Check the onboard LED while charging
-- **Battery Type:** 803040 3.7V LiPo 1000mAh
-
-**Power Management:**
-- The device automatically dims the backlight during attract mode to save battery
-- CPU scales between 80-160MHz based on game state
-- Audio output is optimized with silence detection
-
-### Troubleshooting
-
-**Medal won't turn on:**
-- Charge via USB-C for at least 30 minutes
-- Try long-pressing the TOP button
-
-**Screen is dim or flickering:**
-- Charge the battery—low voltage can affect display brightness
-
-**Tilt controls not responding:**
-- Calibrate by holding the medal flat when powering on
-- Ensure you're tilting with enough angle (±20-30°)
-
-**No sound:**
-- Check that mute isn't enabled (long press MIDDLE to toggle)
-- Verify speaker connections if self-assembled
+- **Authentic Arcade Emulation** - Full Z80 CPU at original 3MHz speed with cycle-accurate instruction execution
+- **60 FPS Graphics** - Hardware-accelerated sprite and tile rendering with SPI DMA
+- **Original Audio** - Namco WSG wavetable synthesis with all classic sound effects
+- **Tilt Controls** - QMI8658 IMU-based movement detection
+- **Power Optimized** - CPU frequency scaling, adaptive backlight dimming, and tickless idle for extended battery life
+- **Portable Design** - Compact 3D-printable enclosure perfect for handheld gaming
 
 ---
 
-## 🔨 Building Your Own PELLETINO
+## 🔨 Getting Started
 
-### 3D Printing the Enclosure
-
-The `model/` directory contains all STL files needed to print your own PELLETINO case:
-
-**Required Files:**
-- `3 piece medal - back.stl` - Main housing back with battery compartment
-- `3 piece medal - middle.stl` - Middle frame for electronics
-- `3 piece medal - font.stl` - Decorative front text/logo overlay
-- `3 piece medal - buttons.stl` - Button caps
-
-**Print Settings:**
-- **Material:** PETG (recommended for durability)
-  - PLA also works but is more brittle
-- **Layer Height:** 0.2mm
-- **Infill:** 20%
-- **Supports:** Tree supports on build plate only
-- **Orientation:** Print each piece flat side down
-
-**Assembly Hardware:**
-- **4x M2×4mm screws** - For securing the front bezel
-- **4x M2×16mm screws** - For main case assembly through back to middle
-- **1x 803040 3.7V LiPo 1000mAh battery** - [Available on Amazon](https://a.co/d/05E4ZhiI)
-
-**Assembly Steps:**
-1. **Prepare the electronics:**
-   - Flash firmware to ESP32-C6-LCD-1.69 board (see Building from Source)
-   - Solder or connect battery to board's battery pads
-   
-2. **Install in case:**
-   - Place battery in the back compartment
-   - Route battery wires carefully to avoid pinching
-   - Set ESP32 board into the middle frame
-   - Ensure buttons align with holes
-
-3. **Close the case:**
-   - Place middle frame onto back housing
-   - Secure with 4× M2×16mm screws from back
-   - (Optional) Attach decorative font piece to front
-   - Secure with 4× M2×4mm screws if using front overlay
-
-4. **Final checks:**
-   - Verify buttons press smoothly
-   - Check that screen is visible through opening
-   - Test USB-C port accessibility for charging
-   - Add lanyard loop through top hole for wearing
-
----
-
-## 🛠️ Building from Source
-
-### What You'll Need
-
-**Hardware:**
-- [Waveshare ESP32-C6-LCD-1.69](https://a.co/d/hGBAeMq) ($20 on Amazon)
-- [803040 LiPo Battery 1000mAh](https://a.co/d/05E4ZhiI) ($9 on Amazon)
-- 3D printed case (see above)
-- M2 screws (see assembly section)
-
-**Software:**
-- ESP-IDF 5.x toolchain
-- Python 3.8+
-- Pac-Man ROM files (see ROM Acquisition section)
-
-### Hardware Specifications
+### Hardware Requirements
 
 **Target Platform:** [Waveshare ESP32-C6-LCD-1.69](https://www.waveshare.com/esp32-c6-lcd-1.69.htm)
 
-**📖 Detailed Hardware Documentation:** See [`docs/HARDWARE.md`](docs/HARDWARE.md) for complete pinouts, schematics, and connection details.
+**Where to Buy:**
+- 📦 **ESP32-C6-LCD-1.69:** [Amazon](https://a.co/d/hGBAeMq) (~$20)
+- 🔋 **Battery (803040 LiPo 1000mAh):** [Amazon](https://a.co/d/05E4ZhiI) (~$9)
+
+**📖 Detailed Documentation:** See [`docs/HARDWARE.md`](docs/HARDWARE.md) for complete pinouts, schematics, and connection details.
 
 | Component | Specification |
 |-----------|---------------|
@@ -145,6 +44,42 @@ The `model/` directory contains all STL files needed to print your own PELLETINO
 | **Buttons** | GPIO9 (BOOT), GPIO18 (PWR) |
 | **Battery** | 803040 3.7V LiPo 1000mAh |
 | **USB** | USB-C for programming/charging |
+
+### 3D Printed Enclosure
+
+The `model/` directory contains STL files for a compact, portable enclosure:
+
+**Print Settings:**
+- **Material:** PETG (recommended for durability) or PLA
+- **Layer Height:** 0.2mm
+- **Infill:** 20%
+- **Supports:** Tree supports on build plate only
+
+**Assembly Hardware:**
+- **4× M2×4mm screws** - Front assembly
+- **4× M2×16mm screws** - Main case assembly
+- **Optional:** Lanyard loop hardware for wearable use
+
+### How to Use
+
+**Controls:**
+- **TOP Button:** Long press to turn off/on
+- **MIDDLE Button:** Insert coin / Start game (long press to mute/unmute audio)
+- **BOTTOM Button:** Reset
+- **Tilt Control:** Move Pac-Man by tilting the device
+
+**Gameplay:**
+1. Press MIDDLE button to insert a coin and start
+2. Tilt the device to guide Pac-Man through the maze
+3. Eat all dots to advance levels
+4. Avoid ghosts (or eat them after power pellets!)
+
+**Battery & Charging:**
+- USB-C charging port on device side
+- Several hours of gameplay per charge
+- Auto power management: CPU scaling, dimming, and audio optimization
+
+---
 
 ### ROM Acquisition & Firmware Flashing
 
@@ -366,26 +301,10 @@ Converting sound PROMs...
   - main/roms/pacman_wavetable.h
 ```
 
-#### Step 2.5: (Optional) Optimize FIESTA Video
-
-The project includes video optimization tools for the FIESTA intro video:
-
-```bash
-cd movie
-
-# Analyze optimal quality vs size tradeoffs
-./find_optimal_video.sh
-
-# Generate optimized video (adjusts quality automatically)
-./make_fiesta.sh Pac_Man_Fiesta_Float_Animation.mp4 3000
-```
-
-This generates `fiesta_data.h` with the compressed MJPEG video data.
-
 #### Step 3: Configure ESP-IDF
 
 ```bash
-cd ..  # Return to project root
+cd PELLETINO  # If still in rom directory
 
 # Source ESP-IDF environment (adjust path as needed)
 source ~/esp/esp-idf/export.sh
@@ -512,10 +431,9 @@ PELLETINO/
 │   ├── convert_roms.py        # ROM converter
 │   └── verify_checksums.py    # ROM validator
 │
-├── movie/                     # FIESTA video tools
-│   ├── make_fiesta.sh         # Video encoder/optimizer
-│   ├── find_optimal_video.sh  # Quality/size analysis
-│   └── fiesta_data.h          # Generated video header
+├── movie/                     # Video encoding tools (optional)
+│   ├── make_fiesta.sh         # MJPEG encoder
+│   └── find_optimal_video.sh  # Quality/size analysis
 │
 ├── docs/                      # Documentation
 │   ├── HARDWARE.md            # Hardware connections
@@ -701,7 +619,7 @@ See [LICENSE](LICENSE) file for details.
 ---
 
 <p align="center">
-  <strong>¡Viva Fiesta! 🎉 Enjoy your PELLETINO! 🎮👾</strong>
+  <strong>Enjoy the classic arcade experience! 🎮👾</strong>
   <br><br>
   <em>Questions? Found a bug? Want to contribute?</em>
   <br>

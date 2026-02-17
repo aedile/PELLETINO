@@ -29,9 +29,6 @@
 #include "esp_bt_main.h"
 #endif
 
-// Forward declare video player
-extern "C" int play_fiesta_video(void);
-
 // Game selection - uncomment one:
 #define GAME_PACMAN
 // #define GAME_MSPACMAN
@@ -136,7 +133,6 @@ extern "C" void app_main(void) {
   running = true;
   uint64_t frame_start;
   uint64_t frame_count = 0;
-  bool game_over_video_played = false;
 
   // Battery optimization: Audio silence detection
   uint32_t silence_frames = 0;
@@ -250,31 +246,6 @@ extern "C" void app_main(void) {
     // 8. Trigger VBLANK interrupt if enabled
     pacman_vblank_interrupt();
 
-    // 9. Check for attract mode start (after arcade boot or after game over) and play video
-    if (check_attract_mode_start(pacman_get_memory())) {
-      ESP_LOGI(TAG, "Attract mode starting - playing FIESTA video...");
-      // Temporarily boost CPU for video decode (runs at 80MHz otherwise in attract)
-      esp_pm_config_t pm_video = {
-        .max_freq_mhz = 160,
-        .min_freq_mhz = 160,
-        .light_sleep_enable = false
-      };
-      esp_pm_configure(&pm_video);
-      play_fiesta_video();
-      // Restore low power for attract mode
-      esp_pm_config_t pm_low = {
-        .max_freq_mhz = 80,
-        .min_freq_mhz = 80,
-        .light_sleep_enable = true
-      };
-      esp_pm_configure(&pm_low);
-      // Clear any accumulated credits so attract mode plays demo
-      // instead of waiting for START button press
-      clear_credits(pacman_get_memory_rw());
-      ESP_LOGI(TAG, "Video complete, attract mode will continue");
-    }
-
-    // Frame timing - wait for 16.667ms total
     // Frame timing - wait for 16.667ms total (60fps) or 33.333ms (30fps) for attract mode
     uint64_t elapsed = esp_timer_get_time() - frame_start;
     // Target 60fps for gameplay, 30fps for attract mode to save power
