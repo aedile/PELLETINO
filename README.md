@@ -608,6 +608,9 @@ This project is not affiliated with, endorsed by, or sponsored by Bandai Namco E
 
 ## 🙏 Credits
 
+- **Original 3D Designs**
+  - **Enclosure:** Based on [Waveshare ESP32-S3 1.69 LCD Enclosure](https://makerworld.com/en/models/1619751-waveshare-esp32s3-1-69-lcd-enclosure)
+  - **Cabinet:** Based on [Arcade Cabinet](https://www.printables.com/model/197767-arcade-cabinet)
 - **Till Harbaum** - [Galagino project](https://github.com/harbaum/galagino) for ROM conversion insights and ESP32 arcade emulation techniques
 - **MAME Development Team** - [MAME](https://www.mamedev.org/) hardware documentation and reference implementation
 - **Marat Fayzullin** - [Z80 CPU emulator core](http://fms.komkon.org/EMUL8/)
