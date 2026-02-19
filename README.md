@@ -62,9 +62,31 @@ The `model/` directory contains STL files for a compact, portable enclosure:
 - **Supports:** Tree supports on build plate only
 
 **Assembly Hardware:**
-- **4× M2×4mm screws** - Front assembly
-- **4× M2×16mm screws** - Main case assembly
-- **Optional:** Lanyard loop hardware for wearable use
+- **4× M2×4mm screws** - Secure the Waveshare board to the middle piece for extra security
+- **4× M2×16mm screws** - Hold the front, middle, and back pieces together (all layers)
+- **1x 803040 3.7V LiPo 1000mAh battery** - [Available on Amazon](https://a.co/d/05E4ZhiI)
+
+**Assembly Steps:**
+1. **Prepare the electronics:**
+   - Flash firmware to ESP32-C6-LCD-1.69 board (see Build Steps)
+   - Solder or connect battery to board's battery pads
+   
+2. **Install in case:**
+   - Place battery in the back compartment
+   - Route battery wires carefully to avoid pinching
+   - Set ESP32 board into the middle frame
+   - Secure the board to the middle frame using **4x M2×4mm screws**
+   - Ensure buttons align with holes
+
+3. **Close the case:**
+   - Stack the front bezel, middle frame (with board), and back housing together
+   - Secure the entire assembly with **4x M2×16mm screws** passing through all layers
+   - (Optional) Add lanyard loop through top hole for wearing
+
+4. **Final checks:**
+   - Verify buttons press smoothly
+   - Check that screen is visible through opening
+   - Test USB-C port accessibility for charging
 
 ### How to Use
 
