@@ -84,8 +84,8 @@ The `model/` directory contains all STL files needed to print your own PELLETINO
 - **Orientation:** Print each piece flat side down
 
 **Assembly Hardware:**
-- **4x M2×4mm screws** - For securing the front bezel
-- **4x M2×16mm screws** - For main case assembly through back to middle
+- **4x M2×4mm screws** - Secure the Waveshare board to the middle piece for extra security
+- **4x M2×16mm screws** - Hold the front, middle, and back pieces together (all layers)
 - **1x 803040 3.7V LiPo 1000mAh battery** - [Available on Amazon](https://a.co/d/05E4ZhiI)
 
 **Assembly Steps:**
@@ -97,13 +97,13 @@ The `model/` directory contains all STL files needed to print your own PELLETINO
    - Place battery in the back compartment
    - Route battery wires carefully to avoid pinching
    - Set ESP32 board into the middle frame
+   - Secure the board to the middle frame using **4x M2×4mm screws**
    - Ensure buttons align with holes
 
 3. **Close the case:**
-   - Place middle frame onto back housing
-   - Secure with 4× M2×16mm screws from back
-   - (Optional) Attach decorative font piece to front
-   - Secure with 4× M2×4mm screws if using front overlay
+   - Stack the front bezel, middle frame (with board), and back housing together
+   - Secure the entire assembly with **4x M2×16mm screws** passing through all layers
+   - (Optional) Add lanyard loop through top hole for wearing
 
 4. **Final checks:**
    - Verify buttons press smoothly
