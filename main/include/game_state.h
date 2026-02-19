@@ -13,6 +13,7 @@ extern "C" {
 #define PACMAN_ADDR_GAME_STATE  0x4E00  // Game state (0x01=attract, 0x02=starting, 0x03=playing, etc.)
 #define PACMAN_ADDR_CREDITS     0x4E6E  // Number of credits available
 #define PACMAN_ADDR_COINS       0x4E6C  // Coins inserted (partial credit counter)
+#define PACMAN_ADDR_HIGHSCORE   0x4E88  // High Score (4 bytes)
 
 // Check if attract mode is starting (transition into mode 0x01)
 bool check_attract_mode_start(const uint8_t *memory);
