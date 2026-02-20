@@ -28,9 +28,9 @@
 
 **Gameplay:**
 1. Press the MIDDLE button to insert a coin and start the game
-4. Tilt the medal to guide Pac-Man through the maze
-5. Eat all the dots to advance levels
-6. Avoid ghosts (or eat them after grabbing a power pellet!)
+2. Tilt the medal to guide Pac-Man through the maze
+3. Eat all the dots to advance levels
+4. Avoid ghosts (or eat them after grabbing a power pellet!)
 
 ### Charging Your PELLETINO
 
@@ -72,7 +72,7 @@ The `model/` directory contains all STL files needed to print your own PELLETINO
 **Required Files:**
 - `3 piece medal - back.stl` - Main housing back with battery compartment
 - `3 piece medal - middle.stl` - Middle frame for electronics
-- `3 piece medal - font.stl` - Decorative front text/logo overlay
+- `3 piece medal - front.stl` - Decorative front text/logo overlay
 - `3 piece medal - buttons.stl` - Button caps
 
 **Print Settings:**
@@ -109,7 +109,7 @@ The `model/` directory contains all STL files needed to print your own PELLETINO
    - Verify buttons press smoothly
    - Check that screen is visible through opening
    - Test USB-C port accessibility for charging
-   - Add lanyard loop through top hole for wearing
+   - Power on and verify the display and controls work correctly
 
 ---
 
@@ -277,7 +277,7 @@ graph LR
     E --> C
 ```
 
-## � Complete Build Documentation
+## 🔨 Complete Build Documentation
 
 ### Prerequisites
 
@@ -296,8 +296,6 @@ graph LR
    - **Source:** Marat Fayzullin's Z80 emulator (included in `components/z80_cpu/`)
    - **License:** Freeware for non-commercial use
    - **No additional setup required** - already integrated into the project
-
-### Detailed ROM Setup
 
 ### Step-by-Step Build Process
 
@@ -480,7 +478,7 @@ idf.py size-components
 ```
 PELLETINO/
 ├── main/                      # Application entry point
-│   ├── main.c                 # Main game loop
+│   ├── main.cpp               # Main game loop
 │   ├── include/               # Public headers
 │   ├── src/                   # Implementation files
 │   └── roms/                  # Generated ROM headers (not in git)
@@ -526,6 +524,7 @@ PELLETINO/
 ├── sdkconfig.defaults         # ESP-IDF defaults
 ├── partitions.csv             # Flash partition table
 └── .gitignore                 # Excludes ROMs and builds
+```
 
 ### Display Settings
 
@@ -650,7 +649,7 @@ graph TD
 ## 📚 Additional Resources
 
 - **[Hardware Documentation](docs/HARDWARE.md)** - Complete pinouts, schematics, and wiring diagrams
-- **[ROM Setup Guide](docs/ROM_SETUP.md)** - Detailed ROM conversion and format information  
+- **[ROM Setup Guide](docs/ROM_FORMAT.md)** - Detailed ROM conversion and format information  
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
 - **[Changelog](CHANGELOG.md)** - Version history and updates
 - **[Agent Notes](AGENTS.md)** - AI agent development notes
