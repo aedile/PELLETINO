@@ -74,48 +74,7 @@ static constexpr uint32_t FRAME_TIME_US = 16667; // 60 Hz = 16.667ms
 // Main emulation state
 static bool running = false;
 
-// Helper to manage high score persistence
-static void load_high_score(uint8_t *memory) {
-  nvs_handle_t my_handle;
-  if (nvs_open("nvs", NVS_READWRITE, &my_handle) == ESP_OK) {
-    size_t required_size = 4;
-    uint8_t buffer[4] = {0};
-    // Note: nvs_get_blob returns ESP_OK if key found, proper error otherwise
-    if (nvs_get_blob(my_handle, "hiscore", buffer, &required_size) == ESP_OK) {
-      // Validation: Don't load if all zeros (invalid/wiped state)
-      // Default high score is 10,000, so 0 is never valid.
-      bool is_valid = false;
-      for (int i=0; i<4; i++) { if (buffer[i] != 0) is_valid = true; }
-      
-      if (is_valid) {
-          memcpy(&memory[PACMAN_ADDR_HIGHSCORE], buffer, 4);
-          ESP_LOGI(TAG, "High score loaded from NVS");
-      } else {
-          ESP_LOGW(TAG, "NVS high score is 0, ignoring (keeping default)");
-      }
-    }
-    nvs_close(my_handle);
-  }
-}
-
-static void save_high_score(const uint8_t *memory) {
-  nvs_handle_t my_handle;
-  if (nvs_open("nvs", NVS_READWRITE, &my_handle) == ESP_OK) {
-    uint8_t stored_score[4] = {0};
-    size_t size = 4;
-    
-    // Check if score changed
-    esp_err_t err = nvs_get_blob(my_handle, "hiscore", stored_score, &size);
-    bool should_write = (err != ESP_OK) || (memcmp(&memory[PACMAN_ADDR_HIGHSCORE], stored_score, 4) != 0);
-
-    if (should_write) {
-      nvs_set_blob(my_handle, "hiscore", &memory[PACMAN_ADDR_HIGHSCORE], 4);
-      nvs_commit(my_handle);
-      ESP_LOGI(TAG, "New high score saved to NVS");
-    }
-    nvs_close(my_handle);
-  }
-}
+// High score saving disabled due to NVS flash power brownouts on battery
 
 extern "C" void app_main(void) {
 #if !PELLETINO_DEBUG
@@ -252,25 +211,17 @@ extern "C" void app_main(void) {
     bool is_playing = (game_mode >= 0x02);  // 0x01=attract, 0x02+=active game
     
     if (is_playing && cpu_low_power) {
-      // Switch to high performance for gameplay
-      esp_pm_config_t pm_config = {
-        .max_freq_mhz = 160,
-        .min_freq_mhz = 160,
-        .light_sleep_enable = false
-      };
-      esp_pm_configure(&pm_config);
+      // Switched off: Dynamic frequency scaling kills DMA transfers
+      // esp_pm_config_t pm_config = { .max_freq_mhz = 160, .min_freq_mhz = 160, .light_sleep_enable = false };
+      // esp_pm_configure(&pm_config);
       cpu_low_power = false;
-      ESP_LOGI(TAG, "CPU frequency: 160MHz (active gameplay)");
+      // ESP_LOGI(TAG, "CPU frequency: 160MHz (active gameplay)");
     } else if (!is_playing && !cpu_low_power) {
-      // Switch to low power for attract mode
-      esp_pm_config_t pm_config = {
-        .max_freq_mhz = 80,
-        .min_freq_mhz = 80,
-        .light_sleep_enable = true
-      };
-      esp_pm_configure(&pm_config);
+      // Switched off: Dynamic frequency scaling crashes ESP32-C6 during transitions
+      // esp_pm_config_t pm_config = { .max_freq_mhz = 80, .min_freq_mhz = 80, .light_sleep_enable = true };
+      // esp_pm_configure(&pm_config);
       cpu_low_power = true;
-      ESP_LOGI(TAG, "CPU frequency: 80MHz (attract mode)");
+      // ESP_LOGI(TAG, "CPU frequency: 80MHz (attract mode)");
     }
 
     // 7. Battery optimization: Adaptive backlight dimming
@@ -300,32 +251,27 @@ extern "C" void app_main(void) {
       static bool first_attract_entry = true;
 
       if (first_attract_entry) {
-         // Boot transition: Load High Score (overwrite default 10,000)
-         // We wait for this moment because Z80 just programmed the default score
-         load_high_score(pacman_get_memory_rw());
          first_attract_entry = false;
-         ESP_LOGI(TAG, "First attract mode entry: Loaded High Score from NVS");
-      } else {
-         // Subsequent transitions (Game Over): Save High Score if improved
-         save_high_score(pacman_get_memory_rw()); // Using rw pointer to match signature, though save is const
       }
       
       ESP_LOGI(TAG, "Attract mode starting - playing FIESTA video...");
-      // Temporarily boost CPU for video decode (runs at 80MHz otherwise in attract)
+      /* Temporarily boost CPU for video decode (Runs at constant 160MHz now anyway, no scaling to crash)
       esp_pm_config_t pm_video = {
         .max_freq_mhz = 160,
         .min_freq_mhz = 160,
         .light_sleep_enable = false
       };
       esp_pm_configure(&pm_video);
+      */
       play_fiesta_video();
-      // Restore low power for attract mode
-      esp_pm_config_t pm_low = {
+      // Restore low power for attract mode - disabled!
+      /* esp_pm_config_t pm_low = {
         .max_freq_mhz = 80,
         .min_freq_mhz = 80,
         .light_sleep_enable = true
       };
       esp_pm_configure(&pm_low);
+      */
       // Clear any accumulated credits so attract mode plays demo
       // instead of waiting for START button press
       clear_credits(pacman_get_memory_rw());
