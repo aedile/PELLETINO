@@ -90,6 +90,7 @@ def convert_program_rom(rom_dir, out_dir):
     print("Converting program ROMs...")
     
     rom_data = bytearray()
+    extra_arrays = []  # additional (name, bytes) arrays to emit in the header
     
     if GAME_NAME == 'mspacman':
         # Check which Ms. Pac-Man variant we have
@@ -105,186 +106,107 @@ def convert_program_rom(rom_dir, out_dir):
                 rom_data.extend(data)
                 print(f"  {rom_file}: {len(data)} bytes")
         elif (rom_dir / 'u5').exists():
-            # Patch ROM variant (Pac-Man base + u5/u6/u7 patches)
-            # Based on MAME's mspacman driver decryption (init_mspacman)
+            # Patch ROM variant (Pac-Man base + u5/u6/u7 aux-board ROMs)
+            # Exact port of MAME's init_mspacman() / mspacman_install_patches()
+            # (src/mame/pacman/pacman.cpp).
+            #
+            # Output layout (32KB "decoded" bank, what the Z80 sees with the
+            # daughterboard latch SET):
+            #   0x0000-0x3FFF -> Z80 0x0000-0x3FFF  patched Pac-Man code + decrypted u7
+            #   0x4000-0x7FFF -> Z80 0x8000-0xBFFF  decrypted u5/u6 + Pac-Man ROM mirrors
+            # plus a 16KB "plain" bank (latch CLEARED): the unpatched Pac-Man ROMs,
+            # which the hardware also mirrors at 0x8000-0xBFFF.
             print("  Using patch ROM variant (pacman.6* + u5/u6/u7)...")
             print("  Applying MAME-style decryption...")
-            
-            # Helper functions for MAME-style bitswap
-            def bitswap8(val, b7, b6, b5, b4, b3, b2, b1, b0):
-                """Rearrange bits: new bit position <- old bit position"""
-                return (
-                    (((val >> b7) & 1) << 7) |
-                    (((val >> b6) & 1) << 6) |
-                    (((val >> b5) & 1) << 5) |
-                    (((val >> b4) & 1) << 4) |
-                    (((val >> b3) & 1) << 3) |
-                    (((val >> b2) & 1) << 2) |
-                    (((val >> b1) & 1) << 1) |
-                    (((val >> b0) & 1) << 0)
-                )
-            
-            def bitswap11(val, b10, b9, b8, b7, b6, b5, b4, b3, b2, b1, b0):
-                return (
-                    (((val >> b10) & 1) << 10) |
-                    (((val >> b9) & 1) << 9) |
-                    (((val >> b8) & 1) << 8) |
-                    (((val >> b7) & 1) << 7) |
-                    (((val >> b6) & 1) << 6) |
-                    (((val >> b5) & 1) << 5) |
-                    (((val >> b4) & 1) << 4) |
-                    (((val >> b3) & 1) << 3) |
-                    (((val >> b2) & 1) << 2) |
-                    (((val >> b1) & 1) << 1) |
-                    (((val >> b0) & 1) << 0)
-                )
-            
-            def bitswap12(val, b11, b10, b9, b8, b7, b6, b5, b4, b3, b2, b1, b0):
-                return (
-                    (((val >> b11) & 1) << 11) |
-                    (((val >> b10) & 1) << 10) |
-                    (((val >> b9) & 1) << 9) |
-                    (((val >> b8) & 1) << 8) |
-                    (((val >> b7) & 1) << 7) |
-                    (((val >> b6) & 1) << 6) |
-                    (((val >> b5) & 1) << 5) |
-                    (((val >> b4) & 1) << 4) |
-                    (((val >> b3) & 1) << 3) |
-                    (((val >> b2) & 1) << 2) |
-                    (((val >> b1) & 1) << 1) |
-                    (((val >> b0) & 1) << 0)
-                )
-            
-            # Load all source ROMs into a flat buffer at MAME addresses
-            # MAME loads: pacman.6e@0x0000, pacman.6f@0x1000, pacman.6h@0x2000, pacman.6j@0x3000
-            #             u5@0x8000, u6@0x9000, u7@0xb000
-            src_rom = bytearray(0x10000)  # 64KB source space
-            
-            base_roms = [('pacman.6e', 0x0000), ('pacman.6f', 0x1000), 
+
+            def bitswap(val, nbits, *bits):
+                """MAME bitswap<N>(val, bN-1 ... b0): new bit k <- old bit bits[N-1-k]."""
+                assert len(bits) == nbits
+                out = 0
+                for k, src in enumerate(bits):
+                    out |= ((val >> src) & 1) << (nbits - 1 - k)
+                return out
+
+            def decrypt_byte(b):
+                return bitswap(b, 8, 0, 4, 5, 7, 6, 3, 2, 1)
+
+            base_roms = [('pacman.6e', 0x0000), ('pacman.6f', 0x1000),
                          ('pacman.6h', 0x2000), ('pacman.6j', 0x3000)]
+            plain = bytearray(0x4000)
             for rom_file, addr in base_roms:
                 path = rom_dir / rom_file
                 if not path.exists():
                     print(f"  ERROR: Missing base ROM {rom_file}")
                     return False
                 data = read_rom_file(path)
-                for i, b in enumerate(data):
-                    src_rom[addr + i] = b
+                if len(data) != 0x1000:
+                    print(f"  ERROR: {rom_file} is {len(data)} bytes, expected 4096")
+                    return False
+                plain[addr:addr + 0x1000] = data
                 print(f"  {rom_file}: {len(data)} bytes @ 0x{addr:04X}")
-            
-            # Load patch ROMs
-            u5_path, u6_path, u7_path = rom_dir / 'u5', rom_dir / 'u6', rom_dir / 'u7'
-            if not all(p.exists() for p in [u5_path, u6_path, u7_path]):
-                print("  ERROR: Missing patch ROMs (u5, u6, u7)")
-                return False
-            
-            u5_data = read_rom_file(u5_path)
-            u6_data = read_rom_file(u6_path)
-            u7_data = read_rom_file(u7_path)
-            
-            # Place at MAME addresses
-            for i, b in enumerate(u5_data):
-                src_rom[0x8000 + i] = b
-            for i, b in enumerate(u6_data):
-                src_rom[0x9000 + i] = b
-            for i, b in enumerate(u7_data):
-                src_rom[0xb000 + i] = b
-            
-            print(f"  u5: {len(u5_data)} bytes @ 0x8000")
-            print(f"  u6: {len(u6_data)} bytes @ 0x9000")
-            print(f"  u7: {len(u7_data)} bytes @ 0xB000")
-            
-            # Create decrypted ROM (DROM in MAME terminology)
-            # This is the final 24KB output that the emulator will use
-            drom = bytearray(0x6000)
-            
-            # Copy base Pac-Man ROMs unmodified (0x0000-0x3FFF)
+
+            aux = {}
+            for name, size in (('u5', 0x800), ('u6', 0x1000), ('u7', 0x1000)):
+                path = rom_dir / name
+                if not path.exists():
+                    print(f"  ERROR: Missing aux ROM {name}")
+                    return False
+                aux[name] = read_rom_file(path)
+                if len(aux[name]) != size:
+                    print(f"  ERROR: {name} is {len(aux[name])} bytes, expected {size}")
+                    return False
+                print(f"  {name}: {len(aux[name])} bytes")
+
+            # MAME source address space: u5@0x8000, u6@0x9000, u7@0xB000
+            src = bytearray(0x10000)
+            src[0x0000:0x4000] = plain
+            src[0x8000:0x8800] = aux['u5']
+            src[0x9000:0xA000] = aux['u6']
+            src[0xB000:0xC000] = aux['u7']
+
+            drom = bytearray(0x10000)  # MAME DROM (decoded bank), full 64KB
             for i in range(0x1000):
-                drom[0x0000 + i] = src_rom[0x0000 + i]  # pacman.6e
-                drom[0x1000 + i] = src_rom[0x1000 + i]  # pacman.6f
-                drom[0x2000 + i] = src_rom[0x2000 + i]  # pacman.6h
-                # pacman.6j -> decrypt u7 for 0x3000-0x3FFF
-                addr = bitswap12(i, 11, 3, 7, 9, 10, 8, 6, 5, 4, 2, 1, 0)
-                drom[0x3000 + i] = bitswap8(src_rom[0xb000 + addr], 0, 4, 5, 7, 6, 3, 2, 1)
-            
-            # Decrypt u5 -> 0x4000-0x47FF (2KB)
+                drom[0x0000 + i] = src[0x0000 + i]  # pacman.6e
+                drom[0x1000 + i] = src[0x1000 + i]  # pacman.6f
+                drom[0x2000 + i] = src[0x2000 + i]  # pacman.6h
+                # decrypt u7 -> 0x3000
+                a = bitswap(i, 12, 11, 3, 7, 9, 10, 8, 6, 5, 4, 2, 1, 0)
+                drom[0x3000 + i] = decrypt_byte(src[0xB000 + a])
             for i in range(0x800):
-                addr = bitswap11(i, 8, 7, 5, 9, 10, 6, 3, 4, 2, 1, 0)
-                drom[0x4000 + i] = bitswap8(src_rom[0x8000 + addr], 0, 4, 5, 7, 6, 3, 2, 1)
-            
-            # Decrypt u6 -> 0x4800-0x4FFF and 0x5000-0x57FF (two 2KB halves)
-            for i in range(0x800):
-                addr = bitswap11(i, 3, 7, 9, 10, 8, 6, 5, 4, 2, 1, 0)
-                drom[0x4800 + i] = bitswap8(src_rom[0x9800 + addr], 0, 4, 5, 7, 6, 3, 2, 1)
-                drom[0x5000 + i] = bitswap8(src_rom[0x9000 + addr], 0, 4, 5, 7, 6, 3, 2, 1)
-            
-            # Fill rest with mirrors as MAME does
-            for i in range(0x800):
-                drom[0x5800 + i] = src_rom[0x1800 + i]  # mirror of pacman.6f high
-            
+                a5 = bitswap(i, 11, 8, 7, 5, 9, 10, 6, 3, 4, 2, 1, 0)
+                a6 = bitswap(i, 11, 3, 7, 9, 10, 8, 6, 5, 4, 2, 1, 0)
+                drom[0x8000 + i] = decrypt_byte(src[0x8000 + a5])  # decrypt u5
+                drom[0x8800 + i] = decrypt_byte(src[0x9800 + a6])  # decrypt half of u6
+                drom[0x9000 + i] = decrypt_byte(src[0x9000 + a6])  # decrypt half of u6
+                drom[0x9800 + i] = src[0x1800 + i]                 # mirror of pacman.6f high
+            for i in range(0x1000):
+                drom[0xA000 + i] = src[0x2000 + i]  # mirror of pacman.6h
+                drom[0xB000 + i] = src[0x3000 + i]  # mirror of pacman.6j
             print("  Decrypted u5/u6/u7")
-            
-            # Now apply the 8-byte patches from the decrypted area
-            # MAME's mspacman_install_patches - exact addresses from MAME source
-            # Our drom layout: 0x0000-0x3FFF = base code, 0x4000-0x47FF = u5 decrypted,
-            #                  0x4800-0x4FFF = u6 high decrypted, 0x5000-0x57FF = u6 low decrypted
-            # MAME's high bank is at 0x8000, our equivalent is at 0x4000
-            # So 0x8xxx -> 0x4xxx (subtract 0x4000)
-            def install_patches(rom):
-                """Copy forty 8-byte patches into Pac-Man code
-                   Exact port of MAME's mspacman_install_patches()
-                """
-                for i in range(8):
-                    # From MAME: ROM[dest] = ROM[src] where src is in high bank (0x8xxx)
-                    # Our drom maps 0x8xxx -> 0x4xxx
-                    rom[0x0410+i] = rom[0x4008+i]   # 0x8008 -> 0x4008
-                    rom[0x08E0+i] = rom[0x41D8+i]   # 0x81D8 -> 0x41D8
-                    rom[0x0A30+i] = rom[0x4118+i]   # 0x8118 -> 0x4118
-                    rom[0x0BD0+i] = rom[0x40D8+i]   # 0x80D8 -> 0x40D8
-                    rom[0x0C20+i] = rom[0x4120+i]   # 0x8120 -> 0x4120
-                    rom[0x0E58+i] = rom[0x4168+i]   # 0x8168 -> 0x4168
-                    rom[0x0EA8+i] = rom[0x4198+i]   # 0x8198 -> 0x4198
-                    
-                    rom[0x1000+i] = rom[0x4020+i]   # 0x8020 -> 0x4020
-                    rom[0x1008+i] = rom[0x4010+i]   # 0x8010 -> 0x4010
-                    rom[0x1288+i] = rom[0x4098+i]   # 0x8098 -> 0x4098
-                    rom[0x1348+i] = rom[0x4048+i]   # 0x8048 -> 0x4048
-                    rom[0x1688+i] = rom[0x4088+i]   # 0x8088 -> 0x4088
-                    rom[0x16B0+i] = rom[0x4188+i]   # 0x8188 -> 0x4188
-                    rom[0x16D8+i] = rom[0x40C8+i]   # 0x80C8 -> 0x40C8
-                    rom[0x16F8+i] = rom[0x41C8+i]   # 0x81C8 -> 0x41C8
-                    rom[0x19A8+i] = rom[0x40A8+i]   # 0x80A8 -> 0x40A8
-                    rom[0x19B8+i] = rom[0x41A8+i]   # 0x81A8 -> 0x41A8
-                    
-                    rom[0x2060+i] = rom[0x4148+i]   # 0x8148 -> 0x4148
-                    rom[0x2108+i] = rom[0x4018+i]   # 0x8018 -> 0x4018
-                    rom[0x21A0+i] = rom[0x41A0+i]   # 0x81A0 -> 0x41A0
-                    rom[0x2298+i] = rom[0x41E8+i]   # 0x81E8 -> 0x41E8
-                    rom[0x23E0+i] = rom[0x4038+i]   # 0x8038 -> 0x4038
-                    rom[0x2418+i] = rom[0x4000+i]   # 0x8000 -> 0x4000
-                    rom[0x2448+i] = rom[0x4058+i]   # 0x8058 -> 0x4058
-                    rom[0x2470+i] = rom[0x4140+i]   # 0x8140 -> 0x4140
-                    rom[0x2488+i] = rom[0x4080+i]   # 0x8080 -> 0x4080
-                    rom[0x24B0+i] = rom[0x4180+i]   # 0x8180 -> 0x4180
-                    rom[0x24D8+i] = rom[0x40C0+i]   # 0x80C0 -> 0x40C0
-                    rom[0x24F8+i] = rom[0x41C0+i]   # 0x81C0 -> 0x41C0
-                    rom[0x2748+i] = rom[0x4050+i]   # 0x8050 -> 0x4050
-                    rom[0x2780+i] = rom[0x4090+i]   # 0x8090 -> 0x4090
-                    rom[0x27B8+i] = rom[0x4190+i]   # 0x8190 -> 0x4190
-                    rom[0x2800+i] = rom[0x4028+i]   # 0x8028 -> 0x4028
-                    rom[0x2B20+i] = rom[0x4100+i]   # 0x8100 -> 0x4100
-                    rom[0x2B30+i] = rom[0x4110+i]   # 0x8110 -> 0x4110
-                    rom[0x2BF0+i] = rom[0x41D0+i]   # 0x81D0 -> 0x41D0
-                    rom[0x2CC0+i] = rom[0x40D0+i]   # 0x80D0 -> 0x40D0
-                    rom[0x2CD8+i] = rom[0x40E0+i]   # 0x80E0 -> 0x40E0
-                    rom[0x2CF0+i] = rom[0x41E0+i]   # 0x81E0 -> 0x41E0
-                    rom[0x2D60+i] = rom[0x4160+i]   # 0x8160 -> 0x4160
-            
-            install_patches(drom)
-            print("  Applied 40 8-byte patches")
-            
-            rom_data = drom
-            print(f"  Total ROM size: {len(rom_data)} bytes")
+
+            # mspacman_install_patches(): copy forty 8-byte patches into Pac-Man code
+            patches = [
+                (0x0410, 0x8008), (0x08E0, 0x81D8), (0x0A30, 0x8118), (0x0BD0, 0x80D8),
+                (0x0C20, 0x8120), (0x0E58, 0x8168), (0x0EA8, 0x8198),
+                (0x1000, 0x8020), (0x1008, 0x8010), (0x1288, 0x8098), (0x1348, 0x8048),
+                (0x1688, 0x8088), (0x16B0, 0x8188), (0x16D8, 0x80C8), (0x16F8, 0x81C8),
+                (0x19A8, 0x80A8), (0x19B8, 0x81A8),
+                (0x2060, 0x8148), (0x2108, 0x8018), (0x21A0, 0x81A0), (0x2298, 0x80A0),
+                (0x23E0, 0x80E8), (0x2418, 0x8000), (0x2448, 0x8058), (0x2470, 0x8140),
+                (0x2488, 0x8080), (0x24B0, 0x8180), (0x24D8, 0x80C0), (0x24F8, 0x81C0),
+                (0x2748, 0x8050), (0x2780, 0x8090), (0x27B8, 0x8190), (0x2800, 0x8028),
+                (0x2B20, 0x8100), (0x2B30, 0x8110), (0x2BF0, 0x81D0), (0x2CC0, 0x80D0),
+                (0x2CD8, 0x80E0), (0x2CF0, 0x81E0), (0x2D60, 0x8160),
+            ]
+            assert len(patches) == 40
+            for dst, srcaddr in patches:
+                drom[dst:dst + 8] = drom[srcaddr:srcaddr + 8]
+            print(f"  Applied {len(patches)} 8-byte patches")
+
+            # Pack into the emulator image: [0x0000-0x3FFF] + [0x8000-0xBFFF]
+            rom_data = bytearray(drom[0x0000:0x4000] + drom[0x8000:0xC000])
+            extra_arrays.append(('mspacman_rom_plain', bytes(plain)))
+            print(f"  Decoded bank: {len(rom_data)} bytes, plain bank: {len(plain)} bytes")
         else:
             print("  ERROR: No Ms. Pac-Man ROMs found (need boot1-6 or pacman.6* + u5/u6/u7)")
             return False
@@ -317,6 +239,10 @@ def convert_program_rom(rom_dir, out_dir):
         '#include <stdint.h>',
         '',
         to_c_array(rom_data, header_name),
+    ]
+    for extra_name, extra_data in extra_arrays:
+        output += ['', to_c_array(extra_data, extra_name)]
+    output += [
         '',
         f'#endif // {guard_name}',
     ]

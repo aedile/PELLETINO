@@ -73,6 +73,15 @@ python3 -m esptool --chip esp32c6 --port /dev/cu.usbmodem5101 --baud 460800 \
   0x8000 partition_table/partition-table.bin
 ```
 
+### Build with Docker (no local ESP-IDF install)
+
+```bash
+docker pull espressif/idf:v5.3.4
+docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.3.4 idf.py -B build_docker build
+# Flash from the host (Docker on macOS cannot reach USB):
+python3 -m esptool --chip esp32c6 --port /dev/cu.usbmodem* --baud 460800 write_flash @build_docker/flash_args
+```
+
 **Flash Timing:** At 460800 baud, flashing ~866KB should take 15-20 seconds. If it takes >3 minutes, the connection may have hung - try resetting the board or checking the USB connection.
 
 ## Video Feature
@@ -144,6 +153,31 @@ Output files are generated in `main/roms/`:
 - `pacman_spritemap.h` - Sprite graphics
 - `pacman_cmap.h` - Color palette
 - `pacman_wavetable.h` - Audio waveforms
+
+### Ms. Pac-Man
+
+Use the MAME `mspacman` set (Pac-Man program ROMs + the GCC aux-board ROMs):
+- `pacman.6e`, `pacman.6f`, `pacman.6h`, `pacman.6j` (base Pac-Man code)
+- `u5` (2048 bytes), `u6`, `u7` (encrypted aux-board ROMs)
+- `5e` (tiles), `5f` (sprites)
+- `82s123.7f`, `82s126.4a`, `82s126.1m`, `82s126.3m` (PROMs)
+
+```bash
+# ROM directory is auto-detected as Ms. Pac-Man when u5/u6/u7 are present
+python3 tools/convert_roms.py mspacman main/roms
+```
+
+This writes `main/roms/mspacman_*.h`. `mspacman_rom.h` holds two arrays:
+`mspacman_rom` (32KB: decrypted + patched code for 0x0000-0x3FFF, then the 16KB
+seen at 0x8000-0xBFFF) and `mspacman_rom_plain` (16KB unpatched Pac-Man code).
+The decryption and 40 code patches are a direct port of MAME's `init_mspacman()`.
+
+The emulator also reproduces the aux board's decode latch (`pacman_set_mspacman_aux()`
+in `components/pacman_hw`): any access to 0x3FF8-0x3FFF shows the Ms. Pac-Man bank,
+any access to 0x0038, 0x03B0, 0x1600, 0x2120, 0x3FF0, 0x8000 or 0x97F0 (8 bytes each)
+shows the plain Pac-Man bank. This is required: the boot self-test checksums the
+ROM through the 0x0038 trap and hangs on a blank screen if the patched code is
+visible. Select the game at build time: `idf.py -DGAME=mspacman build` (default `pacman`); see `main/CMakeLists.txt`.
 
 ## Hardware Target
 

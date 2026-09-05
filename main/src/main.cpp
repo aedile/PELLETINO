@@ -32,9 +32,11 @@
 // Forward declare video player
 extern "C" int play_fiesta_video(void);
 
-// Game selection - uncomment one:
+// Game selection comes from the build: idf.py -DGAME=pacman (default) or -DGAME=mspacman
+// (see main/CMakeLists.txt). ROM headers come from tools/convert_roms.py.
+#if !defined(GAME_PACMAN) && !defined(GAME_MSPACMAN)
 #define GAME_PACMAN
-// #define GAME_MSPACMAN
+#endif
 
 // Include converted ROM data based on game selection
 #ifdef GAME_MSPACMAN
@@ -126,7 +128,10 @@ extern "C" void app_main(void) {
 
   // Load ROM and graphics data
   ESP_LOGI(TAG, "Loading ROM data...");
-  pacman_set_rom(GAME_ROM);
+  pacman_set_rom(GAME_ROM, sizeof(GAME_ROM));
+#ifdef GAME_MSPACMAN
+  pacman_set_mspacman_aux(mspacman_rom_plain);
+#endif
   pacman_set_tiles(GAME_TILES);
   pacman_set_sprites(&GAME_SPRITES[0][0][0]);
   pacman_set_palette(&GAME_COLORMAP[0][0]);
@@ -155,20 +160,74 @@ extern "C" void app_main(void) {
   // Battery optimization: CPU frequency scaling
   bool cpu_low_power = false;
 
+  // Emulation runs in real time even when rendering can't keep 60 fps:
+  // each loop iteration runs as many 1/60 s emulated frames as wall-clock
+  // time owes (the display transfer alone takes ~15 ms), so game speed and
+  // music tempo stay correct and only the on-screen frame rate drops.
+  int64_t emu_accum_us = 0;
+  int64_t emu_last_us = esp_timer_get_time();
+  bool emu_realtime = false;  // only during play; attract mode stays at 1 frame per loop
+#if PELLETINO_DEBUG
+  uint32_t emu_frames_period = 0;
+#endif
+
   while (running) {
     frame_start = esp_timer_get_time();
 
-    // 1. Run Z80 CPU for one frame worth of cycles (~50,000 @ 3MHz / 60Hz)
-    pacman_run_frame();
+    // 1. Run the Z80 for one or more 1/60 s frames (~51,200 cycles each),
+    //    with a VBLANK interrupt after each.
+    int frames_to_run = 1;
+    emu_accum_us += frame_start - emu_last_us;
+    emu_last_us = frame_start;
+    if (emu_realtime) {
+      const int64_t frame_us = (int64_t)FRAME_TIME_US;  // signed copy: -FRAME_TIME_US on the
+                                                        // uint32 constant would wrap positive
+      frames_to_run = (int)(emu_accum_us / frame_us);
+      if (frames_to_run < 1) frames_to_run = 1;
+      if (frames_to_run > 3) frames_to_run = 3;  // don't spiral after a stall (e.g. video)
+      emu_accum_us -= (int64_t)frames_to_run * frame_us;
+      if (emu_accum_us > frame_us) emu_accum_us = frame_us;
+      if (emu_accum_us < -frame_us) emu_accum_us = -frame_us;
+    } else {
+      emu_accum_us = 0;
+    }
+    for (int i = 0; i < frames_to_run; i++) {
+      pacman_run_frame();
+      pacman_vblank_interrupt();
+    }
+#if PELLETINO_DEBUG
+    emu_frames_period += frames_to_run;
+    uint64_t t_z80 = esp_timer_get_time();
+#endif
 
     // 2. Render display (uses DMA, interleaved with audio)
     pacman_render_screen();
+#if PELLETINO_DEBUG
+    uint64_t t_render = esp_timer_get_time();
+#endif
 
     // 3. Update audio buffer
     audio_update();
+#if PELLETINO_DEBUG
+    uint64_t t_audio = esp_timer_get_time();
+#endif
 
     // 4. Poll input
     pacman_poll_input();
+#if PELLETINO_DEBUG
+    uint64_t t_input = esp_timer_get_time();
+    static uint64_t acc_z80 = 0, acc_render = 0, acc_audio = 0, acc_input = 0;
+    acc_z80 += t_z80 - frame_start;
+    acc_render += t_render - t_z80;
+    acc_audio += t_audio - t_render;
+    acc_input += t_input - t_audio;
+    if ((frame_count + 1) % 300 == 0) {
+      ESP_LOGI(TAG, "avg us/loop: z80 %llu, render %llu, audio %llu, input %llu; emulated frames in last 300 loops: %lu",
+               acc_z80 / 300, acc_render / 300, acc_audio / 300, acc_input / 300, (unsigned long)emu_frames_period);
+      acc_z80 = acc_render = acc_audio = acc_input = 0;
+      emu_frames_period = 0;
+    }
+#endif
 
     // 5. Battery optimization: Detect audio silence and power down amplifier
     // Also respect mute state - keep amplifier off when muted
@@ -209,6 +268,7 @@ extern "C" void app_main(void) {
     const uint8_t* memory = pacman_get_memory();
     uint8_t game_mode = memory ? memory[PACMAN_ADDR_GAME_STATE - 0x4000] : 0;
     bool is_playing = (game_mode >= 0x02);  // 0x01=attract, 0x02+=active game
+    emu_realtime = is_playing;
     
     if (is_playing && cpu_low_power) {
       // Switched off: Dynamic frequency scaling kills DMA transfers
@@ -243,9 +303,6 @@ extern "C" void app_main(void) {
       ESP_LOGI(TAG, "Backlight restored to 50%% (active)");
     }
 
-    // 8. Trigger VBLANK interrupt if enabled
-    pacman_vblank_interrupt();
-
     // 9. Check for attract mode start (after arcade boot or after game over) and play video
     if (check_attract_mode_start(pacman_get_memory())) {
       static bool first_attract_entry = true;
@@ -264,6 +321,8 @@ extern "C" void app_main(void) {
       esp_pm_configure(&pm_video);
       */
       play_fiesta_video();
+      emu_last_us = esp_timer_get_time();  // don't count video time as owed emulation
+      emu_accum_us = 0;
       // Restore low power for attract mode - disabled!
       /* esp_pm_config_t pm_low = {
         .max_freq_mhz = 80,
@@ -290,7 +349,8 @@ extern "C" void app_main(void) {
 
     frame_count++;
     if (frame_count % 300 == 0) { // Every 5 seconds
-      ESP_LOGI(TAG, "Frame %llu, elapsed: %llu us", frame_count, elapsed);
+      ESP_LOGI(TAG, "Frame %llu, elapsed: %llu us, audio underruns: %lu", frame_count, elapsed,
+               (unsigned long)audio_get_underrun_count());
     }
   }
 }

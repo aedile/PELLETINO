@@ -1,5 +1,6 @@
 # Build artifacts
 build/
+build_docker/
 sdkconfig
 sdkconfig.old
 dependencies.lock
@@ -94,3 +95,12 @@ tools/output/
 local_config.h
 user_settings.h
 history.txt
+
+# Ms. Pac-Man ROM set (MAME "mspacman" file names)
+mspacman/
+rom/
+u5
+u6
+u7
+5e
+5f

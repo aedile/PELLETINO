@@ -17,8 +17,16 @@ static const char *TAG = "AUDIO";
 // Sound registers (written by Z80, read by audio)
 static uint8_t sound_regs[32] = {0};
 
-// Audio sample buffer (unsigned 16-bit for ES8311)
-static uint16_t sample_buffer[AUDIO_BUFFER_SIZE];
+// Audio sample buffer (signed 16-bit PCM, as the ES8311 expects over I2S)
+static int16_t sample_buffer[AUDIO_MAX_SAMPLES];
+
+// DMA queue accounting (see audio_update). Both counters are in bytes and wrap
+// modulo 2^32; their difference is how much audio is queued but not yet played.
+static volatile uint32_t audio_bytes_sent = 0;     // advanced from the I2S ISR
+static uint32_t audio_bytes_written = 0;
+static volatile uint32_t audio_underruns = 0;
+// Keep about 3 frames of audio queued ahead of the DAC (latency vs. jitter margin)
+static constexpr uint32_t AUDIO_TARGET_BYTES = (AUDIO_SAMPLE_RATE * 3 / 60) * sizeof(int16_t);
 
 // Mute state
 static bool audio_muted = false;
@@ -85,9 +93,9 @@ static esp_err_t es8311_init(void)
     es8311_write_reg(0x07, 0x00);  // CLK Manager 7
     es8311_write_reg(0x08, 0xFF);  // CLK Manager 8
 
-    // Serial data port configuration (I2S format)
-    es8311_write_reg(ES8311_REG_SDPOUT, 0x00);  // 16-bit I2S
-    es8311_write_reg(ES8311_REG_SDPIN, 0x00);
+    // Serial data port: 16-bit word length, standard I2S (Philips) format
+    es8311_write_reg(ES8311_REG_SDPOUT, 0x0C);
+    es8311_write_reg(ES8311_REG_SDPIN, 0x0C);
 
     // System control
     es8311_write_reg(ES8311_REG_SYS_CTRL, 0x00);
@@ -113,19 +121,45 @@ static esp_err_t es8311_init(void)
     return ESP_OK;
 }
 
+// I2S ISR: one DMA descriptor finished playing
+static bool IRAM_ATTR i2s_on_tx_sent(i2s_chan_handle_t handle, i2s_event_data_t *event, void *user_ctx)
+{
+    (void)handle; (void)user_ctx;
+    audio_bytes_sent += event->size;
+    return false;
+}
+
+// I2S ISR: the DMA queue ran dry (nothing queued to send)
+static bool IRAM_ATTR i2s_on_tx_underrun(i2s_chan_handle_t handle, i2s_event_data_t *event, void *user_ctx)
+{
+    (void)handle; (void)event; (void)user_ctx;
+    audio_underruns++;
+    return false;
+}
+
 static esp_err_t i2s_init(void)
 {
     ESP_LOGI(TAG, "Initializing I2S at %d Hz", AUDIO_SAMPLE_RATE);
 
     i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
     chan_cfg.dma_desc_num = AUDIO_DMA_BUFFERS;
-    chan_cfg.dma_frame_num = AUDIO_BUFFER_SIZE;
+    chan_cfg.dma_frame_num = AUDIO_DMA_FRAME_NUM;
+    chan_cfg.auto_clear = true;  // output silence, not a stale buffer, if we ever underrun
 
     ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &i2s_tx_handle, nullptr));
 
+    i2s_event_callbacks_t cbs = {};
+    cbs.on_sent = i2s_on_tx_sent;
+    cbs.on_send_q_ovf = i2s_on_tx_underrun;
+    ESP_ERROR_CHECK(i2s_channel_register_event_callback(i2s_tx_handle, &cbs, nullptr));
+    audio_bytes_sent = 0;
+    audio_bytes_written = 0;
+
     i2s_std_config_t std_cfg = {
         .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(AUDIO_SAMPLE_RATE),
-        .slot_cfg = I2S_STD_MSB_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
+        // Philips format to match the ES8311 SDP setting above (MSB/left-justified
+        // would land every sample one bit early and corrupt the sign bit)
+        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
         .gpio_cfg = {
             .mclk = PIN_I2S_MCK,
             .bclk = PIN_I2S_BCK,
@@ -166,30 +200,48 @@ void audio_init(void)
     ESP_LOGI(TAG, "Audio subsystem initialized");
 }
 
+static void audio_transmit(uint32_t samples)
+{
+    if (!i2s_tx_handle || samples == 0) return;
+
+    size_t bytes_written = 0;
+    // Never block the frame loop: we only ever top the queue up to
+    // AUDIO_TARGET_BYTES, which is well below the DMA capacity.
+    i2s_channel_write(i2s_tx_handle, sample_buffer, samples * sizeof(int16_t), &bytes_written, 0);
+    audio_bytes_written += bytes_written;
+}
+
 void audio_update(void)
 {
     // Skip all audio processing when codec is powered down or muted
     if (!codec_powered || audio_muted) {
         return;
     }
-    
-    // Parse current sound register state
+
+    // Top the DMA queue up to the target depth. Because we generate exactly what
+    // the DAC has consumed, production is locked to the I2S clock: no drift, no
+    // starvation, constant latency, and the write never blocks.
+    uint32_t sent = audio_bytes_sent;
+    int32_t queued = (int32_t)(audio_bytes_written - sent);
+    if (queued < 0) {
+        // Underrun (DMA replayed/cleared buffers we never wrote): resync
+        queued = 0;
+        audio_bytes_written = sent;
+    }
+    int32_t need_bytes = (int32_t)AUDIO_TARGET_BYTES - queued;
+    if (need_bytes <= 0) return;
+    uint32_t samples = (uint32_t)need_bytes / sizeof(int16_t);
+    if (samples > AUDIO_MAX_SAMPLES) samples = AUDIO_MAX_SAMPLES;
+    if (samples == 0) return;
+
     wsg_parse_registers(sound_regs);
-
-    // Render samples
-    wsg_render(sample_buffer, AUDIO_BUFFER_SIZE);
-
-    // Transmit via I2S
-    audio_transmit();
+    wsg_render(sample_buffer, samples);
+    audio_transmit(samples);
 }
 
-void audio_transmit(void)
+uint32_t audio_get_underrun_count(void)
 {
-    if (!i2s_tx_handle) return;
-
-    size_t bytes_written = 0;
-    // Non-blocking write - if buffer full, skip this update (DMA buffers provide headroom)
-    i2s_channel_write(i2s_tx_handle, sample_buffer, sizeof(sample_buffer), &bytes_written, 0);
+    return audio_underruns;
 }
 
 void audio_set_volume(uint8_t volume)
@@ -245,9 +297,9 @@ void audio_set_power_state(bool enabled)
         es8311_write_reg(0x07, 0x00);  // CLK Manager 7
         es8311_write_reg(0x08, 0xFF);  // CLK Manager 8
         
-        // Serial data port configuration (I2S format)
-        es8311_write_reg(ES8311_REG_SDPOUT, 0x00);  // 16-bit I2S
-        es8311_write_reg(ES8311_REG_SDPIN, 0x00);
+        // Serial data port: 16-bit word length, standard I2S (Philips) format
+        es8311_write_reg(ES8311_REG_SDPOUT, 0x0C);
+        es8311_write_reg(ES8311_REG_SDPIN, 0x0C);
         
         // System control and power
         es8311_write_reg(ES8311_REG_SYS_CTRL, 0x00);

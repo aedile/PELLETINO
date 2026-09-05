@@ -23,3 +23,16 @@ idf_component_register(
         esp_phy
         bt
 )
+
+# Which game to build: -DGAME=pacman (default, the Fiesta medal) or -DGAME=mspacman.
+# ROM headers for the chosen game must exist in main/roms (tools/convert_roms.py).
+if(NOT DEFINED GAME)
+    set(GAME "pacman")
+endif()
+if(GAME STREQUAL "mspacman")
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE GAME_MSPACMAN=1)
+    message(STATUS "PELLETINO: building Ms. Pac-Man")
+else()
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE GAME_PACMAN=1)
+    message(STATUS "PELLETINO: building Pac-Man")
+endif()
