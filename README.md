@@ -177,6 +177,21 @@ rom/
 └── 82s126.3m    (256 bytes)  - Sound PROM 2
 ```
 
+#### Ms. Pac-Man (optional)
+
+PELLETINO can also run Ms. Pac-Man from the MAME `mspacman` ROM set
+(`pacman.6e/6f/6h/6j`, `u5`, `u6`, `u7`, `5e`, `5f`, and the four PROMs above).
+Point the converter at that directory, then pass `-DGAME=mspacman` to the build.
+The default build is Pac-Man, which is what the Fiesta medal ships with.
+
+```bash
+python3 tools/convert_roms.py path/to/mspacman main/roms
+idf.py -DGAME=mspacman build      # or add -DGAME=mspacman to the docker command
+```
+
+The Ms. Pac-Man build emulates the game's aux board, including the code-decode
+latch the original daughterboard used; without it the game hangs at boot.
+
 #### Build & Flash Steps
 
 ```bash

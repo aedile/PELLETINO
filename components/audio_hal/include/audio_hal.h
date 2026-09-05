@@ -14,9 +14,10 @@ extern "C" {
 #endif
 
 // Audio configuration
-#define AUDIO_SAMPLE_RATE 20050 // 20.05 kHz (original Pac-Man rate)
-#define AUDIO_BUFFER_SIZE 64    // Samples per buffer (smaller = lower latency)
-#define AUDIO_DMA_BUFFERS 8     // Number of DMA buffers (more = less underruns)
+#define AUDIO_SAMPLE_RATE 20050 // Output sample rate (Hz)
+#define AUDIO_MAX_SAMPLES 1024  // Max samples rendered per audio_update() (~50 ms catch-up cap)
+#define AUDIO_DMA_FRAME_NUM 256 // Samples per DMA descriptor
+#define AUDIO_DMA_BUFFERS 8     // DMA descriptors: 8 x 256 = ~100 ms of queue
 
 // I2S Pin definitions (FIESTA26)
 #define PIN_I2S_MCK GPIO_NUM_19
@@ -36,16 +37,16 @@ extern "C" {
 void audio_init(void);
 
 /**
- * Update audio - call every frame to refill buffers
- * This reads from Namco WSG sound registers and generates samples
+ * Update audio - call every frame (any frame rate).
+ * Renders exactly as many samples as wall-clock time has elapsed since the
+ * previous call, so the I2S DMA queue neither starves nor overflows.
  */
 void audio_update(void);
 
 /**
- * Transmit any pending audio buffers
- * Non-blocking - uses DMA
+ * Number of I2S DMA underruns since boot (queue ran dry). Diagnostic.
  */
-void audio_transmit(void);
+uint32_t audio_get_underrun_count(void);
 
 /**
  * Set master volume

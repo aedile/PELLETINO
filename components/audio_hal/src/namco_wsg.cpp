@@ -5,7 +5,16 @@
  */
 
 #include "namco_wsg.h"
+#include "audio_hal.h"
 #include <cstring>
+
+// The WSG adds each voice's 20-bit frequency word to a 20-bit accumulator at
+// 96 kHz (3.072 MHz / 32); the top 5 accumulator bits index the 32-sample wave.
+// We run the accumulator at AUDIO_SAMPLE_RATE instead, scaled up by 2^12 into a
+// 32-bit counter so the wave index is simply the top 5 bits (>> 27).
+#define WSG_CLOCK_HZ 96000
+static const uint32_t WSG_STEP_SCALE =
+    (uint32_t)(((uint64_t)WSG_CLOCK_HZ * 4096 + AUDIO_SAMPLE_RATE / 2) / AUDIO_SAMPLE_RATE);
 
 // Internal state for 3 channels
 static uint32_t snd_cnt[WSG_CHANNELS] = {0, 0, 0};
@@ -88,37 +97,37 @@ void wsg_parse_registers(const uint8_t *regs)
     }
 }
 
-void wsg_render(uint16_t *buffer, uint32_t samples)
+void wsg_render(int16_t *buffer, uint32_t samples)
 {
+    // Per-sample phase increments (32-bit wraparound is the intended modulo)
+    const uint32_t step0 = snd_freq[0] * WSG_STEP_SCALE;
+    const uint32_t step1 = snd_freq[1] * WSG_STEP_SCALE;
+    const uint32_t step2 = snd_freq[2] * WSG_STEP_SCALE;
+
     for (uint32_t i = 0; i < samples; i++) {
         int32_t v = 0;
 
-        // Add up all three wave channels
+        // Add up all three wave channels; wave index = top 5 bits of the counter
         if (snd_volume[0]) {
-            // Use upper 5 bits of counter as wave index (32 samples)
-            v += snd_volume[0] * snd_wave[0][(snd_cnt[0] >> 13) & 0x1F];
+            v += snd_volume[0] * snd_wave[0][snd_cnt[0] >> 27];
         }
         if (snd_volume[1]) {
-            v += snd_volume[1] * snd_wave[1][(snd_cnt[1] >> 13) & 0x1F];
+            v += snd_volume[1] * snd_wave[1][snd_cnt[1] >> 27];
         }
         if (snd_volume[2]) {
-            v += snd_volume[2] * snd_wave[2][(snd_cnt[2] >> 13) & 0x1F];
+            v += snd_volume[2] * snd_wave[2][snd_cnt[2] >> 27];
         }
 
-        // v is now in range of roughly +/- 512 (3 channels * 15 vol * ~8 wave amplitude)
-        // Scale to 16-bit - use 48 instead of 64 to reduce distortion
+        // v is roughly +/- 360 (3 voices * 15 vol * 8 wave amplitude); scale to 16-bit
         v = v * 48;
-
-        // Clamp to signed 16-bit range then convert to unsigned
         if (v > 32767) v = 32767;
         if (v < -32768) v = -32768;
 
-        // Convert to unsigned 16-bit (0x8000 = center/silence)
-        buffer[i] = (uint16_t)(0x8000 + v);
+        buffer[i] = (int16_t)v;
 
         // Advance phase counters
-        snd_cnt[0] += snd_freq[0];
-        snd_cnt[1] += snd_freq[1];
-        snd_cnt[2] += snd_freq[2];
+        snd_cnt[0] += step0;
+        snd_cnt[1] += step1;
+        snd_cnt[2] += step2;
     }
 }

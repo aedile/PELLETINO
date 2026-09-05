@@ -57,10 +57,20 @@ void pacman_poll_input(void);
 void pacman_vblank_interrupt(void);
 
 /**
- * Set ROM data pointer (for XIP or RAM-loaded ROM)
- * @param rom Pointer to 16KB ROM data
+ * Set program ROM data pointer (for XIP or RAM-loaded ROM)
+ * @param rom  Pac-Man: 16KB (Z80 0x0000-0x3FFF).
+ *             Ms. Pac-Man: 32KB, [0x0000-0x3FFF] patched code followed by the
+ *             16KB the Z80 sees at 0x8000-0xBFFF (decrypted aux-board ROMs).
+ * @param size Size of rom in bytes (0x4000 or 0x8000)
  */
-void pacman_set_rom(const uint8_t *rom);
+void pacman_set_rom(const uint8_t *rom, uint32_t size);
+
+/**
+ * Enable Ms. Pac-Man aux-board (daughterboard) latch emulation.
+ * Call after pacman_set_rom() with the 32KB decoded image.
+ * @param plain_rom 16KB unpatched Pac-Man ROM, visible while the latch is cleared
+ */
+void pacman_set_mspacman_aux(const uint8_t *plain_rom);
 
 /**
  * Set tile graphics data

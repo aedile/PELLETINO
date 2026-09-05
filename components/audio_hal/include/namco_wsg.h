@@ -48,11 +48,11 @@ void wsg_init(const int8_t *wavetable);
 void wsg_parse_registers(const uint8_t *regs);
 
 /**
- * Render audio samples
- * @param buffer Output buffer (16-bit unsigned PCM, 0x8000 = center)
+ * Render audio samples at AUDIO_SAMPLE_RATE
+ * @param buffer Output buffer (signed 16-bit PCM, 0 = silence)
  * @param samples Number of samples to render
  */
-void wsg_render(uint16_t *buffer, uint32_t samples);
+void wsg_render(int16_t *buffer, uint32_t samples);
 
 #ifdef __cplusplus
 }

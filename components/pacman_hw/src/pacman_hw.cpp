@@ -19,7 +19,21 @@ static const char *TAG = "PACMAN_HW";
 
 // Memory arrays
 static uint8_t *memory = nullptr;  // Combined VRAM + CRAM + RAM + Sprite
+
+// Program ROM banks.
+//   Pac-Man:     rom_data is 16KB (0x0000-0x3FFF); 0x8000-0xBFFF mirrors it (no A15).
+//   Ms. Pac-Man: rom_data is 32KB: [0x0000-0x3FFF] patched code, [0x4000-0x7FFF] is
+//                what the Z80 sees at 0x8000-0xBFFF (decrypted aux-board ROMs).
 static const uint8_t *rom_data = nullptr;
+static const uint8_t *rom_lo = nullptr;    // bank currently visible at 0x0000-0x3FFF
+static const uint8_t *rom_hi = nullptr;    // bank currently visible at 0x8000-0xBFFF
+
+// Ms. Pac-Man aux board ("daughterboard") latch emulation, per MAME's mspacman_map.
+// Any access (fetch/read/write) to 0x3FF8-0x3FFF sets the latch (decoded Ms. Pac-Man code
+// visible); any access to the trap ranges below clears it (plain Pac-Man code visible).
+// The Pac-Man self-test ROM checksum and the ghost RNG rely on this.
+static const uint8_t *ms_plain_rom = nullptr;  // unpatched Pac-Man ROM (16KB), latch cleared
+static uint8_t ms_trap_page[256];              // nonzero for 256-byte pages containing a trap
 
 // Hardware state
 static uint8_t irq_enable = 0;
@@ -65,6 +79,32 @@ void pacman_hw_init(void)
     ESP_LOGI(TAG, "Pac-Man hardware initialized");
 }
 
+static inline void ms_latch_set(bool decoded)
+{
+    if (decoded) {
+        rom_lo = rom_data;
+        rom_hi = rom_data + 0x4000;
+    } else {
+        rom_lo = ms_plain_rom;
+        rom_hi = ms_plain_rom;  // hardware mirrors the Pac-Man ROMs at 0x8000-0xBFFF
+    }
+}
+
+IRAM_ATTR static void ms_trap(uint16_t addr)
+{
+    switch (addr & 0xFFF8) {
+        case 0x3FF8:
+            ms_latch_set(true);
+            break;
+        case 0x0038: case 0x03B0: case 0x1600: case 0x2120:
+        case 0x3FF0: case 0x8000: case 0x97F0:
+            ms_latch_set(false);
+            break;
+        default:
+            break;
+    }
+}
+
 void pacman_hw_reset(void)
 {
     memset(memory, 0, 0x2000);
@@ -72,12 +112,29 @@ void pacman_hw_reset(void)
     irq_vector = 0;
     game_started = 0;
 
+    if (ms_plain_rom) {
+        ms_latch_set(true);  // MAME starts in the decoded bank
+    }
+
     z80_reset();
 }
 
-void pacman_set_rom(const uint8_t *rom)
+void pacman_set_rom(const uint8_t *rom, uint32_t size)
 {
     rom_data = rom;
+    rom_lo = rom;
+    rom_hi = (size >= 0x8000) ? rom + 0x4000 : rom;
+}
+
+void pacman_set_mspacman_aux(const uint8_t *plain_rom)
+{
+    ms_plain_rom = plain_rom;
+    memset(ms_trap_page, 0, sizeof(ms_trap_page));
+    static const uint8_t trap_pages[] = { 0x00, 0x03, 0x16, 0x21, 0x3F, 0x80, 0x97 };
+    for (uint8_t pg : trap_pages) {
+        ms_trap_page[pg] = 1;
+    }
+    ms_latch_set(true);
 }
 
 void pacman_set_tiles(const uint16_t *tiles)
@@ -126,7 +183,18 @@ IRAM_ATTR uint8_t pacman_mem_read(uint16_t addr)
 {
     // 0x0000-0x3FFF: Program ROM (most common case - put first)
     if (addr < 0x4000) {
-        return rom_data[addr];
+        if (ms_trap_page[addr >> 8]) ms_trap(addr);
+        return rom_lo[addr];
+    }
+
+    if (addr & 0x8000) {
+        // 0x8000-0xBFFF: Pac-Man mirrors 0x0000-0x3FFF here (no A15);
+        // Ms. Pac-Man's aux board maps its decrypted ROMs here instead.
+        if (addr < 0xC000) {
+            if (ms_trap_page[addr >> 8]) ms_trap(addr);
+            return rom_hi[addr & 0x3FFF];
+        }
+        addr &= 0x7FFF;  // 0xC000-0xFFFF mirrors 0x4000-0x7FFF
     }
 
     // 0x4000-0x4FFF: Video RAM, Color RAM, Work RAM
@@ -148,18 +216,16 @@ IRAM_ATTR uint8_t pacman_mem_read(uint16_t addr)
         return 0xFF;
     }
 
-    // 0x8000-0x9FFF: Ms. Pac-Man auxiliary ROM (maps to rom_data 0x4000-0x5FFF)
-    if (addr >= 0x8000 && addr < 0xA000) {
-        return rom_data[addr - 0x4000];  // 0x8000 -> 0x4000, 0x9FFF -> 0x5FFF
-    }
-
     return 0xFF;
 }
 
 // Z80 memory write callback - IRAM for speed
 IRAM_ATTR void pacman_mem_write(uint16_t addr, uint8_t value)
 {
-    addr &= 0x7FFF;  // A15 is unused
+    // Ms. Pac-Man aux board latch traps fire on writes too (no-op for Pac-Man)
+    if (ms_trap_page[addr >> 8]) ms_trap(addr);
+
+    addr &= 0x7FFF;  // A15 is unused for RAM/IO
 
     // 0x4000-0x4FFF: Video RAM, Color RAM, Work RAM (most common)
     if (addr >= 0x4000 && addr < 0x5000) {
