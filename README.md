@@ -196,7 +196,7 @@ latch the original daughterboard used; without it the game hangs at boot.
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/jesse-r-castro/PELLETINO.git
+git clone https://github.com/aedile/PELLETINO.git
 cd PELLETINO
 
 # 2. Convert ROMs (place ROM files in ../rom/ first)
@@ -317,7 +317,7 @@ graph LR
 #### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/jesse-r-castro/PELLETINO.git
+git clone https://github.com/aedile/PELLETINO.git
 cd PELLETINO
 ```
 
@@ -722,5 +722,5 @@ See [LICENSE](LICENSE) file for details.
   <br><br>
   <em>Questions? Found a bug? Want to contribute?</em>
   <br>
-  Open an issue or PR on <a href="https://github.com/jesse-r-castro/PELLETINO">GitHub</a>
+  Open an issue or PR on <a href="https://github.com/aedile/PELLETINO">GitHub</a>
 </p>
