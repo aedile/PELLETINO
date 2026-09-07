@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(idf.py:*)",
+      "Bash(python3:*)",
+      "Bash(/Users/jessercastro/.espressif/python_env/idf5.3_py3.14_env/bin/esptool.py:*)"
+    ]
+  }
+}
