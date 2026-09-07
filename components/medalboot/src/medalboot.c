@@ -5,9 +5,34 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "nvs.h"
+#include "nvs_flash.h"
 #include <string.h>
 
+
 static const char *TAG = "medalboot";
+
+/*
+ * NVS has to be initialised before nvs_open() will succeed, and thirteen of the fourteen game
+ * images never did it - only the launcher and PELLETINO. In those games every call here failed
+ * at nvs_open(), returned without a word, and the two things that matter most never happened:
+ * medalboot_exit_to_menu() could not clear the selection, so the restart auto-booted the same
+ * game again, and medalboot_game_running() could not clear the attempts counter, so the
+ * launcher would have given up on each game after three boots. Initialising lazily here makes
+ * the contract self-contained: an image only has to make the three calls, nothing else.
+ */
+static bool ensure_nvs(void)
+{
+    static bool ready;
+    if (ready) return true;
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        nvs_flash_erase();
+        err = nvs_flash_init();
+    }
+    ready = (err == ESP_OK || err == ESP_ERR_INVALID_STATE);   /* INVALID_STATE: already done */
+    if (!ready) ESP_LOGE(TAG, "nvs_flash_init: %s - selection and attempts cannot be saved", esp_err_to_name(err));
+    return ready;
+}
 
 #define NS          "minimame"
 #define K_SELECTED  "selected"   /* rom to auto-boot; absent = show the menu */
@@ -16,6 +41,7 @@ static const char *TAG = "medalboot";
 
 static bool get_str(const char *key, char *out, size_t len)
 {
+    if (!ensure_nvs()) return false;
     nvs_handle_t h;
     if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return false;
     size_t n = len;
@@ -26,6 +52,7 @@ static bool get_str(const char *key, char *out, size_t len)
 
 static void set_str(const char *key, const char *val)
 {
+    if (!ensure_nvs()) return;
     nvs_handle_t h;
     if (nvs_open(NS, NVS_READWRITE, &h) != ESP_OK) return;
     if (val) nvs_set_str(h, key, val);
@@ -36,6 +63,7 @@ static void set_str(const char *key, const char *val)
 
 static void set_u8(const char *key, uint8_t v)
 {
+    if (!ensure_nvs()) return;
     nvs_handle_t h;
     if (nvs_open(NS, NVS_READWRITE, &h) != ESP_OK) return;
     nvs_set_u8(h, key, v);
@@ -62,6 +90,7 @@ void medalboot_clear_selected(void)
 
 int medalboot_attempts(void)
 {
+    if (!ensure_nvs()) return 0;
     nvs_handle_t h;
     if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return 0;
     uint8_t v = 0;
