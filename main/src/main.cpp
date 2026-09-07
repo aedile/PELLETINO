@@ -22,6 +22,7 @@
 #include "pacman_input.h"
 #include "qmi8658.h"
 #include "z80_cpu.h"
+#include "launcher_handback.h"
 #include "nvs_flash.h"
 #include "esp_wifi.h"
 #ifdef CONFIG_BT_ENABLED
@@ -60,7 +61,6 @@ extern "C" int play_fiesta_video(void);
 #include "pacman_spritemap.h"
 #include "pacman_tilemap.h"
 #include "pacman_wavetable.h"
-#include "launcher_handback.h"
 #define GAME_NAME "Pac-Man"
 #define GAME_ROM pacman_rom
 #define GAME_TILES pacman_5e
