@@ -8,7 +8,7 @@ idf_component_register(
         "roms"
         "../movie"
         "${IDF_PATH}/components/esp_rom/include/esp32c6/rom"
-    REQUIRES
+    REQUIRES app_update esp_partition
         driver
         esp_timer
         esp_rom

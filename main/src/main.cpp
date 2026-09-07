@@ -32,6 +32,9 @@
 // Forward declare video player
 extern "C" int play_fiesta_video(void);
 
+// The FIESTA clip that used to play whenever attract mode restarted. Set to 1 to bring it back.
+#define PLAY_FIESTA_VIDEO 0
+
 // Game selection comes from the build: idf.py -DGAME=pacman (default) or -DGAME=mspacman
 // (see main/CMakeLists.txt). ROM headers come from tools/convert_roms.py.
 #if !defined(GAME_PACMAN) && !defined(GAME_MSPACMAN)
@@ -57,6 +60,7 @@ extern "C" int play_fiesta_video(void);
 #include "pacman_spritemap.h"
 #include "pacman_tilemap.h"
 #include "pacman_wavetable.h"
+#include "launcher_handback.h"
 #define GAME_NAME "Pac-Man"
 #define GAME_ROM pacman_rom
 #define GAME_TILES pacman_5e
@@ -79,6 +83,10 @@ static bool running = false;
 // High score saving disabled due to NVS flash power brownouts on battery
 
 extern "C" void app_main(void) {
+    /* Before anything else: if we were chain-booted from the menu, make sure the
+     * next reset goes back to it rather than here. */
+    launcher_handback();
+
 #if !PELLETINO_DEBUG
   esp_log_level_set("*", ESP_LOG_NONE);
 #endif
@@ -311,30 +319,17 @@ extern "C" void app_main(void) {
          first_attract_entry = false;
       }
       
+#if PLAY_FIESTA_VIDEO
       ESP_LOGI(TAG, "Attract mode starting - playing FIESTA video...");
-      /* Temporarily boost CPU for video decode (Runs at constant 160MHz now anyway, no scaling to crash)
-      esp_pm_config_t pm_video = {
-        .max_freq_mhz = 160,
-        .min_freq_mhz = 160,
-        .light_sleep_enable = false
-      };
-      esp_pm_configure(&pm_video);
-      */
       play_fiesta_video();
       emu_last_us = esp_timer_get_time();  // don't count video time as owed emulation
       emu_accum_us = 0;
-      // Restore low power for attract mode - disabled!
-      /* esp_pm_config_t pm_low = {
-        .max_freq_mhz = 80,
-        .min_freq_mhz = 80,
-        .light_sleep_enable = true
-      };
-      esp_pm_configure(&pm_low);
-      */
+#else
+      ESP_LOGI(TAG, "Attract mode starting");
+#endif
       // Clear any accumulated credits so attract mode plays demo
       // instead of waiting for START button press
       clear_credits(pacman_get_memory_rw());
-      ESP_LOGI(TAG, "Video complete, attract mode will continue");
     }
 
     // Frame timing - wait for 16.667ms total
