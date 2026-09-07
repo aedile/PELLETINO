@@ -26,7 +26,7 @@ static const char *TAG = "PACMAN_INPUT";
 
 // Power button long press threshold (in update cycles at ~60fps)
 #define PWR_LONG_PRESS_FRAMES  60  // ~1 second
-#define BOOT_LONG_PRESS_FRAMES 90  // ~1.5 seconds for mute toggle
+#define BOOT_LONG_PRESS_FRAMES 180  // 3 seconds for mute toggle, as on the other medals
 
 // Current input state
 static uint8_t current_buttons = 0;
