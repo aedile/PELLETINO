@@ -22,6 +22,7 @@
 
 #include "pacman_input.h"
 #include "medal_input.h"
+#include "medalboot.h"
 #include "qmi8658.h"
 #include "audio_hal.h"
 #include "esp_log.h"
@@ -64,6 +65,8 @@ void pacman_input_init(void)
     cfg.mute_hold_us = HOLD_MUTE_US;
     cfg.on_mute = on_mute;
     cfg.on_recentre = on_recentre;
+    cfg.exit_hold_us = MEDALBOOT_EXIT_HOLD_MS * 1000;   /* hold to leave for the menu */
+    cfg.on_exit = medalboot_exit_to_menu;
     medal_input_init(&cfg);
     ESP_LOGI(TAG, "input ready (BOOT or PWR = coin and start, BOOT held 3 s = sound, "
                   "PWR held 1 s = power off)");

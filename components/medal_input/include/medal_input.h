@@ -65,6 +65,15 @@ typedef struct {
     uint32_t imu_period_us;           /* 0 -> 16000. A paddle wants nearer 5000. */
     uint32_t power_off_hold_us;       /* 0 -> 1000000 */
     uint32_t mute_hold_us;            /* 0 disables the gesture entirely */
+
+    /*
+     * Leaving the game. On a medal that boots straight into one game, this is the way back to
+     * the menu. When it is set, the sound gesture moves to the release of the button rather
+     * than firing the moment it is due - otherwise a hold long enough to leave would toggle the
+     * sound on its way past. With it unset, the sound gesture behaves as it always has.
+     */
+    uint32_t exit_hold_us;            /* 0 disables; the launcher's contract says 10 s */
+    void (*on_exit)(void);
     uint32_t coin_us, gap_us, start_us;  /* 0 -> 100000 / 400000 / 100000 */
 
     /* Set when PWR means something else in this game. The rail and the power-off hold are still

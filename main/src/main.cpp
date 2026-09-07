@@ -22,7 +22,7 @@
 #include "pacman_input.h"
 #include "qmi8658.h"
 #include "z80_cpu.h"
-#include "launcher_handback.h"
+#include "medalboot.h"
 #include "nvs_flash.h"
 #include "esp_wifi.h"
 #ifdef CONFIG_BT_ENABLED
@@ -85,7 +85,11 @@ static bool running = false;
 extern "C" void app_main(void) {
     /* Before anything else: if we were chain-booted from the menu, make sure the
      * next reset goes back to it rather than here. */
-    launcher_handback();
+    /*
+     * FIRST LINE, before anything that can fail: point the boot partition back at the MINIMAME
+     * launcher, so a panic or a brownout lands in the menu instead of boot-looping.
+     */
+    medalboot_game_startup();
 
 #if !PELLETINO_DEBUG
   esp_log_level_set("*", ESP_LOG_NONE);
@@ -125,6 +129,9 @@ extern "C" void app_main(void) {
   // Initialize audio (ES8311 + I2S)
   ESP_LOGI(TAG, "Initializing audio...");
   audio_init();
+
+  /* far enough in to be sure this image works: stop the launcher counting attempts */
+  medalboot_game_running();
 
   // Initialize Z80 CPU emulator
   ESP_LOGI(TAG, "Initializing Z80 CPU...");
