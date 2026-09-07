@@ -11,4 +11,5 @@ idf_component_register(
         z80_cpu
         display
         audio_hal
+        medal_input
 )
