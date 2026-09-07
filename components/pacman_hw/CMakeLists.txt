@@ -12,4 +12,5 @@ idf_component_register(
         display
         audio_hal
         medal_input
+        medalboot
 )

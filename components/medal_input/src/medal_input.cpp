@@ -29,8 +29,8 @@ static float neutral_lr, neutral_ud;
 static int64_t imu_last_us, pwr_down_since, boot_down_since, coin_seq_start;
 static bool pwr_was_down, boot_was_down;
 static int  coin_seq;                 /* 0 idle, 1 coin held, 2 gap, 3 start held */
-static bool mute_armed, mute_fired;
-static int64_t mute_down_since;
+static bool hold_armed, hold_fired;
+static int64_t hold_since;
 
 /* the last trusted reading, held so a momentary bad pose does not jerk the controls */
 static float held_lr, held_ud;
@@ -99,8 +99,8 @@ void medal_input_init(const medal_input_config_t *c)
 
     have_neutral = false; held_valid = false;
     coin_seq = 0; pwr_was_down = boot_was_down = false;
-    mute_armed = mute_fired = false;
-    imu_last_us = pwr_down_since = boot_down_since = coin_seq_start = 0;
+    hold_armed = hold_fired = false;
+    imu_last_us = pwr_down_since = boot_down_since = coin_seq_start = hold_since = 0;
 
     gpio_config_t bat = {};
     bat.pin_bit_mask = 1ULL << PIN_BAT_EN;
@@ -136,17 +136,37 @@ void medal_input_init(const medal_input_config_t *c)
                   "held up, and again on each coin and start", imu_ok ? "ok" : "missing");
 }
 
-/* Holding a button for a few seconds toggles the sound. This is a thing people wear places,
- * and some of those places need to be quiet. */
-static void mute_gesture(bool boot, int64_t now)
+/*
+ * The two things a long press can mean. Holding a button for a few seconds toggles the sound -
+ * this is a thing people wear places, and some of those places need to be quiet - and holding
+ * it a good deal longer leaves the game for the menu.
+ *
+ * When both are configured the sound has to wait for the release, because a hold long enough to
+ * leave passes through the shorter one on its way. With no exit gesture there is nothing to
+ * pass through, and the sound fires the moment it is due, as it always has.
+ */
+static void hold_gestures(bool boot, int64_t now)
 {
-    if (!cfg.mute_hold_us || !cfg.on_mute) return;
-    if (boot && !mute_armed) { mute_armed = true; mute_fired = false; mute_down_since = now; }
-    if (!boot) { mute_armed = false; return; }
-    if (!mute_fired && now - mute_down_since >= (int64_t)cfg.mute_hold_us) {
-        mute_fired = true;
-        cfg.on_mute();
+    if (!cfg.mute_hold_us && !cfg.exit_hold_us) return;
+
+    if (boot) {
+        if (!hold_armed) { hold_armed = true; hold_fired = false; hold_since = now; }
+        int64_t held = now - hold_since;
+        if (cfg.exit_hold_us && !hold_fired && held >= (int64_t)cfg.exit_hold_us) {
+            hold_fired = true;
+            if (cfg.on_exit) cfg.on_exit();
+        } else if (!cfg.exit_hold_us && cfg.mute_hold_us && !hold_fired &&
+                   held >= (int64_t)cfg.mute_hold_us) {
+            hold_fired = true;
+            if (cfg.on_mute) cfg.on_mute();
+        }
+        return;
     }
+
+    if (hold_armed && !hold_fired && cfg.exit_hold_us && cfg.mute_hold_us &&
+        now - hold_since >= (int64_t)cfg.mute_hold_us && cfg.on_mute)
+        cfg.on_mute();
+    hold_armed = false;
 }
 
 void medal_input_poll(medal_input_state_t *st)
@@ -163,7 +183,7 @@ void medal_input_poll(medal_input_state_t *st)
     st->boot_held_us = boot ? now - boot_down_since : 0;
     boot_was_down = boot;
 
-    mute_gesture(boot, now);
+    hold_gestures(boot, now);
 
     if (pwr && !pwr_was_down) pwr_down_since = now;
     if (!pwr && pwr_was_down) { st->pwr_released = true; st->pwr_release_held_us = now - pwr_down_since; }
