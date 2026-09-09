@@ -29,7 +29,7 @@ static float neutral_lr, neutral_ud;
 static int64_t imu_last_us, pwr_down_since, boot_down_since, coin_seq_start;
 static bool pwr_was_down, boot_was_down;
 static int  coin_seq;                 /* 0 idle, 1 coin held, 2 gap, 3 start held */
-static bool hold_armed, hold_fired;
+static bool hold_armed, mute_fired, exit_fired;
 static int64_t hold_since;
 
 /* the last trusted reading, held so a momentary bad pose does not jerk the controls */
@@ -99,7 +99,7 @@ void medal_input_init(const medal_input_config_t *c)
 
     have_neutral = false; held_valid = false;
     coin_seq = 0; pwr_was_down = boot_was_down = false;
-    hold_armed = hold_fired = false;
+    hold_armed = mute_fired = false;
     imu_last_us = pwr_down_since = boot_down_since = coin_seq_start = hold_since = 0;
 
     gpio_config_t bat = {};
@@ -149,24 +149,25 @@ static void hold_gestures(bool boot, int64_t now)
 {
     if (!cfg.mute_hold_us && !cfg.exit_hold_us) return;
 
-    if (boot) {
-        if (!hold_armed) { hold_armed = true; hold_fired = false; hold_since = now; }
-        int64_t held = now - hold_since;
-        if (cfg.exit_hold_us && !hold_fired && held >= (int64_t)cfg.exit_hold_us) {
-            hold_fired = true;
-            if (cfg.on_exit) cfg.on_exit();
-        } else if (!cfg.exit_hold_us && cfg.mute_hold_us && !hold_fired &&
-                   held >= (int64_t)cfg.mute_hold_us) {
-            hold_fired = true;
-            if (cfg.on_mute) cfg.on_mute();
-        }
-        return;
-    }
+    if (!boot) { hold_armed = false; return; }
 
-    if (hold_armed && !hold_fired && cfg.exit_hold_us && cfg.mute_hold_us &&
-        now - hold_since >= (int64_t)cfg.mute_hold_us && cfg.on_mute)
-        cfg.on_mute();
-    hold_armed = false;
+    if (!hold_armed) { hold_armed = true; mute_fired = exit_fired = false; hold_since = now; }
+    int64_t held = now - hold_since;
+
+    /*
+     * Both gestures fire while the button is held, at their own times, so a three-second hold
+     * toggles the sound the moment it crosses three seconds - not only when the button is
+     * released, which is what made it feel like nothing was happening. Holding on to the exit
+     * time simply also leaves for the menu; the sound toggle on the way there is harmless.
+     */
+    if (cfg.mute_hold_us && !mute_fired && held >= (int64_t)cfg.mute_hold_us) {
+        mute_fired = true;
+        if (cfg.on_mute) cfg.on_mute();
+    }
+    if (cfg.exit_hold_us && !exit_fired && held >= (int64_t)cfg.exit_hold_us) {
+        exit_fired = true;
+        if (cfg.on_exit) cfg.on_exit();
+    }
 }
 
 void medal_input_poll(medal_input_state_t *st)
