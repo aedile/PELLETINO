@@ -38,36 +38,22 @@ extern "C" int play_fiesta_video(void);
 
 // Game selection comes from the build: idf.py -DGAME=pacman (default) or -DGAME=mspacman
 // (see main/CMakeLists.txt). ROM headers come from tools/convert_roms.py.
-#if !defined(GAME_PACMAN) && !defined(GAME_MSPACMAN)
-#define GAME_PACMAN
-#endif
-
 // Include converted ROM data based on game selection
-#ifdef GAME_MSPACMAN
-#include "mspacman_cmap.h"
-#include "mspacman_rom.h"
-#include "mspacman_spritemap.h"
-#include "mspacman_tilemap.h"
-#include "mspacman_wavetable.h"
-#define GAME_NAME "Ms. Pac-Man"
-#define GAME_ROM mspacman_rom
-#define GAME_TILES mspacman_5e
-#define GAME_SPRITES mspacman_sprites
-#define GAME_COLORMAP mspacman_colormap
-#define GAME_WAVETABLE mspacman_wavetable
-#else
+/*
+ * This one image carries both games and picks between them at boot from medalboot_rom(), so the
+ * two share a single flash slot instead of burning two of sixteen. The launcher writes "pacman"
+ * or "mspacman" as the selection; default to Ms. Pac-Man, which is the one that ships.
+ */
 #include "pacman_cmap.h"
 #include "pacman_rom.h"
 #include "pacman_spritemap.h"
 #include "pacman_tilemap.h"
 #include "pacman_wavetable.h"
-#define GAME_NAME "Pac-Man"
-#define GAME_ROM pacman_rom
-#define GAME_TILES pacman_5e
-#define GAME_SPRITES pacman_sprites
-#define GAME_COLORMAP pacman_colormap
-#define GAME_WAVETABLE pacman_wavetable
-#endif
+#include "mspacman_cmap.h"
+#include "mspacman_rom.h"
+#include "mspacman_spritemap.h"
+#include "mspacman_tilemap.h"
+#include "mspacman_wavetable.h"
 
 // Debug logging flag - set to 1 for serial output, 0 for silent (battery saving)
 #define PELLETINO_DEBUG 0
@@ -119,7 +105,7 @@ extern "C" void app_main(void) {
   }
 #endif
 
-  ESP_LOGI(TAG, "PELLETINO starting - %s", GAME_NAME);
+  ESP_LOGI(TAG, "PELLETINO starting (Pac-Man / Ms. Pac-Man)");
   ESP_LOGI(TAG, "Free heap: %lu bytes", esp_get_free_heap_size());
 
   // Initialize display
@@ -141,16 +127,26 @@ extern "C" void app_main(void) {
   ESP_LOGI(TAG, "Initializing Pac-Man hardware...");
   pacman_hw_init();
 
-  // Load ROM and graphics data
-  ESP_LOGI(TAG, "Loading ROM data...");
-  pacman_set_rom(GAME_ROM, sizeof(GAME_ROM));
-#ifdef GAME_MSPACMAN
-  pacman_set_mspacman_aux(mspacman_rom_plain);
-#endif
-  pacman_set_tiles(GAME_TILES);
-  pacman_set_sprites(&GAME_SPRITES[0][0][0]);
-  pacman_set_palette(&GAME_COLORMAP[0][0]);
-  pacman_set_wavetable(&GAME_WAVETABLE[0][0]);
+  // Which of the two did the launcher pick? Default to Ms. Pac-Man.
+  char which[24] = {0};
+  bool is_ms = true;
+  if (medalboot_rom(which, sizeof which) && strcmp(which, "pacman") == 0) is_ms = false;
+  ESP_LOGI(TAG, "Loading ROM data (%s)...", is_ms ? "Ms. Pac-Man" : "Pac-Man");
+
+  if (is_ms) {
+    pacman_set_rom(mspacman_rom, sizeof(mspacman_rom));
+    pacman_set_mspacman_aux(mspacman_rom_plain);
+    pacman_set_tiles(mspacman_5e);
+    pacman_set_sprites(&mspacman_sprites[0][0][0]);
+    pacman_set_palette(&mspacman_colormap[0][0]);
+    pacman_set_wavetable(&mspacman_wavetable[0][0]);
+  } else {
+    pacman_set_rom(pacman_rom, sizeof(pacman_rom));
+    pacman_set_tiles(pacman_5e);
+    pacman_set_sprites(&pacman_sprites[0][0][0]);
+    pacman_set_palette(&pacman_colormap[0][0]);
+    pacman_set_wavetable(&pacman_wavetable[0][0]);
+  }
   pacman_load_roms();
 
   // Load high score moved to attract mode start to allow Z80 to initialize default first
