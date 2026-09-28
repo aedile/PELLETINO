@@ -46,7 +46,7 @@ def load():
         return tomllib.load(f)
 
 def load_selection():
-    """The optional pick list written by `fiestacade pick`. One ROM name per line;
+    """The optional pick list written by `pelletino pick`. One ROM name per line;
     blank lines and #comments ignored. Returns a set, or None when there is no file
     (in which case every game whose ROM is present is included, as before)."""
     if not os.path.exists(SEL):
@@ -63,7 +63,7 @@ def resolve(cfg, picked='auto'):
     """Decide what is in the build, and why.
 
     picked='auto' reads selection.txt (the normal path); pass a set (or None for
-    'everything present') to evaluate a hypothetical selection - `fiestacade pick`
+    'everything present') to evaluate a hypothetical selection - `pelletino pick`
     does this to price a candidate build."""
     b = cfg.get('build', {})
     default_slot = b.get('default_slot_kb', 768)
@@ -87,7 +87,7 @@ def resolve(cfg, picked='auto'):
 
         # A game may RIDE another game's slot: `boots = "<owner-rom>"` gives it a menu
         # entry and marquee but no partition of its own. It chain-boots the owner's
-        # image (which must carry this ROM too - PELLETINO bakes in both Pac-Men) and
+        # image (which must carry this ROM too - GHOSTERAMA bakes in both Pac-Men) and
         # records its own ROM as the selection so that image runs the right variant.
         owner = g.get('boots')
         boot  = owner or rom
@@ -101,11 +101,11 @@ def resolve(cfg, picked='auto'):
                'disabled in games.toml' if forced is False else
                payload_desc if has_payload else ('no ROM' if not data_p else f'no {data_file}'))
         if forced is None and has_payload and picked is not None and rom not in picked:
-            why = 'not picked (fiestacade pick)'
+            why = 'not picked (pelletino pick)'
         if owner:
             why = f'shares {owner}' + ('' if has_payload else f' (no roms/{rom}.zip)')
             if forced is None and picked is not None and rom not in picked:
-                why = 'not picked (fiestacade pick)'
+                why = 'not picked (pelletino pick)'
 
         if forced is True and not has_payload:
             die(f'{rom} is forced on in games.toml but {payload_desc} is missing')
@@ -195,16 +195,16 @@ def main():
     nslots = sum(1 for r in rows if not r.get('owner'))
     if nslots > OTA_MAX:
         die(f'{nslots} slots needed but ESP-IDF allows at most {OTA_MAX} '
-            f'(ota_0..ota_{OTA_MAX-1}). Run ./fiestacade pick to choose {OTA_MAX} of them.')
+            f'(ota_0..ota_{OTA_MAX-1}). Run ./pelletino pick to choose {OTA_MAX} of them.')
 
     art_kb, exact = mqart_kb(len(rows))
     parts, end = build_table(b, rows, art_kb)
     if end > flash:
         die(f'needs {end/1024/1024:.2f} MB but the flash is {flash/1024/1024:.0f} MB. '
-            f'Run ./fiestacade pick to choose a build that fits.')
+            f'Run ./pelletino pick to choose a build that fits.')
 
     # --- report -------------------------------------------------------------
-    print(f'\n  FIESTACADE  -  {len(rows)} game{"" if len(rows)==1 else "s"} in this build\n')
+    print(f'\n  PELLETINO  -  {len(rows)} game{"" if len(rows)==1 else "s"} in this build\n')
     w = max(len(r['title']) for r in rows)
     for r in rows:
         proj = r['project'] or '-'

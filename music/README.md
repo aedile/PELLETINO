@@ -1,12 +1,12 @@
 # Splash music
 
 Put a Standard MIDI File here as `splash.mid` and it is embedded in the
-firmware on the next `./fiestacade build`. Without one the splash runs silent —
+firmware on the next `./pelletino build`. Without one the splash runs silent —
 the build does not fail.
 
 ```sh
 cp ~/Downloads/something.mid music/splash.mid
-./fiestacade build && ./fiestacade flash
+./pelletino build && ./pelletino flash
 ```
 
 **Nothing in this directory is committed** (`.gitignore` excludes it). We ship no

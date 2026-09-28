@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: 0BSD  Copyright (C) 2026 Jesse Castro
- * Written for FIESTACADE; hardware behaviour referenced against MAME (BSD-3-Clause).
+ * Written for PELLETINO; hardware behaviour referenced against MAME (BSD-3-Clause).
  * See LICENSING.md, "Emulator cores and MAME". */
 /*
  * mrdo_video.c - two 32x32 character maps, one scrolling behind the other, and sixteen-colour

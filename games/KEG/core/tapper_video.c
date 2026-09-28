@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: 0BSD  Copyright (C) 2026 Jesse Castro
- * Written for FIESTACADE; hardware behaviour referenced against MAME (BSD-3-Clause).
+ * Written for PELLETINO; hardware behaviour referenced against MAME (BSD-3-Clause).
  * See LICENSING.md, "Emulator cores and MAME". */
 /*
  * tapper_video.c - the 91490 CPU board's 16x16 tile map and the 91464 Super Video Gen's 32x32

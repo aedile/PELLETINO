@@ -1,6 +1,6 @@
 # Licensing
 
-FIESTACADE is free for everyone. It is not for sale, and because of the
+PELLETINO is free for everyone. It is not for sale, and because of the
 third-party emulator cores some games are built from, it cannot be — see
 "The one catch" below.
 
@@ -22,7 +22,7 @@ Most of the games are built on **Marat Fayzullin's Z80 emulator**, which is
 "freeware for non-commercial use" — it may be shared but **not sold**. Because
 those games embed it, any collection that includes them is non-commercial too.
 That matches the intent of the project (free to everyone), but it means you may
-not sell FIESTACADE, a medal flashed with it, or any build containing a
+not sell PELLETINO, a medal flashed with it, or any build containing a
 Fayzullin-Z80 game.
 
 Games that embed the Fayzullin Z80 (non-commercial):
@@ -32,6 +32,11 @@ Games that embed the Fayzullin Z80 (non-commercial):
 > Rally-X (SMOKESCREEN), Arkanoid (VAUS), Mario Bros (PLUMBER), Mr. Do! (BIGTOP),
 > Time Pilot (CHRONO), Root Beer Tapper (KEG), Moon Patrol (BUGGY), Space
 > Invaders (PHALANX), Galaxian (ARMADA), Gyruss (TOCCATA).
+
+Pac-Man / Ms. Pac-Man (GHOSTERAMA) also **builds against** the Fayzullin Z80, so
+a flashed GHOSTERAMA image is non-commercial too — but this repository does not
+ship that code for it. `games/GHOSTERAMA/components/z80_cpu/src/` is gitignored
+except for our own wrapper, and you supply the emulator yourself.
 
 ## Emulator cores and MAME
 
@@ -125,7 +130,7 @@ the Fayzullin-Z80 games; on their own they carry no such limit.
 
 This project distributes **no game ROMs, no marquee artwork and no music**. The ROMs are
 copyrighted by their owners; the marquee art is copyrighted by its owners.
-`./fiestacade art` can fetch marquees from a third-party archive on your request,
+`./pelletino art` can fetch marquees from a third-party archive on your request,
 and you supply the ROMs yourself. The splash tune is whatever you drop in
 `music/splash.mid` (see `music/README.md`); nothing is committed, and the
 composition and the particular sequence are both someone's to license. What you do with copyrighted ROMs and

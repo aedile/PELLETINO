@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: 0BSD  Copyright (C) 2026 Jesse Castro
- * Written for FIESTACADE; hardware behaviour referenced against MAME (BSD-3-Clause).
+ * Written for PELLETINO; hardware behaviour referenced against MAME (BSD-3-Clause).
  * See LICENSING.md, "Emulator cores and MAME". */
 /*
  * invaders.c - Space Invaders board: an 8080, a shift register, and a frame of bits.

@@ -23,7 +23,7 @@ Hold the medal upright; Burger Time's monitor was vertical.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **BOOT, hold 3 s** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the FIESTACADE menu |
+| **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 Walking is four-way, so the **dominant axis wins** — a diagonal resolves to
 whichever way you are leaning further. Ladders need a clean vertical lean.
@@ -44,19 +44,19 @@ neutral pose. Coin up in your playing posture.
 
 ## 🔨 Building Your Own
 
-GRIDDLE has no repository of its own — it was written inside FIESTACADE and this
+GRIDDLE has no repository of its own — it was written inside PELLETINO and this
 tree is its only home.
 
 ```sh
-git clone https://github.com/aedile/FIESTACADE.git
-cd FIESTACADE/games/GRIDDLE
+git clone https://github.com/aedile/PELLETINO.git
+cd PELLETINO/games/GRIDDLE
 python3 tools/convert_roms.py btime
 docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.3.4 \
     idf.py -B build_docker -DIDF_TARGET=esp32c6 build
 ```
 
 Flashing runs **from the host**. To build it into a multi-game medal instead,
-drop `btime.zip` in FIESTACADE's `roms/` and run `./fiestacade build`.
+drop `btime.zip` in PELLETINO's `roms/` and run `./pelletino build`.
 
 ### The ROMs
 
@@ -129,7 +129,7 @@ not a game.
 
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The machine model and video
 are written from MAME (BSD-3-Clause). **This game carries no non-commercial
-core** — it is one of the fully permissive titles in FIESTACADE's
+core** — it is one of the fully permissive titles in PELLETINO's
 [LICENSING.md](../../LICENSING.md).
 
 ### Disclaimer

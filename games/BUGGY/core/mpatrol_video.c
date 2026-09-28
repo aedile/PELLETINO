@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: 0BSD  Copyright (C) 2026 Jesse Castro
- * Written for FIESTACADE; hardware behaviour referenced against MAME (BSD-3-Clause).
+ * Written for PELLETINO; hardware behaviour referenced against MAME (BSD-3-Clause).
  * See LICENSING.md, "Emulator cores and MAME". */
 /*
  * mpatrol_video.c - the M52 picture: the sprite palette's colour 0 behind everything, then the

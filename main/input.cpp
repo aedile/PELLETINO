@@ -1,5 +1,5 @@
 /*
- * input.cpp - menu controls for the FIESTACADE launcher.
+ * input.cpp - menu controls for the PELLETINO launcher.
  *   BOOT button (GPIO9)  -> short press: next game; HOLD to pick it (INPUT_SELECT_HOLD_MS)
  *   PWR button (GPIO18)  -> short press: previous game; long (1 s): power off
  *   tilt (QMI8658)       -> off for now. Four passes of tuning never made it feel right in

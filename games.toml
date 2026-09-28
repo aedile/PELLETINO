@@ -27,13 +27,13 @@ default_slot_kb = 768   # for games whose size we have not measured yet
 # --- measured: every one of these has a working build, and the slot is its measured
 # --- binary size rounded up to 64 KB with at least ten percent to spare. Sizes as of 9 September 2026.
 
-# PELLETINO carries BOTH Pac-Man and Ms. Pac-Man in one image and picks between them
+# GHOSTERAMA carries BOTH Pac-Man and Ms. Pac-Man in one image and picks between them
 # at boot. Ms. Pac-Man owns the slot; Pac-Man rides it via `boots` below, so the pair
 # costs one 1 MB slot, not two. Selecting either records which one the image should run.
 [[game]]
 rom = "mspacman"
 title = "Ms. Pac-Man"
-project = "PELLETINO"
+project = "GHOSTERAMA"
 binary = "build_docker/pelletino.bin"   # one image carries both Pac-Men; picked at boot
 slot_kb = 1024
 
@@ -193,7 +193,7 @@ data_file = "media.bin"
 [[game]]
 rom = "pacman"
 title = "Pac-Man"
-project = "PELLETINO"
+project = "GHOSTERAMA"
 boots = "mspacman"    # rides Ms. Pac-Man's image and slot; selection records "pacman"
 
 # Slow, and not working. Wired up the same way as the rest, but do not spend

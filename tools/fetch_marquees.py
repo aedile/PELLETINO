@@ -6,8 +6,8 @@ archive of arcade marquees organised by MAME name, the same way Galagino points
 you at a search engine for ROMs - we distribute nothing, we point at where it
 lives, and running this is your call.
 
-  ./fiestacade art            fetch for every enabled game that lacks a PNG
-  ./fiestacade art <rom>...   fetch just these
+  ./pelletino art            fetch for every enabled game that lacks a PNG
+  ./pelletino art <rom>...   fetch just these
 
 The default source is a collection of the real illustrated arcade marquees -
 the wide painted header art, the same style the bundled games already use (the
@@ -17,9 +17,9 @@ the few exceptions are in NAMES below. Whatever comes down is saved at its full
 resolution to marquees/<rom>.png, and tools/pack_marquees.py fits it to the
 medal's box when it builds the blob.
 
-Override the source with FIESTACADE_ART_BASE (a URL with {name} for the file
+Override the source with PELLETINO_ART_BASE (a URL with {name} for the file
 name, url-encoded), e.g. libretro's title screens:
-  FIESTACADE_ART_BASE='https://raw.githubusercontent.com/libretro-thumbnails/MAME/master/Named_Titles/{name}.png'
+  PELLETINO_ART_BASE='https://raw.githubusercontent.com/libretro-thumbnails/MAME/master/Named_Titles/{name}.png'
 """
 import os, sys, urllib.parse, urllib.request, io
 from PIL import Image
@@ -28,7 +28,7 @@ import configure
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ART  = os.path.join(ROOT, 'marquees')
 
-BASE = os.environ.get('FIESTACADE_ART_BASE',
+BASE = os.environ.get('PELLETINO_ART_BASE',
     'https://raw.githubusercontent.com/arcadeforge/regamebox_marquees_arcade/HEAD/marquees/{name}.png')
 
 # The archive names a few games differently from our ROM name. Anything not

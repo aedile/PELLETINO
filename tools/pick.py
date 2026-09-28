@@ -38,7 +38,7 @@ def candidates(cfg):
     with the slot cost it adds (0 for a rider that shares a slot)."""
     _, rows, skipped = C.resolve(cfg, picked=None)      # None = everything present
     present = rows + [r for r in skipped
-                      if r['why'].startswith(('roms/', 'PELLETINO', 'shares')) or 'not picked' in r['why']]
+                      if r['why'].startswith(('roms/', 'GHOSTERAMA', 'shares')) or 'not picked' in r['why']]
     # de-dup, keep games.toml order
     seen, out = set(), []
     order = [g['rom'] for g in cfg.get('game', [])]
@@ -62,7 +62,7 @@ def render(cfg, cand, chosen):
     rows, nslots, used, flash, over = price(cfg, chosen)
     on = {r['rom'] for r in rows}
     os.system('clear' if os.name != 'nt' else 'cls')
-    print(f'\n  {BOLD}FIESTACADE - pick your build{OFF}\n')
+    print(f'\n  {BOLD}PELLETINO - pick your build{OFF}\n')
     for i, r in enumerate(cand, 1):
         picked = r['rom'] in chosen
         mark = f'{GRN}[x]{OFF}' if picked else '[ ]'
@@ -112,11 +112,11 @@ def greedy_fit(cfg, cand):
 def save(chosen, cand):
     order = [r['rom'] for r in cand if r['rom'] in chosen]
     with open(C.SEL, 'w') as f:
-        f.write('# Games picked for this build - edit or regenerate with `fiestacade pick`.\n')
+        f.write('# Games picked for this build - edit or regenerate with `pelletino pick`.\n')
         f.write('# One MAME ROM name per line. Delete this file to include every ROM present.\n')
         for rom in order:
             f.write(rom + '\n')
-    print(f'\n  {GRN}saved{OFF} {len(order)} game(s) to selection.txt - now run ./fiestacade build\n')
+    print(f'\n  {GRN}saved{OFF} {len(order)} game(s) to selection.txt - now run ./pelletino build\n')
 
 
 def main():

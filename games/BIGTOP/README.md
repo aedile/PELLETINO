@@ -24,7 +24,7 @@ Hold the medal upright; Mr. Do!'s monitor was vertical.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **BOOT, hold 3 s** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the FIESTACADE menu |
+| **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 Digging is four-way, so the **dominant axis wins**: tilt mostly sideways and you
 dig sideways, mostly forward and you dig forward. A diagonal does not dig
@@ -46,19 +46,19 @@ pose — coin up in your playing posture.
 
 ## 🔨 Building Your Own
 
-BIGTOP has no repository of its own — it was written inside FIESTACADE and this
+BIGTOP has no repository of its own — it was written inside PELLETINO and this
 tree is its only home.
 
 ```sh
-git clone https://github.com/aedile/FIESTACADE.git
-cd FIESTACADE/games/BIGTOP
+git clone https://github.com/aedile/PELLETINO.git
+cd PELLETINO/games/BIGTOP
 python3 tools/convert_roms.py mrdo
 docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.3.4 \
     idf.py -B build_docker -DIDF_TARGET=esp32c6 build
 ```
 
 Flashing runs **from the host**. To build it into a multi-game medal instead,
-drop `mrdo.zip` in FIESTACADE's `roms/` and run `./fiestacade build`.
+drop `mrdo.zip` in PELLETINO's `roms/` and run `./pelletino build`.
 
 ### The ROMs
 

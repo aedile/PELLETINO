@@ -21,7 +21,7 @@ A San Antonio Fiesta medal is a collectible pin. This one plays Moon Patrol.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **BOOT, hold 3 s** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the FIESTACADE menu |
+| **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 **The guns fire themselves.** Moon Patrol's cabinet had separate fire buttons,
 but on a two-button medal the shooting is automatic and the buttons go to the
@@ -44,19 +44,19 @@ holding the medal the way you mean to drive.
 
 ## 🔨 Building Your Own
 
-BUGGY has no repository of its own — it was written inside FIESTACADE and this
+BUGGY has no repository of its own — it was written inside PELLETINO and this
 tree is its only home.
 
 ```sh
-git clone https://github.com/aedile/FIESTACADE.git
-cd FIESTACADE/games/BUGGY
+git clone https://github.com/aedile/PELLETINO.git
+cd PELLETINO/games/BUGGY
 python3 tools/convert_roms.py mpatrolw
 docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.3.4 \
     idf.py -B build_docker -DIDF_TARGET=esp32c6 build
 ```
 
 Flashing runs **from the host**. To build it into a multi-game medal instead,
-drop `mpatrolw.zip` in FIESTACADE's `roms/` and run `./fiestacade build`.
+drop `mpatrolw.zip` in PELLETINO's `roms/` and run `./pelletino build`.
 
 ### The ROMs
 

@@ -1,8 +1,10 @@
 # Vendored game provenance
 
-These game folders were vendored into FIESTACADE from standalone repos.
+These game folders were vendored into PELLETINO from standalone repos.
+GHOSTERAMA is the exception: it *was* this repository, back when PELLETINO
+meant the Pac-Man medal alone. That release is preserved at tag `v1.0`.
 Each remains mirrored at its `aedile/*` GitHub repo (full history there).
-Vendored at FIESTACADE commit time on 2026-09-09.
+Vendored at PELLETINO commit time on 2026-09-09.
 
 | folder | upstream | branch | sha |
 |---|---|---|---|
@@ -11,7 +13,7 @@ Vendored at FIESTACADE commit time on 2026-09-09.
 | GIRDER | https://github.com/aedile/GIRDER.git | main | 830d0ad |
 | HADOUKEN | https://github.com/aedile/HADOUKEN.git | main | 73ebf52 |
 | medal-input | https://github.com/aedile/medal-input.git | main | a1fbcdf |
-| PELLETINO | https://github.com/aedile/PELLETINO.git | FIESTA | 5ed0607 |
+| GHOSTERAMA | this repository, tag `v1.0` | FIESTA | 5ed0607 |
 | QUALIFIER | https://github.com/aedile/QUALIFIER.git | main | 46de028 |
 | RIBBIT | https://github.com/aedile/RIBBIT.git | main | 5355780 |
 | SILO | https://github.com/aedile/SILO.git | main | f9a147e |
@@ -26,7 +28,7 @@ Vendored at FIESTACADE commit time on 2026-09-09.
 
 ## In-tree only
 
-These games were written inside FIESTACADE on 9 September 2026 and have no
+These games were written inside PELLETINO on 9 September 2026 and have no
 upstream repo; this tree is their only home: `PHALANX` (Space Invaders),
 `ARMADA` (Galaxian), `REGOLITH` (Lunar Lander), `PLUMBER` (Mario Bros),
 `BIGTOP` (Mr. Do!), `CHRONO` (Time Pilot), `GRIDDLE` (Burger Time), `KEG` (Root

@@ -121,8 +121,8 @@ marquee needs no rebuild.
 ## Flash budget (16 MB)
 
 The numbers below are for the shipped lineup (9 September 2026): 16 game slots
-plus the Street Fighter II video's 5.5 MB data partition. `./fiestacade` prices
-any other pick live, and `./fiestacade pick` chooses one that fits.
+plus the Street Fighter II video's 5.5 MB data partition. `./pelletino` prices
+any other pick live, and `./pelletino pick` chooses one that fits.
 
 | Region | Size | Notes |
 |---|---|---|
@@ -134,7 +134,7 @@ any other pick live, and `./fiestacade pick` chooses one that fits.
 
 **All 16 OTA slots are used — `ota_0` through `ota_15` is ESP-IDF's hard cap.**
 If a seventeenth game is ever wanted, collapse a pair that shares hardware onto
-one image and select the ROM at boot: PELLETINO already carries Pac-Man and
+one image and select the ROM at boot: GHOSTERAMA already carries Pac-Man and
 Ms. Pac-Man, and WALKERRUN carries Star Wars and Empire Strikes Back. Each merge
 frees a slot and deletes a duplicated codebase.
 

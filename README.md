@@ -1,8 +1,8 @@
-# FIESTACADE
+# PELLETINO
 
 **Twenty-six arcade games on a wearable Fiesta medal. Tilt to browse, hold the button to pick one, and it boots straight into that game forever after. One $20 ESP32-C6 board, 16 MB of flash, no SD card, no PSRAM.**
 
-FIESTACADE is the menu. Every game is a separate firmware image in its own flash
+PELLETINO is the menu. Every game is a separate firmware image in its own flash
 slot, and the launcher chain-boots them — so a game gets the whole chip to itself
 while it runs. The partition table, the artwork and the menu are all generated
 from the ROMs you supply. You never hand-edit a partition table, a header, or a
@@ -28,9 +28,17 @@ makefile.
 
 Numbers come from the device over serial, not from a spec sheet.
 
-From the same board as [PELLETINO](https://github.com/aedile/PELLETINO) (tilt
-Pac-Man), [DIABLITO](https://github.com/aedile/DIABLITO) (shareware Doom) and
-[FIESTA-ENTERTAINMENT-SYSTEM](https://github.com/aedile/FIESTA-ENTERTAINMENT-SYSTEM)
+Think of it as a tilt-controlled [Galagino](https://github.com/harbaum/galagino)
+on a smaller board: no cabinet, no joystick, no SD card — a medal you pin to a
+shirt, and the accelerometer is the controller.
+
+**PELLETINO 1.0 was Pac-Man alone.** This is the same medal grown into a
+platform; that first release is preserved at tag
+[`v1.0`](https://github.com/aedile/PELLETINO/releases/tag/v1.0), and it now
+ships as one of the seventeen games under the codename `GHOSTERAMA`.
+
+Same board as [DIABLITO](https://github.com/aedile/DIABLITO) (shareware Doom)
+and [FIESTA-ENTERTAINMENT-SYSTEM](https://github.com/aedile/FIESTA-ENTERTAINMENT-SYSTEM)
 (an NES).
 
 ---
@@ -39,7 +47,7 @@ Pac-Man), [DIABLITO](https://github.com/aedile/DIABLITO) (shareware Doom) and
 
 - [Quick start](#quick-start)
 - [Getting it running](#getting-it-running)
-- [Choosing a build — `fiestacade pick`](#choosing-a-build--fiestacade-pick)
+- [Choosing a build — `pelletino pick`](#choosing-a-build--pelletino-pick)
 - [Controls](#controls)
 - [The splash](#the-splash)
 - [Adding a video "game"](#adding-a-video-game)
@@ -56,15 +64,15 @@ Pac-Man), [DIABLITO](https://github.com/aedile/DIABLITO) (shareware Doom) and
 ## Quick start
 
 ```sh
-./fiestacade games      # the approved list, and which ROMs you already have
+./pelletino games      # the approved list, and which ROMs you already have
 # put ROM zips in roms/ using their MAME names
-./fiestacade pick       # (only if more games are present than fit) choose a build
-./fiestacade build      # artwork + partition table + launcher firmware
-./fiestacade flash      # write it all to a connected medal
+./pelletino pick       # (only if more games are present than fit) choose a build
+./pelletino build      # artwork + partition table + launcher firmware
+./pelletino flash      # write it all to a connected medal
 ```
 
-`./fiestacade` on its own reports what the current build contains and what it is
-missing, and changes nothing — it is always safe to run. `./fiestacade help`
+`./pelletino` on its own reports what the current build contains and what it is
+missing, and changes nothing — it is always safe to run. `./pelletino help`
 lists every command.
 
 A game appears in the menu only if its ROM is in `roms/`. Games you don't have a
@@ -86,8 +94,8 @@ ROM for are simply absent — no slot, no menu entry, no wasted flash.
 ### 2. Clone
 
 ```sh
-git clone https://github.com/aedile/FIESTACADE.git
-cd FIESTACADE
+git clone https://github.com/aedile/PELLETINO.git
+cd PELLETINO
 ```
 
 Every game's source is vendored in, so one clone builds everything.
@@ -95,7 +103,7 @@ Every game's source is vendored in, so one clone builds everything.
 ### 3. Supply ROMs
 
 ```sh
-./fiestacade games          # prints the approved list, * marks ROMs you have
+./pelletino games          # prints the approved list, * marks ROMs you have
 cp ~/wherever/galaga.zip roms/
 ```
 
@@ -104,7 +112,7 @@ Use MAME names. We ship no ROMs and finding them is your responsibility.
 ### 4. Build
 
 ```sh
-./fiestacade build
+./pelletino build
 ```
 
 Packs the artwork, generates `partitions.csv` and the build manifest, then
@@ -114,7 +122,7 @@ and slow exactly once.
 ### 5. Flash
 
 ```sh
-./fiestacade flash          # add a port if it guesses wrong: ./fiestacade flash /dev/cu.usbmodem101
+./pelletino flash          # add a port if it guesses wrong: ./pelletino flash /dev/cu.usbmodem101
 ```
 
 Writes the bootloader, the partition table, the launcher, the artwork blob, and
@@ -134,20 +142,20 @@ game, or hold it while powering on.
 | Symptom | Cause |
 |---|---|
 | `docker is installed but not running` | Start Docker Desktop. |
-| `nothing to build` | `roms/` has no approved ROM zip. Run `./fiestacade games`. |
-| `N games enabled but ESP-IDF allows at most 16` | Run `./fiestacade pick`. |
-| Menu says `NO ARTWORK` | The `mqart` partition was never written. Re-run `./fiestacade flash`. |
+| `nothing to build` | `roms/` has no approved ROM zip. Run `./pelletino games`. |
+| `N games enabled but ESP-IDF allows at most 16` | Run `./pelletino pick`. |
+| Menu says `NO ARTWORK` | The `mqart` partition was never written. Re-run `./pelletino flash`. |
 | Every game says `NOT INSTALLED` | Expected before any game firmware is built. The launcher works; the slots are empty. |
 | Tilt browses the wrong way | Flip the sign in `read_roll()` in `main/input.cpp`. |
 | Splash is silent | No `music/splash.mid`. See [The splash](#the-splash). |
 
 ---
 
-## Choosing a build — `fiestacade pick`
+## Choosing a build — `pelletino pick`
 
 The medal has room for **16 game slots** inside **16 MB** of flash, shared with
 the launcher and the artwork. More games are approved than fit, and you may hold
-more ROMs than fit. When a build overflows, `./fiestacade pick` walks the list of
+more ROMs than fit. When a build overflows, `./pelletino pick` walks the list of
 everything you have and prices each choice live — slots used, flash used, space
 free — so you can land a build that fits before you flash it:
 
@@ -161,7 +169,7 @@ free — so you can land a build that fits before you flash it:
 
 Type a number to toggle a game, `a` to auto-pick everything that fits, `s` to
 save, `q` to quit. It writes `selection.txt`, which the build honours. Delete
-that file (or `./fiestacade pick --clear`) to go back to "every ROM present is
+that file (or `./pelletino pick --clear`) to go back to "every ROM present is
 included." Picking is entirely optional — reach for it only when a build overflows.
 
 ---
@@ -241,7 +249,7 @@ build still works. See [`music/README.md`](music/README.md).
 
 ```sh
 cp ~/Downloads/something.mid music/splash.mid
-./fiestacade build && ./fiestacade flash
+./pelletino build && ./pelletino flash
 ```
 
 Playback is three square-wave channels on an emulated AY-3-8910 — the same chip
@@ -276,8 +284,8 @@ is the label the player looks for).
 The carousel shows a marquee for each game. **Game logos are copyrighted, so we
 ship none.** You have two options:
 
-- **Fetch:** `./fiestacade art` pulls marquees from a third-party archive into
-  `marquees/`. See `tools/fetch_marquees.py` for the source and the `FIESTACADE_ART_BASE`
+- **Fetch:** `./pelletino art` pulls marquees from a third-party archive into
+  `marquees/`. See `tools/fetch_marquees.py` for the source and the `PELLETINO_ART_BASE`
   override.
 - **Supply your own:** drop a PNG named `marquees/<rom>.png` (any resolution; it's
   fitted to a 208×104 box).
@@ -301,7 +309,7 @@ The same mechanism (`boots = "<owner>"`) works for any two games that share an i
 
 ```
 nvs / otadata / phy_init         housekeeping
-launcher            0x20000      the FIESTACADE menu (factory app)
+launcher            0x20000      the PELLETINO menu (factory app)
 mqart                            marquee artwork blob (lcd/marquees.bin)
 ota_0..ota_N                     one app slot per game, labelled with its ROM
 media               (optional)   a video clip's data partition
@@ -325,7 +333,7 @@ monolithic image.
 ## Status and known gaps
 
 - **ESP-IDF allows at most 16 OTA slots** (`ota_0`–`ota_15`), which is the hard
-  ceiling on games per build, not flash. `fiestacade pick` exists because of it.
+  ceiling on games per build, not flash. `pelletino pick` exists because of it.
   Collapsing a pair that shares hardware onto one image frees a slot.
 - **Games must be built individually** to fill their slots; the launcher alone
   gives you a browsable menu where everything reads `NOT INSTALLED`.
@@ -353,7 +361,7 @@ monolithic image.
   (ES8311 over I2S), `medalboot` (which game boots, and the way back out).
   Games carry their own shared components, including `medal_input`.
 - `main/` — the launcher: menu, splash, input, battery, chain-boot.
-- `tools/` — the build tooling behind `./fiestacade`.
+- `tools/` — the build tooling behind `./pelletino`.
 - `host/` — harnesses that run on your machine rather than the medal.
 - `games.toml` — the one place that decides what a build *can* contain.
 
@@ -361,12 +369,12 @@ monolithic image.
 
 ## Building without Docker
 
-`./fiestacade build` uses the `espressif/idf:v5.3.4` Docker image so you need
+`./pelletino build` uses the `espressif/idf:v5.3.4` Docker image so you need
 nothing installed but Docker. If you have ESP-IDF v5.3.4 natively, you can run the
-underlying steps yourself; see the commands `./fiestacade` prints.
+underlying steps yourself; see the commands `./pelletino` prints.
 
 Docker Desktop on macOS can't reach USB, so **flashing always runs on the host** —
-that is what `tools/flash_all.sh` (behind `./fiestacade flash`) does.
+that is what `tools/flash_all.sh` (behind `./pelletino flash`) does.
 
 ---
 
@@ -383,7 +391,7 @@ four 6809 titles), **MAME** (BSD-3-Clause, as reference), **TinyMidiLoader** by
 Bernhard Schelling (zlib, splash MIDI parsing), **font8x8** by Daniel Hepper
 (public domain), and **ESP-IDF** by Espressif.
 
-FIESTACADE's own code is Zero-Clause BSD (`LICENSE`) — free for everyone, no
+PELLETINO's own code is Zero-Clause BSD (`LICENSE`) — free for everyone, no
 conditions. The assembled bundle is **not for sale**; see
 [LICENSING.md](LICENSING.md) for the full picture, and each game's own `LICENSE`
 and `THIRD_PARTY_NOTICES.md` for the authoritative per-game terms.

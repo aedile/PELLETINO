@@ -24,7 +24,7 @@ stands up the same way you do.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **BOOT, hold 3 s** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the FIESTACADE menu |
+| **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 Tilt is measured against however you are holding the medal *right now*. Coin up
 to re-centre, in the posture you mean to play in.
@@ -45,12 +45,12 @@ ignored until picked up.
 
 ## 🔨 Building Your Own
 
-PHALANX has no repository of its own — it was written inside FIESTACADE and this
+PHALANX has no repository of its own — it was written inside PELLETINO and this
 tree is its only home.
 
 ```sh
-git clone https://github.com/aedile/FIESTACADE.git
-cd FIESTACADE/games/PHALANX
+git clone https://github.com/aedile/PELLETINO.git
+cd PELLETINO/games/PHALANX
 python3 tools/convert_roms.py invaders
 docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.3.4 \
     idf.py -B build_docker -DIDF_TARGET=esp32c6 build
@@ -58,7 +58,7 @@ docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.3.4 \
 
 Flashing runs **from the host** — Docker Desktop on macOS cannot reach USB. To
 build it as part of a multi-game medal instead, drop `invaders.zip` in
-FIESTACADE's `roms/` and run `./fiestacade build`.
+PELLETINO's `roms/` and run `./pelletino build`.
 
 ### The ROMs
 

@@ -216,7 +216,7 @@ void menu_render_range(int ry0, int ry1)
             gfx_text_center(&band, GFX_W / 2, 120, s_msg1 ? s_msg1 : "", 2, C_TITLE);
             if (s_msg2) gfx_text_center(&band, GFX_W / 2, 156, s_msg2, 1, C_DIM);
         } else if (e) {
-            gfx_text_center(&band, GFX_W / 2, HEADER_Y, "FIESTACADE", 1, C_HEAD);
+            gfx_text_center(&band, GFX_W / 2, HEADER_Y, "PELLETINO", 1, C_HEAD);
             draw_battery(&band);
             draw_marquee_into(&band, e, installed || s_mode == MENU_LAUNCHING);
             int ts = title_scale(e->title);

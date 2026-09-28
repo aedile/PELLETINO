@@ -21,7 +21,7 @@ A San Antonio Fiesta medal is a collectible pin. This one plays Joust.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **BOOT, hold 3 s** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the FIESTACADE menu |
+| **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 Joust is a flap game: you gain height by tapping BOOT repeatedly, not by holding
 it. Two controls total, which is why it suits a medal so well.
@@ -42,19 +42,19 @@ playing posture.
 
 ## 🔨 Building Your Own
 
-OSTRICH has no repository of its own — it was written inside FIESTACADE and this
+OSTRICH has no repository of its own — it was written inside PELLETINO and this
 tree is its only home.
 
 ```sh
-git clone https://github.com/aedile/FIESTACADE.git
-cd FIESTACADE/games/OSTRICH
+git clone https://github.com/aedile/PELLETINO.git
+cd PELLETINO/games/OSTRICH
 python3 tools/convert_roms.py joust
 docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.3.4 \
     idf.py -B build_docker -DIDF_TARGET=esp32c6 build
 ```
 
 Flashing runs **from the host**. To build it into a multi-game medal instead,
-drop `joust.zip` in FIESTACADE's `roms/` and run `./fiestacade build`.
+drop `joust.zip` in PELLETINO's `roms/` and run `./pelletino build`.
 
 ### The ROMs
 

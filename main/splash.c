@@ -1,7 +1,7 @@
 /*
  * splash.c - the cold open.
  *
- * FIESTACADE races past, then three hard cuts - fireworks over the tower, a
+ * PELLETINO races past, then three hard cuts - fireworks over the tower, a
  * pinata, a cabinet mid-game - and finally the fiesta itself: papel picado,
  * confetti and a dancing stage, with the AY-3-8910 playing throughout.
  *
@@ -85,7 +85,7 @@ static void fiesta(int t)
     bool pop = (t / 6) & 1;
     /* one word. 10 chars at scale 2 is 160 px, so it centres with a real margin;
      * scale 3 would be exactly 240 and touch both edges. */
-    fest_text_scaled(CX - 8 * 10, 100, "FIESTACADE", pop ? UI_YELLOW : UI_WHITE, 2);
+    fest_text_scaled(CX - 8 * 10, 100, "PELLETINO", pop ? UI_YELLOW : UI_WHITE, 2);
     fest_text_center(152, "HOLD THE BUTTON TO PLAY", UI_GREY);
 }
 
@@ -103,7 +103,7 @@ void splash_run(void)
         if (t < P1_END) {
             fest_clear(UI_BLACK);
             speed_lines(t, -1);
-            fest_text_scaled(FB_W + 80 - t * 12, 120, "FIESTACADE", UI_YELLOW, 3);
+            fest_text_scaled(FB_W + 80 - t * 12, 120, "PELLETINO", UI_YELLOW, 3);
         } else if (t < P2_END) {
             int k = (t - P1_END) / CUT_LEN;
             static const char *const words[3] = { "PICK", "ONE", "PLAY" };

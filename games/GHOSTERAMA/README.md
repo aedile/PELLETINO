@@ -1,0 +1,726 @@
+# GHOSTERAMA
+
+**The Official 2026 Fiesta San Antonio Pac-Man Medal**
+
+🎮 Congratulations! You have a fully functional Pac-Man arcade game on a wearable [Fiesta medal](https://fiestamedals.saflavor.com/best-fiesta-medal-guide/)! This isn't just a collectible pin—it's a complete handheld game system featuring authentic arcade gameplay and hours of entertainment.
+
+<p align="center">
+  <img src="photos/FIESTA_MEDAL_2026_ASSEMBLED.png" alt="GHOSTERAMA 2026 Fiesta Medal" width="600"/>
+</p>
+
+<p align="center">
+  <a href="https://github.com/espressif/esp-idf"><img src="https://img.shields.io/badge/ESP--IDF-v5.x-blue" alt="ESP-IDF"></a>
+  <a href="https://www.espressif.com/en/products/socs/esp32-c6"><img src="https://img.shields.io/badge/hardware-ESP32--C6-green" alt="Hardware"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-check_source-orange" alt="License"></a>
+</p>
+
+---
+
+## 🎮 Quick Start Guide
+
+### How to Play
+
+**Controls:**
+- **TOP Button:** Long press to turn off/on.  
+- **MIDDLE Button:** Insert coin / Start game.  Long press to mute/unmute audio.
+- **BOTTOM Button:** Reset
+- **Tilt the medal:** Move Pac-Man up, down, left, right
+
+**Gameplay:**
+1. Press the MIDDLE button to insert a coin and start the game
+2. Tilt the medal to guide Pac-Man through the maze
+3. Eat all the dots to advance levels
+4. Avoid ghosts (or eat them after grabbing a power pellet!)
+
+### Charging Your GHOSTERAMA
+
+- **Charging Port:** USB-C on the side of the device
+- **Battery Life:** Several hours of gameplay on a full charge
+- **Charging Indicator:** Check the onboard LED while charging
+- **Battery Type:** 803040 3.7V LiPo 1000mAh
+
+**Power Management:**
+- The device automatically dims the backlight during attract mode to save battery
+- CPU scales between 80-160MHz based on game state
+- Audio output is optimized with silence detection
+
+### Troubleshooting
+
+**Medal won't turn on:**
+- Charge via USB-C for at least 30 minutes
+- Try long-pressing the TOP button
+
+**Screen is dim or flickering:**
+- Charge the battery—low voltage can affect display brightness
+
+**Tilt controls not responding:**
+- Calibrate by holding the medal flat when powering on
+- Ensure you're tilting with enough angle (±20-30°)
+
+**No sound:**
+- Check that mute isn't enabled (long press MIDDLE to toggle)
+- Verify speaker connections if self-assembled
+
+---
+
+## 🔨 Building Your Own GHOSTERAMA
+
+### 3D Printing the Enclosure
+
+The `model/` directory contains all STL files needed to print your own GHOSTERAMA case:
+
+**Required Files:**
+- `3 piece medal - back.stl` - Main housing back with battery compartment
+- `3 piece medal - middle.stl` - Middle frame for electronics
+- `3 piece medal - front.stl` - Decorative front text/logo overlay
+- `3 piece medal - buttons.stl` - Button caps
+
+**Print Settings:**
+- **Material:** PETG (recommended for durability)
+  - PLA also works but is more brittle
+- **Layer Height:** 0.2mm
+- **Infill:** 20%
+- **Supports:** Tree supports on build plate only
+- **Orientation:** Print each piece flat side down
+
+**Assembly Hardware:**
+- **4x M2×4mm screws** - Secure the Waveshare board to the middle piece for extra security
+- **4x M2×16mm screws** - Hold the front, middle, and back pieces together (all layers)
+- **1x 803040 3.7V LiPo 1000mAh battery** - [Available on Amazon](https://a.co/d/05E4ZhiI)
+
+**Assembly Steps:**
+1. **Prepare the electronics:**
+   - Flash firmware to ESP32-C6-LCD-1.69 board (see Building from Source)
+   - Solder or connect battery to board's battery pads
+   
+2. **Install in case:**
+   - Place battery in the back compartment
+   - Route battery wires carefully to avoid pinching
+   - Set ESP32 board into the middle frame
+   - Secure the board to the middle frame using **4x M2×4mm screws**
+   - Ensure buttons align with holes
+
+3. **Close the case:**
+   - Stack the front bezel, middle frame (with board), and back housing together
+   - Secure the entire assembly with **4x M2×16mm screws** passing through all layers
+   - (Optional) Add lanyard loop through top hole for wearing
+
+4. **Final checks:**
+   - Verify buttons press smoothly
+   - Check that screen is visible through opening
+   - Test USB-C port accessibility for charging
+   - Power on and verify the display and controls work correctly
+
+---
+
+## 🛠️ Building from Source
+
+### What You'll Need
+
+**Hardware:**
+- [Waveshare ESP32-C6-LCD-1.69](https://a.co/d/hGBAeMq) ($20 on Amazon)
+- [803040 LiPo Battery 1000mAh](https://a.co/d/05E4ZhiI) ($9 on Amazon)
+- 3D printed case (see above)
+- M2 screws (see assembly section)
+
+**Software:**
+- ESP-IDF 5.x toolchain
+- Python 3.8+
+- Pac-Man ROM files (see ROM Acquisition section)
+
+### Hardware Specifications
+
+**Target Platform:** [Waveshare ESP32-C6-LCD-1.69](https://www.waveshare.com/esp32-c6-lcd-1.69.htm)
+
+**📖 Detailed Hardware Documentation:** See [`docs/HARDWARE.md`](docs/HARDWARE.md) for complete pinouts, schematics, and connection details.
+
+| Component | Specification |
+|-----------|---------------|
+| **MCU** | ESP32-C6 RISC-V @ 160MHz |
+| **RAM** | 512KB HP SRAM |
+| **Flash** | 4MB |
+| **Display** | ST7789 240×280 @ 40MHz SPI |
+| **Audio** | ES8311 I2C Codec + I2S |
+| **IMU** | QMI8658 6-axis for tilt control |
+| **Buttons** | GPIO9 (BOOT), GPIO18 (PWR) |
+| **Battery** | 803040 3.7V LiPo 1000mAh |
+| **USB** | USB-C for programming/charging |
+
+### ROM Acquisition & Firmware Flashing
+
+**IMPORTANT:** ROM files are **NOT included** in this repository and must be obtained legally.
+
+#### Where to Get ROMs
+
+1. **Internet Archive** (Recommended)
+   - Visit [archive.org](https://archive.org/) and search for "Pac-Man MAME ROM"
+   - Look for MAME 0.37b5 ROM set or similar public domain collections
+
+2. **Own Original Hardware**
+   - Extract ROMs from your legally owned Pac-Man PCB
+
+#### Required ROM Files
+
+Place these files in the `rom/` directory (one level above the project):
+
+```
+rom/
+├── pacman.6e    (4096 bytes) - Program ROM 1
+├── pacman.6f    (4096 bytes) - Program ROM 2
+├── pacman.6h    (4096 bytes) - Program ROM 3
+├── pacman.6j    (4096 bytes) - Program ROM 4
+├── pacman.5e    (4096 bytes) - Tile graphics
+├── pacman.5f    (4096 bytes) - Sprite graphics
+├── 82s123.7f    (32 bytes)   - Color PROM
+├── 82s126.4a    (256 bytes)  - Palette PROM
+├── 82s126.1m    (256 bytes)  - Sound PROM 1
+└── 82s126.3m    (256 bytes)  - Sound PROM 2
+```
+
+#### Ms. Pac-Man (optional)
+
+GHOSTERAMA can also run Ms. Pac-Man from the MAME `mspacman` ROM set
+(`pacman.6e/6f/6h/6j`, `u5`, `u6`, `u7`, `5e`, `5f`, and the four PROMs above).
+Point the converter at that directory, then pass `-DGAME=mspacman` to the build.
+The default build is Pac-Man, which is what the Fiesta medal ships with.
+
+```bash
+python3 tools/convert_roms.py path/to/mspacman main/roms
+idf.py -DGAME=mspacman build      # or add -DGAME=mspacman to the docker command
+```
+
+The Ms. Pac-Man build emulates the game's aux board, including the code-decode
+latch the original daughterboard used; without it the game hangs at boot.
+
+#### Build & Flash Steps
+
+```bash
+# 1. Clone repository
+git clone https://github.com/aedile/GHOSTERAMA.git
+cd GHOSTERAMA
+
+# 2. Convert ROMs (place ROM files in ../rom/ first)
+python3 tools/convert_roms.py
+
+# 3. Setup ESP-IDF environment
+source ~/esp/esp-idf/export.sh  # Adjust path as needed
+idf.py set-target esp32c6
+
+# 4. Build and flash
+idf.py build flash monitor
+```
+
+For complete build documentation, see the detailed sections below.
+
+---
+
+## 🔬 Technical Details & Architecture
+
+### System Overview
+
+GHOSTERAMA implements authentic Pac-Man arcade hardware emulation on a single-core ESP32-C6 RISC-V processor:
+
+**Key Features:**
+- **Authentic Arcade Emulation** - Full Z80 CPU at original 3MHz speed
+- **60 FPS Graphics** - Hardware-accelerated sprite and tile rendering
+- **Original Audio** - Namco WSG wavetable synthesis with all sound effects
+- **Tilt Controls** - IMU-based movement detection
+- **Power Optimized** - CPU scaling, backlight dimming, and tickless idle
+
+**Architecture Diagram:**
+
+```mermaid
+graph TB
+    subgraph "ESP32-C6 Main Loop @ 60Hz"
+        A[Z80 CPU Emulation<br/>3MHz, ~50K cycles/frame] --> B[Memory & I/O]
+        B --> C[Tile Rendering<br/>224×288 → 240×280]
+        C --> D[Sprite Rendering<br/>64 sprites, 16×16]
+        D --> E[Audio Synthesis<br/>Namco WSG 3-voice]
+        E --> F[Input Polling<br/>GPIO + IMU]
+        F --> A
+    end
+    
+    C --> G[SPI DMA<br/>40MHz, 14-row chunks]
+    G --> H[ST7789 LCD<br/>240×280 RGB565]
+    
+    E --> I[I2S DMA<br/>20.05kHz stereo]
+    I --> J[ES8311 Codec<br/>Audio Out]
+    
+    F --> K[GPIO Buttons<br/>BOOT=coin/start]
+    F --> L[QMI8658 IMU<br/>Tilt Control ±2g]
+    
+    style A fill:#e1f5ff
+    style H fill:#ffe1e1
+    style J fill:#e1ffe1
+```
+
+**Z80 CPU Emulation:**
+- **Core:** Marat Fayzullin's portable Z80 emulator
+- **Speed:** 3MHz (original Pac-Man arcade speed)
+- **Accuracy:** Cycle-accurate instruction execution
+- **Integration:** Runs ~50,000 Z80 cycles per frame (60Hz)
+- **Memory:** 64KB address space with custom memory mapping for ROM/RAM
+
+### Component Architecture
+
+```mermaid
+graph LR
+    subgraph "Hardware Abstraction Layer"
+        A[audio_hal] --> A1[ES8311 Driver]
+        A --> A2[WSG Synthesis]
+        
+        B[display] --> B1[ST7789 Driver]
+        B --> B2[DMA Controller]
+        
+        C[pacman_hw] --> C1[GPIO Buttons]
+        C --> C2[IMU Tilt Sensor]
+        C --> C3[Memory Mapping]
+        C --> C4[I/O Ports]
+    end
+    
+    subgraph "Emulation Core"
+        D[z80_cpu] --> D1[Z80 Emulator<br/>Marat Fayzullin]
+        D1 --> D2[Instruction Decoder]
+        
+        E[pacman_hw] --> E1[Hardware Simulation]
+        E --> E2[Interrupt Controller]
+    end
+    
+    D --> E
+    E --> A
+    E --> B
+    E --> C
+```
+
+## 🔨 Complete Build Documentation
+
+### Prerequisites
+
+1. **ESP-IDF 5.x**
+   - Install ESP-IDF following [Espressif's official guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c6/get-started/index.html)
+   - Ensure `idf.py` is in your PATH
+
+2. **Python 3.8+**
+   - Required for ROM conversion scripts
+   - Standard library only (no additional packages needed)
+
+3. **Git**
+   - For cloning the repository
+
+4. **Z80 CPU Emulator**
+   - **Source:** Marat Fayzullin's Z80 emulator (included in `components/z80_cpu/`)
+   - **License:** Freeware for non-commercial use
+   - **No additional setup required** - already integrated into the project
+
+### Step-by-Step Build Process
+
+#### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/aedile/GHOSTERAMA.git
+cd GHOSTERAMA
+```
+
+#### Z80 CPU Emulator Setup
+
+**IMPORTANT:** The Z80 CPU emulator must be downloaded separately:
+
+- **Source:** Marat Fayzullin's portable Z80 emulator
+- **Download:** http://fms.komkon.org/EMUL8/
+- **Files needed:** `Z80.c`, `Z80.h`, `Tables.h`, and opcode table files
+- **Installation:** Place files in `components/z80_cpu/src/` directory
+- **License:** Freeware for non-commercial use (see credits section)
+
+The emulator provides cycle-accurate Z80 CPU simulation running at the original Pac-Man arcade speed of 3MHz.
+
+Place your ROM files in the `../rom/` directory (relative to project root):
+
+```bash
+# From project root, ROMs go here:
+cd ../rom/
+# Copy your ROM files here (see required files list above)
+
+# Return to project and run conversion
+cd GHOSTERAMA
+python3 tools/convert_roms.py
+```
+
+**Note:** The default ROM directory is `../../../rom/` from the tools directory, which resolves to `../rom/` from the project root.
+
+The conversion script will:
+- Validate ROM file sizes and checksums
+- Convert graphics data to RGB565 format
+- Generate tile and sprite lookup tables
+- Create color palette mappings
+- Extract Namco WSG wavetable data
+- Output C header files ready for compilation
+
+**Expected Output:**
+```
+Converting program ROMs...
+  ✓ pacman.6e (4096 bytes)
+  ✓ pacman.6f (4096 bytes)
+  ✓ pacman.6h (4096 bytes)
+  ✓ pacman.6j (4096 bytes)
+Converting tile graphics...
+  ✓ pacman.5e (256 tiles)
+Converting sprite graphics...
+  ✓ pacman.5f (64 sprites)
+Converting color PROMs...
+  ✓ 82s123.7f, 82s126.4a
+Converting sound PROMs...
+  ✓ 82s126.1m, 82s126.3m
+
+✓ Conversion complete! Generated files:
+  - main/roms/pacman_rom.h
+  - main/roms/pacman_tilemap.h
+  - main/roms/pacman_spritemap.h
+  - main/roms/pacman_cmap.h
+  - main/roms/pacman_wavetable.h
+```
+
+#### Step 2.5: (Optional) Optimize FIESTA Video
+
+The project includes video optimization tools for the FIESTA intro video:
+
+```bash
+cd movie
+
+# Analyze optimal quality vs size tradeoffs
+./find_optimal_video.sh
+
+# Generate optimized video (adjusts quality automatically)
+./make_fiesta.sh Pac_Man_Fiesta_Float_Animation.mp4 3000
+```
+
+This generates `fiesta_data.h` with the compressed MJPEG video data.
+
+#### Step 3: Configure ESP-IDF
+
+```bash
+cd ..  # Return to project root
+
+# Source ESP-IDF environment (adjust path as needed)
+source ~/esp/esp-idf/export.sh
+
+# Set ESP32-C6 as target
+idf.py set-target esp32c6
+
+# (Optional) Configure project settings
+idf.py menuconfig
+```
+
+**Recommended menuconfig settings:**
+- `Component config → ESP32C6-specific → CPU frequency → 160 MHz`
+- `Component config → FreeRTOS → Tick rate (Hz) → 1000`
+- `Serial flasher config → Flash size → 4 MB`
+
+#### Step 4: Build
+
+```bash
+idf.py build
+```
+
+**Build Output:**
+```
+Project build complete. To flash, run:
+  idf.py flash
+
+Or to flash and monitor output:
+  idf.py flash monitor
+```
+
+#### Step 5: Flash to Device
+
+Connect your ESP32-C6 board via USB-C:
+
+```bash
+# Flash firmware
+idf.py -p /dev/ttyUSB0 flash
+
+# Flash and monitor serial output
+idf.py -p /dev/ttyUSB0 flash monitor
+```
+
+**Note:** Replace `/dev/ttyUSB0` with your actual port:
+- **Linux:** `/dev/ttyUSB0` or `/dev/ttyACM0`
+- **macOS:** `/dev/cu.usbserial-*` or `/dev/cu.usbmodem-*`
+- **Windows:** `COM3`, `COM4`, etc.
+
+To find your port:
+```bash
+# Linux/macOS
+ls /dev/tty*
+
+# Or use ESP-IDF helper
+idf.py --list-targets
+```
+
+#### Step 6: Play!
+
+After flashing, the device will boot into Pac-Man:
+
+- **BOOT (GPIO9):** Insert coin
+- **PWR (GPIO18):** Power operations
+- **IMU Tilt:** Movement control
+
+### Quick Build Commands Reference
+
+**Note:** All commands require ESP-IDF environment to be sourced first:
+```bash
+source ~/esp/esp-idf/export.sh  # Adjust path as needed
+```
+
+```bash
+# Full build and flash cycle
+idf.py build flash monitor
+
+# Clean build
+idf.py fullclean build
+
+# Monitor only (after flashing)
+idf.py monitor
+
+# Exit monitor
+Ctrl + ]
+
+# Build size analysis
+idf.py size-components
+```
+
+## 📁 Project Structure
+
+```
+GHOSTERAMA/
+├── main/                      # Application entry point
+│   ├── main.cpp               # Main game loop
+│   ├── include/               # Public headers
+│   ├── src/                   # Implementation files
+│   └── roms/                  # Generated ROM headers (not in git)
+│       ├── pacman_rom.h
+│       ├── pacman_tilemap.h
+│       ├── pacman_spritemap.h
+│       ├── pacman_cmap.h
+│       └── pacman_wavetable.h
+│
+├── components/                # Reusable components
+│   ├── audio_hal/             # ES8311 + Namco WSG synthesis
+│   │   ├── es8311.c           # Codec driver
+│   │   └── wsg_synth.c        # Wavetable synthesizer
+│   ├── display/               # ST7789 LCD driver
+│   │   ├── st7789.c           # Display controller
+│   │   └── dma_spi.c          # DMA-accelerated SPI
+│   ├── z80_cpu/               # Z80 emulator (Marat Fayzullin)
+│   │   ├── Z80.c              # CPU core implementation (download separately)
+│   │   ├── Z80.h              # CPU core header (download separately)
+│   │   └── z80_wrapper.c      # ESP32-C6 integration
+│   ├── pacman_hw/             # Pac-Man hardware emulation
+│   │   ├── pacman_hw.cpp      # Hardware abstraction
+│   │   ├── pacman_input.cpp   # GPIO + IMU input handling
+│   │   ├── pacman_video.cpp   # Tile/sprite rendering
+│   │   └── qmi8658.cpp        # IMU tilt sensor driver
+│   └── input/                 # (Deprecated - merged into pacman_hw)
+│
+├── tools/                     # Build tools
+│   ├── convert_roms.py        # ROM converter
+│   └── verify_checksums.py    # ROM validator
+│
+├── movie/                     # FIESTA video tools
+│   ├── make_fiesta.sh         # Video encoder/optimizer
+│   ├── find_optimal_video.sh  # Quality/size analysis
+│   └── fiesta_data.h          # Generated video header
+│
+├── docs/                      # Documentation
+│   ├── HARDWARE.md            # Hardware connections
+│   ├── ROM_FORMAT.md          # ROM file specifications
+│   └── AUDIO.md               # WSG synthesis details
+│
+├── CMakeLists.txt             # Main build config
+├── sdkconfig.defaults         # ESP-IDF defaults
+├── partitions.csv             # Flash partition table
+└── .gitignore                 # Excludes ROMs and builds
+```
+
+### Display Settings
+
+Edit `components/display/include/st7789.h`:
+
+```c
+#define LCD_WIDTH  240
+#define LCD_HEIGHT 280
+#define LCD_SPI_FREQ_HZ (40 * 1000 * 1000)  // 40MHz
+```
+
+### Audio Settings
+
+Edit `components/audio_hal/include/wsg_synth.h`:
+
+```c
+#define WSG_SAMPLE_RATE 22050
+#define WSG_CHANNELS 3           // Namco 3-voice
+#define WSG_BUFFER_SIZE 512
+```
+
+### Input Configuration
+
+Edit `components/pacman_hw/src/pacman_input.h`:
+
+```c
+#define PIN_BTN_BOOT    GPIO_NUM_9    // BOOT button
+#define PIN_BTN_PWR     GPIO_NUM_18   // PWR button
+#define IMU_ENABLED     1             // Set to 0 to disable tilt
+```
+
+### Memory Optimization
+
+For devices with limited RAM, adjust in `sdkconfig`:
+
+```
+CONFIG_FREERTOS_HZ=1000
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160=y
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+```
+
+## 🎵 Audio System
+
+GHOSTERAMA implements authentic Namco WSG (Waveform Sound Generator) synthesis:
+
+```mermaid
+graph TD
+    A[Game Events] --> B[Sound Trigger]
+    B --> C{Select Waveform}
+    
+    C -->|Waka-waka| D[Voice 1]
+    C -->|Ghost eaten| E[Voice 2]
+    C -->|Death/Fruit| F[Voice 3]
+    
+    D --> G[WSG Mixer]
+    E --> G
+    F --> G
+    
+    G --> H[I2S DMA Buffer]
+    H --> I[ES8311 DAC]
+    I --> J[Speaker Output]
+    
+    style A fill:#e1f5ff
+    style J fill:#e1ffe1
+```
+
+**Implemented Sounds:**
+- Pac-Man moving (waka-waka)
+- Eating dots
+- Eating power pellet
+- Eating ghosts
+- Collecting fruit
+- Death sequence
+- Intermission music
+- Level start jingle
+
+## 🔧 Developer Troubleshooting
+
+### Build Errors
+
+**Error: `fatal error: pacman_rom.h: No such file or directory`**
+- **Solution:** Run `python3 tools/convert_roms.py` to generate ROM headers
+
+**Error: `CMake Error: ESP-IDF Not Found`**
+- **Solution:** Ensure ESP-IDF is installed and sourced:
+  ```bash
+  source ~/esp/esp-idf/export.sh  # Or your ESP-IDF path
+  ```
+
+### Flash Errors
+
+**Error: `A fatal error occurred: Could not open port`**
+- **Solution:** Check USB connection and permissions:
+  ```bash
+  # Linux - add user to dialout group
+  sudo usermod -a -G dialout $USER
+  # Then logout/login
+  ```
+
+**Error: `A fatal error occurred: Failed to connect to ESP32-C6`**
+- **Solution:** Hold BOOT button while connecting, or reset board
+
+### Runtime Issues
+
+**Black screen after boot:**
+- Check SPI connections to display
+- Verify `idf.py menuconfig` → Display settings
+- Monitor serial output: `idf.py monitor`
+
+**No audio:**
+- Verify I2S and I2C connections to ES8311
+- Check audio codec initialization in logs
+- Ensure speaker/headphones connected
+
+**Slow performance:**
+- Set CPU to 160MHz in menuconfig
+- Enable compiler optimizations (`CONFIG_COMPILER_OPTIMIZATION_PERF`)
+- Check for debug logging overhead
+
+---
+
+## 📚 Additional Resources
+
+- **[Hardware Documentation](docs/HARDWARE.md)** - Complete pinouts, schematics, and wiring diagrams
+- **[ROM Setup Guide](docs/ROM_FORMAT.md)** - Detailed ROM conversion and format information  
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+- **[Changelog](CHANGELOG.md)** - Version history and updates
+- **[Agent Notes](AGENTS.md)** - AI agent development notes
+
+---
+
+## 📄 Legal Notice
+
+### ROM Files
+
+This project requires original Pac-Man ROM files which are **NOT included** and must be obtained legally:
+
+- ROM files are explicitly excluded from version control (`.gitignore`)
+- You must own original Pac-Man arcade hardware OR obtain ROMs from legitimate sources
+- ROMs are copyrighted by Bandai Namco Entertainment
+- This project is for educational and preservation purposes only
+
+### Third-Party Code
+
+- **Z80 CPU Emulator** by Marat Fayzullin ([http://fms.komkon.org/EMUL8/](http://fms.komkon.org/EMUL8/))
+  - Located in `components/z80_cpu/src/` (Z80.c, Tables.h, etc.)
+  - Freeware license for non-commercial use
+  - Provides cycle-accurate Z80 CPU emulation at 3MHz for authentic Pac-Man gameplay
+- **[Galagino](https://github.com/harbaum/galagino)** by Till Harbaum - Reference implementation patterns for arcade emulation on ESP32
+- **[MAME](https://www.mamedev.org/)** - Reference documentation for Pac-Man hardware specifications
+- **ESP-IDF** by Espressif Systems (Apache 2.0 License)
+
+### Disclaimer
+
+This project is not affiliated with, endorsed by, or sponsored by Bandai Namco Entertainment. Pac-Man is a registered trademark of Bandai Namco Entertainment Inc.
+
+## 🙏 Credits
+
+- **Original 3D Designs**
+  - **Enclosure:** Based on [Waveshare ESP32-S3 1.69 LCD Enclosure](https://makerworld.com/en/models/1619751-waveshare-esp32s3-1-69-lcd-enclosure)
+  - **Cabinet:** Based on [Arcade Cabinet](https://www.printables.com/model/197767-arcade-cabinet)
+- **Till Harbaum** - [Galagino project](https://github.com/harbaum/galagino) for ROM conversion insights and ESP32 arcade emulation techniques
+- **MAME Development Team** - [MAME](https://www.mamedev.org/) hardware documentation and reference implementation
+- **Marat Fayzullin** - [Z80 CPU emulator core](http://fms.komkon.org/EMUL8/)
+- **Espressif Systems** - ESP-IDF framework
+- **Namco** - Original Pac-Man arcade hardware and game design
+- **Claude Opus & Sonnet 4.5** - Coding and documentation assistance
+- **Community Contributors** - Bug reports, testing, and improvements
+
+## 📜 License
+
+See [LICENSE](LICENSE) file for details.
+
+**Note:** This project is provided as-is for educational purposes. Users are responsible for ensuring legal compliance when obtaining and using ROM files.
+
+---
+
+<p align="center">
+  <strong>¡Viva Fiesta! 🎉 Enjoy your GHOSTERAMA! 🎮👾</strong>
+  <br><br>
+  <em>Questions? Found a bug? Want to contribute?</em>
+  <br>
+  Open an issue or PR on <a href="https://github.com/aedile/GHOSTERAMA">GitHub</a>
+</p>

@@ -23,7 +23,7 @@ A San Antonio Fiesta medal is a collectible pin. This one plays Lunar Lander.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **BOOT, hold 3 s** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the FIESTACADE menu |
+| **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 The throttle is the one genuinely analogue control on the medal, and it is the
 reason this game plays well on a tilt sensor at all: the cabinet had a physical
@@ -46,19 +46,19 @@ USB-C. Holding the power button for a second cuts the battery rail.
 
 ## 🔨 Building Your Own
 
-REGOLITH has no repository of its own — it was written inside FIESTACADE and this
+REGOLITH has no repository of its own — it was written inside PELLETINO and this
 tree is its only home.
 
 ```sh
-git clone https://github.com/aedile/FIESTACADE.git
-cd FIESTACADE/games/REGOLITH
+git clone https://github.com/aedile/PELLETINO.git
+cd PELLETINO/games/REGOLITH
 python3 tools/convert_roms.py llander
 docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.3.4 \
     idf.py -B build_docker -DIDF_TARGET=esp32c6 build
 ```
 
 Flashing runs **from the host**. To build it into a multi-game medal instead,
-drop `llander.zip` in FIESTACADE's `roms/` and run `./fiestacade build`.
+drop `llander.zip` in PELLETINO's `roms/` and run `./pelletino build`.
 
 ### The ROMs
 
@@ -133,7 +133,7 @@ a game.
 
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The machine model is
 written from MAME (BSD-3-Clause). **This game carries no non-commercial core** —
-it is one of the fully permissive titles in FIESTACADE's
+it is one of the fully permissive titles in PELLETINO's
 [LICENSING.md](../../LICENSING.md).
 
 ### Disclaimer

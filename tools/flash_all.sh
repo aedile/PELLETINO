@@ -26,21 +26,21 @@ MANIFEST=build/manifest.json
 # the game repos live in games/, each its own git repo; override with PROJECTS_DIR
 PROJECTS="${PROJECTS_DIR:-$PWD/games}"
 
-[ -f "$MANIFEST" ]        || { echo "no $MANIFEST - run ./fiestacade build" >&2; exit 1; }
-[ -f "$BUILD/fiestacade.bin" ] || { echo "no launcher build - run ./fiestacade build" >&2; exit 1; }
-[ -f lcd/marquees.bin ]   || { echo "no lcd/marquees.bin - run ./fiestacade build" >&2; exit 1; }
+[ -f "$MANIFEST" ]        || { echo "no $MANIFEST - run ./pelletino build" >&2; exit 1; }
+[ -f "$BUILD/pelletino.bin" ] || { echo "no launcher build - run ./pelletino build" >&2; exit 1; }
+[ -f lcd/marquees.bin ]   || { echo "no lcd/marquees.bin - run ./pelletino build" >&2; exit 1; }
 
 mqart_off=$(awk -F',' '/^mqart/ {gsub(/ /,"",$4); print $4}' partitions.csv)
 
 ARGS=(0x0     "$BUILD/bootloader/bootloader.bin"
       0x8000  "$BUILD/partition_table/partition-table.bin"
       0xf000  "$BUILD/ota_data_initial.bin"
-      0x20000 "$BUILD/fiestacade.bin"
+      0x20000 "$BUILD/pelletino.bin"
       "$mqart_off" lcd/marquees.bin)
 
 echo
 printf '  %-22s %-10s %s\n' COMPONENT OFFSET FILE
-printf '  %-22s %-10s %s\n' launcher 0x20000 "$BUILD/fiestacade.bin"
+printf '  %-22s %-10s %s\n' launcher 0x20000 "$BUILD/pelletino.bin"
 printf '  %-22s %-10s %s\n' artwork "$mqart_off" lcd/marquees.bin
 
 missing=0

@@ -21,7 +21,7 @@ A San Antonio Fiesta medal is a collectible pin. This one plays Time Pilot.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **BOOT, hold 3 s** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the FIESTACADE menu |
+| **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 Time Pilot is one of the few games here that is genuinely **eight-way**, so
 diagonals matter and the tilt is read as an angle rather than as a dominant axis.
@@ -44,19 +44,19 @@ playing posture.
 
 ## 🔨 Building Your Own
 
-CHRONO has no repository of its own — it was written inside FIESTACADE and this
+CHRONO has no repository of its own — it was written inside PELLETINO and this
 tree is its only home.
 
 ```sh
-git clone https://github.com/aedile/FIESTACADE.git
-cd FIESTACADE/games/CHRONO
+git clone https://github.com/aedile/PELLETINO.git
+cd PELLETINO/games/CHRONO
 python3 tools/convert_roms.py timeplt
 docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.3.4 \
     idf.py -B build_docker -DIDF_TARGET=esp32c6 build
 ```
 
 Flashing runs **from the host**. To build it into a multi-game medal instead,
-drop `timeplt.zip` in FIESTACADE's `roms/` and run `./fiestacade build`.
+drop `timeplt.zip` in PELLETINO's `roms/` and run `./pelletino build`.
 
 ### The ROMs
 

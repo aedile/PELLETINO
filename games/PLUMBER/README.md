@@ -21,7 +21,7 @@ A San Antonio Fiesta medal is a collectible pin. This one plays Mario Bros.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **BOOT, hold 3 s** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the FIESTACADE menu |
+| **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 Tilt is measured against however you are holding the medal *right now*. Coin up
 to re-centre.
@@ -39,19 +39,19 @@ posture you mean to play in.
 
 ## 🔨 Building Your Own
 
-PLUMBER has no repository of its own — it was written inside FIESTACADE and this
+PLUMBER has no repository of its own — it was written inside PELLETINO and this
 tree is its only home.
 
 ```sh
-git clone https://github.com/aedile/FIESTACADE.git
-cd FIESTACADE/games/PLUMBER
+git clone https://github.com/aedile/PELLETINO.git
+cd PELLETINO/games/PLUMBER
 python3 tools/convert_roms.py mario
 docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.3.4 \
     idf.py -B build_docker -DIDF_TARGET=esp32c6 build
 ```
 
 Flashing runs **from the host**. To build it into a multi-game medal instead,
-drop `mario.zip` in FIESTACADE's `roms/` and run `./fiestacade build`.
+drop `mario.zip` in PELLETINO's `roms/` and run `./pelletino build`.
 
 ### The ROMs
 
