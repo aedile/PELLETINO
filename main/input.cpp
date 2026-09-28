@@ -2,6 +2,7 @@
  * input.cpp - menu controls for the PELLETINO launcher.
  *   BOOT button (GPIO9)  -> short press: next game; HOLD to pick it (INPUT_SELECT_HOLD_MS)
  *   PWR button (GPIO18)  -> short press: previous game; long (1 s): power off
+ *   both together        -> sound off/on
  *   tilt (QMI8658)       -> off for now. Four passes of tuning never made it feel right in
  *                           the hand, so the buttons drive the carousel until it does; the
  *                           detent code is kept below, behind NAV_TILT.
@@ -78,6 +79,7 @@ static bool    boot_seen_up;             /* a press only counts once the button 
 static int64_t boot_down_since;
 static int     hold_ms;
 static bool    pwr_was_down;
+static bool    chord, pending_mute, pending_wake;
 static int64_t pwr_down_since;
 
 /*
@@ -181,6 +183,18 @@ void input_poll(void)
     if (!boot_armed) { if (!boot) boot_armed = true; boot = false; }
     if (!pwr_armed)  { if (!pwr)  pwr_armed  = true; pwr  = false; }
 
+    /* Both at once is the mute gesture. It fires as the second button goes down, and
+     * from then until both are up again neither button counts as itself - or letting
+     * go of them one after the other would step the carousel as well. */
+    if (boot && pwr && !chord) { chord = true; pending_mute = true; }
+    if (chord) {
+        if (!boot && !pwr) chord = false;
+        hold_ms = 0;
+        hold_consumed = true;
+        boot_was_down = pwr_was_down = false;
+        return;
+    }
+
     /* BOOT is a hold, not a press. Track how long it has been down so the menu can
      * draw a progress bar, and fire once when it crosses the threshold. A button that
      * was already down when we started is the tail of whatever brought us here - the
@@ -189,6 +203,7 @@ void input_poll(void)
     if (!boot_seen_up) { hold_ms = 0; boot_was_down = boot; return; }
     if (boot && !boot_was_down) { boot_down_since = now; hold_consumed = false; }
     /* a short press, released before it could be a hold, steps forward */
+    if (!boot && boot_was_down) pending_wake = true;
     if (!boot && boot_was_down && !hold_consumed && now - boot_down_since < NAV_SHORT_PRESS_US)
         pending_nav = NAV_NEXT;
     if (boot) {
@@ -207,6 +222,7 @@ void input_poll(void)
     if (pwr && now - pwr_down_since >= PWR_LONG_PRESS_US) {
         battery_power_off();
     }
+    if (!pwr && pwr_was_down) pending_wake = true;
     if (!pwr && pwr_was_down && now - pwr_down_since < NAV_SHORT_PRESS_US) pending_nav = NAV_PREV;
     pwr_was_down = pwr;
 
@@ -275,4 +291,18 @@ bool input_take_hold(void)
     bool h = pending_hold;
     pending_hold = false;
     return h;
+}
+
+bool input_take_mute(void)
+{
+    bool m = pending_mute;
+    pending_mute = false;
+    return m;
+}
+
+bool input_take_wake(void)
+{
+    bool w = pending_wake;
+    pending_wake = false;
+    return w;
 }

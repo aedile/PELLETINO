@@ -64,13 +64,12 @@ typedef struct {
 
     uint32_t imu_period_us;           /* 0 -> 16000. A paddle wants nearer 5000. */
     uint32_t power_off_hold_us;       /* 0 -> 1000000 */
-    uint32_t mute_hold_us;            /* 0 disables the gesture entirely */
+    uint32_t mute_hold_us;            /* retired: the sound is both buttons together now, and
+                                       * a hold no longer toggles it. Kept so games compile. */
 
     /*
      * Leaving the game. On a medal that boots straight into one game, this is the way back to
-     * the menu. When it is set, the sound gesture moves to the release of the button rather
-     * than firing the moment it is due - otherwise a hold long enough to leave would toggle the
-     * sound on its way past. With it unset, the sound gesture behaves as it always has.
+     * the menu.
      */
     uint32_t exit_hold_us;            /* 0 disables; the launcher's contract says 10 s */
     void (*on_exit)(void);
@@ -82,7 +81,7 @@ typedef struct {
      * bands - a tap is a coin, a medium press changes gear, a long one powers off. */
     bool     manual_pwr;
 
-    void (*on_mute)(void);            /* BOOT held for mute_hold_us */
+    void (*on_mute)(void);            /* both buttons pressed together */
     void (*on_recentre)(void);        /* the neutral pose was just (re)captured; clear latched
                                        * per-game state - accumulated counts, a sticky axis, a
                                        * filtered paddle position - so it starts from centre */

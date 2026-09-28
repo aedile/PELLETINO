@@ -1,6 +1,6 @@
 # PELLETINO
 
-**Twenty-six arcade games on a wearable Fiesta medal. Tilt to browse, hold the button to pick one, and it boots straight into that game forever after. One $20 ESP32-C6 board, 16 MB of flash, no SD card, no PSRAM.**
+**Twenty-six arcade games in your pocket. Spin the wheel, hold the button to pick one, and it boots straight into that game forever after. One $20 ESP32-C6 board, 16 MB of flash, no SD card, no PSRAM.**
 
 PELLETINO is the menu. Every game is a separate firmware image in its own flash
 slot, and the launcher chain-boots them — so a game gets the whole chip to itself
@@ -13,26 +13,25 @@ makefile.
 > Z80 core, and four are GPL-3.0. GitHub's sidebar says "0BSD"; that covers our
 > code only. Read [LICENSING.md](LICENSING.md) before you distribute.
 >
-> **No ROMs, no marquee art and no music are included.** Those belong to their
+> **No ROMs, no artwork and no music are included.** Those belong to their
 > owners; supplying them is your part.
 
 | | |
 |---|---|
 | Games | **26** playable, 27 approved in `games.toml`, **16** flash slots per build |
-| Launcher firmware | 303 KB in a 512 KB slot |
-| Marquee artwork | 481 KB blob, 17 marquees, its own partition |
-| Free heap with the menu up | 237 KB of 512 KB |
+| Launcher firmware | 313 KB in a 512 KB slot |
+| Artwork | 477 KB for 17 games — three logos and a screenshot each — in its own partition |
 | Cold boot to the splash | ~1.2 s |
-| Splash | ~12 s, skippable with any button |
+| Attract loop | ~12 s opening, ~52 s credits roll, until the button is pressed |
 | Hardware | Waveshare ESP32-C6-LCD-1.69 — 240×280 ST7789V2, ES8311 codec, QMI8658 IMU, two buttons, LiPo |
 
 Numbers come from the device over serial, not from a spec sheet.
 
 Think of it as a tilt-controlled [Galagino](https://github.com/harbaum/galagino)
-on a smaller board: no cabinet, no joystick, no SD card — a medal you pin to a
-shirt, and the accelerometer is the controller.
+on a smaller board: no cabinet, no joystick, no SD card. You play by tilting it —
+the accelerometer is the controller — and you browse with the two buttons.
 
-**PELLETINO 1.0 was Pac-Man alone.** This is the same medal grown into a
+**PELLETINO 1.0 was Pac-Man alone.** This is the same board grown into a
 platform; that first release is preserved at tag
 [`v1.0`](https://github.com/aedile/PELLETINO/releases/tag/v1.0), and it now
 ships as one of the seventeen games under the codename `GHOSTERAMA`.
@@ -40,6 +39,18 @@ ships as one of the seventeen games under the codename `GHOSTERAMA`.
 Same board as [DIABLITO](https://github.com/aedile/DIABLITO) (shareware Doom)
 and [FIESTA-ENTERTAINMENT-SYSTEM](https://github.com/aedile/FIESTA-ENTERTAINMENT-SYSTEM)
 (an NES).
+
+### Where it came from
+
+PELLETINO started as a Fiesta medal. Every April, San Antonio holds Fiesta, and
+the city spends it trading and wearing medals — enamel pins, mostly, made by
+everyone from the big parade organisations to somebody's dog. This project was
+one of those: a medal that happened to have a screen, a battery and Pac-Man on
+it, built to be pinned to a shirt and handed around. That is why some of the
+code still says `medal` (`medalboot`, `medal_input`), why it remembers the game
+you picked and boots straight into it, and why it takes a deliberate button hold
+to do anything — it was designed to survive being worn. It has since outgrown
+the occasion, but that is where it is from.
 
 ---
 
@@ -50,8 +61,11 @@ and [FIESTA-ENTERTAINMENT-SYSTEM](https://github.com/aedile/FIESTA-ENTERTAINMENT
 - [Choosing a build — `pelletino pick`](#choosing-a-build--pelletino-pick)
 - [Controls](#controls)
 - [The splash](#the-splash)
+- [The wheel](#the-wheel)
+- [Music](#music)
+- [Credits, on the device](#credits-on-the-device)
 - [Adding a video "game"](#adding-a-video-game)
-- [Marquee art](#marquee-art)
+- [Artwork](#artwork)
 - [Two games, one slot](#two-games-one-slot)
 - [How a build is laid out](#how-a-build-is-laid-out)
 - [Status and known gaps](#status-and-known-gaps)
@@ -64,11 +78,32 @@ and [FIESTA-ENTERTAINMENT-SYSTEM](https://github.com/aedile/FIESTA-ENTERTAINMENT
 ## Quick start
 
 ```sh
+# put ROM zips in roms/ using their MAME names, plug the board in, then:
+./install.sh
+```
+
+That is the whole install. It checks your machine, converts the ROMs you
+supplied, builds each of those games and the launcher in Docker, fetches the
+artwork, and flashes everything. With no board connected it builds and stops;
+run `./pelletino flash` when one is. At the end it lists what went on, and what
+was left out and why.
+
+| | |
+|---|---|
+| `./install.sh --no-flash` | build everything, write nothing |
+| `./install.sh --no-art` | skip the artwork download |
+| `./install.sh /dev/cu.usbmodem101` | name the port if it guesses wrong |
+
+More ROMs than fit? It picks a set that fits; run `./pelletino pick` first to
+choose your own. Build logs land in `build/install-logs/`.
+
+The steps it runs are also available one at a time:
+
+```sh
 ./pelletino games      # the approved list, and which ROMs you already have
-# put ROM zips in roms/ using their MAME names
-./pelletino pick       # (only if more games are present than fit) choose a build
+./pelletino pick       # choose a build when more games are present than fit
 ./pelletino build      # artwork + partition table + launcher firmware
-./pelletino flash      # write it all to a connected medal
+./pelletino flash      # write it all to a connected board
 ```
 
 `./pelletino` on its own reports what the current build contains and what it is
@@ -132,10 +167,10 @@ without rebuilding anything else.
 
 ### 6. First boot
 
-The medal plays the splash, then lands in the carousel. Tilt to browse; hold
-**BOOT** for two seconds on a game to pick it. From then on the medal boots
-straight into that game. To come back, hold **BOOT** for ten seconds in the
-game, or hold it while powering on.
+It starts in attract mode. Press either button to reach the wheel, tap **BOOT**
+and **PWR** to turn it one way and the other, and hold **BOOT** for two seconds
+on a game to pick it. From then on it boots straight into that game. To come
+back, hold **BOOT** for ten seconds in the game, or hold it while powering on.
 
 ### Troubleshooting
 
@@ -146,14 +181,13 @@ game, or hold it while powering on.
 | `N games enabled but ESP-IDF allows at most 16` | Run `./pelletino pick`. |
 | Menu says `NO ARTWORK` | The `mqart` partition was never written. Re-run `./pelletino flash`. |
 | Every game says `NOT INSTALLED` | Expected before any game firmware is built. The launcher works; the slots are empty. |
-| Tilt browses the wrong way | Flip the sign in `read_roll()` in `main/input.cpp`. |
-| Splash is silent | No `music/splash.mid`. See [The splash](#the-splash). |
+| The launcher is silent | No music supplied, or the sound is off (`MUTED` in the header). See [Music](#music) and [Muting](#muting). |
 
 ---
 
 ## Choosing a build — `pelletino pick`
 
-The medal has room for **16 game slots** inside **16 MB** of flash, shared with
+There is room for **16 game slots** inside **16 MB** of flash, shared with
 the launcher and the artwork. More games are approved than fit, and you may hold
 more ROMs than fit. When a build overflows, `./pelletino pick` walks the list of
 everything you have and prices each choice live — slots used, flash used, space
@@ -176,23 +210,48 @@ included." Picking is entirely optional — reach for it only when a build overf
 
 ## Controls
 
-Every game is played the same way physically: **hold the medal upright and twist
+Every game is played the same way physically: **hold it upright and twist
 or tip it** — the tilt sensor is the joystick, spinner, wheel, or yoke. Two
 buttons do the rest.
 
 | Button | Short press | Hold |
 |---|---|---|
-| **BOOT** (top) | the game's action — fire / jump / hop / pump | 3 s: sound off/on · 10 s: back to the menu |
-| **PWR** (side) | insert a coin (then auto-start ½ s later) | 1 s: power the medal off |
+| **BOOT** (top) | the game's action — fire / jump / hop / pump | 10 s: back to the menu |
+| **both together** | sound off/on | |
+| **PWR** (side) | insert a coin (then auto-start ½ s later) | 1 s: power off |
+
+In attract mode and the menu the same two buttons drive the launcher. Tilt does
+nothing here:
+
+| Button | Short press | Hold |
+|---|---|---|
+| **BOOT** (top) | next game (or leave attract mode) | 2 s: pick this game |
+| **PWR** (side) | previous game (or leave attract mode) | 1 s: power off |
+| **both together** | sound off/on | |
+
+### Muting
+
+**Press both buttons together.** It is the same gesture everywhere — attract mode,
+the menu, and every game.
+
+It is **one setting for the whole device**. Mute it anywhere and it stays muted
+everywhere, including after it has been switched off and on again, until someone
+turns the sound back on. Every change shows a short `SOUND OFF` / `SOUND ON`
+message on the screen, and the menu shows `MUTED` in its header while the sound is
+off. Muting powers the audio codec down, so a muted device is not spending
+battery on the speaker.
+
+While both buttons are down neither counts as itself, so muting never also
+inserts a coin, fires, or turns the wheel.
 
 > A **coin** is always a coin and a **start** is always a start, on every game.
-> Sound-off (mute) and back-to-menu are the same gesture everywhere. Picking a
+> Mute and back-to-menu are the same gestures everywhere. Picking a
 > game from the menu is a button *hold*; a knock won't do it.
 
-> **The tilt centre is wherever you are holding the medal when you press coin**
+> **The tilt centre is wherever you are holding it when you press coin**
 > (and again at start). So hold it the way you mean to play before you press.
 > If one direction stops registering mid-game, press coin again in your
-> playing posture and it re-centres. A medal lying flat on a table is not
+> playing posture and it re-centres. A board lying flat on a table is not
 > "held" and its tilt is ignored until it is picked up.
 
 Per-game, the tilt and the BOOT action are:
@@ -228,38 +287,78 @@ Per-game, the tilt and the BOOT action are:
 
 Pole Position starts on a coin (free-play) and holds the accelerator down for
 you, so the whole game is one wheel plus the gear tap — every other gesture then
-matches the rest of the medal.
+matches the rest of the games.
 
 ---
 
 ## The splash
 
-Powering on runs a ~12 second opening before the carousel: the title races past,
-three hard cuts (fireworks over the Tower of the Americas, a piñata, an arcade
-cabinet mid-game), then a Fiesta scene with papel picado, confetti and a dancing
-stage. Any button press skips it. It only plays on the way to the menu — a medal
-with a game selected boots straight into the game instead.
+Left alone, it runs an attract loop: a ~12 second opening, then the credits
+roll, then the opening again, for as long as nobody touches it. In the opening
+the wordmark flies in over a starfield, a perspective grid rises to a horizon
+and a cabinet arrives under it, with scanlines over the whole picture so it
+reads like a CRT rather than an LCD.
 
-Every pixel of it is drawn from primitives in `components/fest`: there is no
-artwork, no sprite sheet and no bitmap font in the repository.
+**Press a button and you are in the menu.** Leave the menu alone for 45 seconds
+and it goes back to the attract loop. One tune plays straight through all of it.
 
-**Music is yours to supply.** Drop a Standard MIDI File at `music/splash.mid` and
-it is embedded on the next build; with no file the splash runs silent and the
-build still works. See [`music/README.md`](music/README.md).
+None of this runs when a game is selected: that boots straight into the game.
+
+Every pixel of it is drawn from primitives in `components/fest`. There is no
+artwork, no sprite sheet and no bitmap in the repository, and no character from
+any game is reproduced.
+
+## The wheel
+
+The menu is a wheel of game logos. The chosen game sits large in the middle with
+a screenshot of it, dimmed, filling the panel behind; its neighbours are smaller
+and dimmer above and below. A tap turns the wheel one place — fast off the mark,
+settling as it arrives — and the screenshot changes half way through. The footer
+says who made the game and when.
+
+It is redrawn from scratch thirty times a second into a 67 KB frame buffer. The
+logos are stored at the three sizes they rest at and scaled only while moving.
+
+## Music
+
+One tune plays through attract mode, the menu and the credits. **It does not ship
+with the project** — music belongs to whoever wrote it — so the launcher is
+silent until you supply one, and the build works either way.
 
 ```sh
-cp ~/Downloads/something.mid music/splash.mid
+tools/add_music.py splash ~/Downloads/some-game.nsf 3     # track 3 of that file
 ./pelletino build && ./pelletino flash
 ```
 
-Playback is three square-wave channels on an emulated AY-3-8910 — the same chip
-four of the games already emulate — so at most three notes sound at once and a
-fourth steals the quietest voice. Something written for a chip, or a simple
-lead-plus-accompaniment arrangement, suits it far better than dense piano or
-orchestral music. Percussion (MIDI channel 10) is dropped.
+There is a second, optional slot: `tools/add_music.py credits <file>` gives the
+Credits entry on the wheel a tune of its own.
 
-`host/midi/test_midi.c` runs the player on your machine against any MIDI and
-fails if a voice holds one pitch too long — the shape a stuck note takes.
+| | NSF | MIDI |
+|---|---|---|
+| Played on | an emulated NES sound chip (2A03) | an emulated AY-3-8910 |
+| Voices | two pulse, triangle, noise, samples | three square waves |
+| Sounds like | the console it came from | a reduction of whatever you gave it |
+
+**NSF is the better of the two by a distance.** It is a game's own music driver
+— 6502 code — running on the chip it was written for. The launcher plays it with
+the instruction-stepped 6502 the Atari games here already use and a 2A03 written
+for this project, so there is no NES emulator in the launcher and nothing GPL.
+
+Everything you put in `music/` stays on your machine; `.gitignore` excludes it.
+[`music/README.md`](music/README.md) covers choosing a track and auditioning one
+on your own computer before it goes near the device.
+
+## Credits, on the device
+
+The roll is part of attract mode, and it is also the last entry on the wheel:
+hold the button on **Credits**. Either way it scrolls through everyone the
+project owes something to: the people who made each game, the authors of the
+emulator cores, the MAME team, and the libraries in the launcher. It is built
+into the launcher, so it costs no flash slot.
+
+The music is credited there too. Write who composed what you supplied in
+`music/credits.txt` (there is a template beside it) and that text appears under
+**MUSIC**, on the device that is playing their work.
 
 ---
 
@@ -279,19 +378,24 @@ is the label the player looks for).
 
 ---
 
-## Marquee art
+## Artwork
 
-The carousel shows a marquee for each game. **Game logos are copyrighted, so we
-ship none.** You have two options:
+The wheel shows a logo for each game and a screenshot behind it. **Both are
+copyrighted, so we ship neither** — and we host neither. You have two options:
 
-- **Fetch:** `./pelletino art` pulls marquees from a third-party archive into
-  `marquees/`. See `tools/fetch_marquees.py` for the source and the `PELLETINO_ART_BASE`
-  override.
-- **Supply your own:** drop a PNG named `marquees/<rom>.png` (any resolution; it's
-  fitted to a 208×104 box).
+- **Fetch:** `./pelletino art` downloads them to your machine from
+  [Arcade Database](http://adb.arcadeitalia.net), a third-party archive that
+  files everything under the MAME name. `./install.sh` does this for you. See
+  `tools/fetch_art.py` for the `PELLETINO_ART_BASE` override.
+- **Supply your own:** `art/logo/<rom>.png` (transparent background) and
+  `art/snap/<rom>.png`, at any resolution.
 
-Any game without a marquee gets a plain generated text banner, so the build never
-blocks on missing art.
+Both are optional. A game without a logo is its title in text, and one without a
+screenshot sits over the splash's stars and grid, so the build never blocks on
+missing art. `art/` is excluded by `.gitignore`.
+
+`tools/pack_art.py` fits everything to the panel and writes the blob the
+launcher reads; its header documents the format.
 
 ---
 
@@ -310,7 +414,7 @@ The same mechanism (`boots = "<owner>"`) works for any two games that share an i
 ```
 nvs / otadata / phy_init         housekeeping
 launcher            0x20000      the PELLETINO menu (factory app)
-mqart                            marquee artwork blob (lcd/marquees.bin)
+mqart                            the wheel's artwork (lcd/marquees.bin)
 ota_0..ota_N                     one app slot per game, labelled with its ROM
 media               (optional)   a video clip's data partition
 ```
@@ -336,7 +440,8 @@ monolithic image.
   ceiling on games per build, not flash. `pelletino pick` exists because of it.
   Collapsing a pair that shares hardware onto one image frees a slot.
 - **Games must be built individually** to fill their slots; the launcher alone
-  gives you a browsable menu where everything reads `NOT INSTALLED`.
+  gives you a wheel where everything reads `NOT INSTALLED`. `./install.sh`
+  builds them all.
 - **The battery gauge is uncalibrated.** The ×3 divider and the 3.3–4.2 V linear
   map are at the top of `main/battery.c`; a real lithium curve is not a straight
   line, so the middle of the range reads optimistically.
@@ -356,13 +461,14 @@ monolithic image.
   folder is also mirrored at its own `aedile/*` GitHub repo; `VENDORED.md` records
   the upstream and commit for each.
 - `components/` — code shared by the launcher: `display` (ST7789), `imu`
-  (QMI8658), `gfx` (menu drawing), `fest` (the splash's framebuffer and
-  decorations), `mqart` (artwork), `chiptune` (MIDI on an AY-3-8910), `audio_hal`
+  (QMI8658), `fest` (the frame buffer everything is drawn in), `mqart`
+  (artwork), `chiptune` (NSF and MIDI playback), `audio_hal`
   (ES8311 over I2S), `medalboot` (which game boots, and the way back out).
   Games carry their own shared components, including `medal_input`.
-- `main/` — the launcher: menu, splash, input, battery, chain-boot.
+- `main/` — the launcher: wheel, splash, credits, input, battery, chain-boot.
 - `tools/` — the build tooling behind `./pelletino`.
-- `host/` — harnesses that run on your machine rather than the medal.
+- `host/` — harnesses that run on your machine rather than the device: the wheel
+  rendered to image files, and the music rendered to WAV.
 - `games.toml` — the one place that decides what a build *can* contain.
 
 ---
@@ -388,7 +494,7 @@ comparison against the MAME source that backs that claim.
 Third-party code, each keeping its own terms: **Marat Fayzullin's Z80** (the
 non-commercial core most games are built on), the **vecx MC6809** (GPL-3.0, the
 four 6809 titles), **MAME** (BSD-3-Clause, as reference), **TinyMidiLoader** by
-Bernhard Schelling (zlib, splash MIDI parsing), **font8x8** by Daniel Hepper
+Bernhard Schelling (zlib, MIDI parsing), **font8x8** by Daniel Hepper
 (public domain), and **ESP-IDF** by Espressif.
 
 PELLETINO's own code is Zero-Clause BSD (`LICENSE`) — free for everyone, no
@@ -396,4 +502,5 @@ conditions. The assembled bundle is **not for sale**; see
 [LICENSING.md](LICENSING.md) for the full picture, and each game's own `LICENSE`
 and `THIRD_PARTY_NOTICES.md` for the authoritative per-game terms.
 
-No game ROMs, marquee art or music are distributed here.
+No game ROMs, artwork or music are distributed here. The credits roll on the
+device names the same people this section does.

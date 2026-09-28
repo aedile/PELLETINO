@@ -9,7 +9,7 @@
  *   twist left / right  -> left and right
  *   tip away / toward   -> up and down
  *   BOOT short press    -> coin, then start half a second later (as it always has been here)
- *   BOOT hold 3 s       -> sound off and on
+ *   BOOT + PWR           -> sound off and on
  *   PWR short press     -> coin and start, the same gesture as every other medal
  *   PWR hold 1 s        -> power off
  *
@@ -23,6 +23,7 @@
 #include "pacman_input.h"
 #include "medal_input.h"
 #include "medalboot.h"
+#include "display.h"
 #include "qmi8658.h"
 #include "audio_hal.h"
 #include "esp_log.h"
@@ -47,9 +48,13 @@ static int64_t last_log;
 
 static void on_mute(void)
 {
-    mute_fired = true;
+    /* mute_fired is not set here any more: the sound is both buttons together now, and
+     * medal_input swallows that press itself, so there is no BOOT release to disown. Setting
+     * it would throw away the next real coin instead. */
     bool m = !audio_get_mute();
     audio_set_mute(m);
+    medalboot_set_muted(m);                     /* holds in the menu and every other game */
+    display_toast(m ? "SOUND OFF" : "SOUND ON", 1500);
     ESP_LOGI(TAG, "sound %s", m ? "off" : "on");
 }
 

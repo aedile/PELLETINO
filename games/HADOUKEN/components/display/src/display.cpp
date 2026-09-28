@@ -71,6 +71,7 @@ static void send_data_dma(const uint8_t *data, size_t len) {
 #define ST7789_Y_OFFSET 20
 
 void display_set_window(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
+  display_toast_window(x, y, w, h);
   uint8_t data[4];
 
   // Column address set
@@ -218,10 +219,12 @@ static void send_chunked(const uint8_t *src, size_t bytes, bool swap)
 }
 
 void display_write(const uint16_t *data, uint32_t len) {
+  display_toast_overlay((uint16_t *)data, len, false);
   send_chunked((const uint8_t *)data, (size_t)len * 2, true);
 }
 
 void display_write_preswapped(const uint16_t *data, uint32_t len) {
+  display_toast_overlay((uint16_t *)data, len, true);
   send_chunked((const uint8_t *)data, (size_t)len * 2, false);
 }
 

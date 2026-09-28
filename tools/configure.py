@@ -17,7 +17,7 @@ import argparse, json, os, sys, tomllib
 ROOT   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONF   = os.path.join(ROOT, 'games.toml')
 ROMS   = os.path.join(ROOT, 'roms')
-ART    = os.path.join(ROOT, 'marquees')
+ART    = os.path.join(ROOT, 'art', 'logo')
 GAMES  = os.path.join(ROOT, 'games')
 BLOB   = os.path.join(ROOT, 'lcd', 'marquees.bin')
 SEL    = os.path.join(ROOT, 'selection.txt')
@@ -89,11 +89,17 @@ def resolve(cfg, picked='auto'):
         # entry and marquee but no partition of its own. It chain-boots the owner's
         # image (which must carry this ROM too - GHOSTERAMA bakes in both Pac-Men) and
         # records its own ROM as the selection so that image runs the right variant.
+        # A built-in entry is handled by the launcher itself rather than by
+        # chain-booting an image: it gets a menu entry and a marquee but no
+        # partition. Its boot label carries '@' so the firmware can tell.
+        builtin = g.get('builtin')
         owner = g.get('boots')
-        boot  = owner or rom
+        boot  = ('@' + builtin) if builtin else (owner or rom)
 
         forced = g.get('enabled')
-        if forced is None:
+        if builtin:
+            on, why = (forced is not False), 'built into the launcher'
+        elif forced is None:
             on = has_payload and (picked is None or rom in picked)
         else:
             on = bool(forced)
@@ -109,14 +115,13 @@ def resolve(cfg, picked='auto'):
 
         if forced is True and not has_payload:
             die(f'{rom} is forced on in games.toml but {payload_desc} is missing')
-        # art is optional: a game without marquees/<rom>.png gets a generated text banner
-        # (tools/make_placeholders.py), so this no longer blocks the build
+        # art is optional: a game without any is drawn with its title in text
 
-        rec = dict(rom=rom, title=g.get('title', rom), project=g.get('project'),
+        rec = dict(rom=rom, title=g.get('title', rom), by=g.get('by', ''), project=g.get('project'),
                    binary=g.get('binary'),          # optional: where this game's .bin is, under the project
                    data_kb=g.get('data_kb', 0),     # optional: a data partition of its own, e.g. a video clip
                    data_file=g.get('data_file'),    # optional: the file to flash into it, under the project
-                   boot=boot, owner=owner,          # boot label; owner set iff this entry rides another's slot
+                   boot=boot, owner=owner, builtin=builtin,   # boot label; owner set iff this entry rides another's slot
                    slot_kb=g.get('slot_kb', default_slot), why=why, has_art=has_art)
         (rows if on else skipped).append(rec)
 
@@ -139,7 +144,7 @@ def mqart_kb(n):
         need = os.path.getsize(BLOB)
         exact = True
     else:
-        need, exact = n * 30 * K, False           # ~30 KB per marquee
+        need, exact = n * 30 * K, False           # ~30 KB per game
     kb = ((need + need // 4 + 0xFFFF) // 0x10000) * 64   # +25% headroom, 64 KB granules
     return max(kb, 64), exact
 
@@ -154,8 +159,8 @@ def build_table(b, rows, art_kb):
 
     slot = 0
     for r in rows:
-        if r.get('owner'):
-            continue                       # shares the owner's partition, laid out below
+        if r.get('owner') or r.get('builtin'):
+            continue                       # rides another slot, or lives in the launcher
         parts.append((r['rom'], 'app', f'ota_{slot}', off, r['slot_kb'] * K))
         r['offset'] = off
         r['ota'] = slot
@@ -164,7 +169,9 @@ def build_table(b, rows, art_kb):
     # shared entries point at their owner's offset - no flash of their own
     by_rom = {r['rom']: r for r in rows}
     for r in rows:
-        if r.get('owner'):
+        if r.get('builtin'):
+            r['offset'] = 0
+        elif r.get('owner'):
             o = by_rom.get(r['owner'])
             r['offset'] = o['offset'] if o else 0
 
@@ -192,7 +199,7 @@ def main():
 
     if not rows:
         die('nothing to build - put an approved ROM zip in roms/ (see games.toml)')
-    nslots = sum(1 for r in rows if not r.get('owner'))
+    nslots = sum(1 for r in rows if not r.get('owner') and not r.get('builtin'))
     if nslots > OTA_MAX:
         die(f'{nslots} slots needed but ESP-IDF allows at most {OTA_MAX} '
             f'(ota_0..ota_{OTA_MAX-1}). Run ./pelletino pick to choose {OTA_MAX} of them.')
@@ -208,7 +215,10 @@ def main():
     w = max(len(r['title']) for r in rows)
     for r in rows:
         proj = r['project'] or '-'
-        if r.get('owner'):
+        if r.get('builtin'):
+            tag = ' built'
+            size = '     '
+        elif r.get('owner'):
             tag = ' ->  '
             size = '     '
         else:
@@ -229,7 +239,7 @@ def main():
 
     used = end / 1024 / K
     print(f'\n  launcher {b.get("launcher_kb",512)} KB'
-          f'   artwork {art_kb} KB{"" if exact else " (estimated - run pack_marquees.py)"}'
+          f'   artwork {art_kb} KB{"" if exact else " (estimated - run pack_art.py)"}'
           f'   slots {nslots}/{OTA_MAX}')
     print(f'  flash {used:.2f} / {flash/1024/K:.0f} MB   {flash/1024/K - used:.2f} MB free\n')
 
@@ -248,7 +258,7 @@ def main():
 
     os.makedirs(os.path.dirname(MANIF), exist_ok=True)
     with open(MANIF, 'w') as f:
-        json.dump({'games': [{k: r.get(k) for k in ('rom', 'title', 'project', 'binary', 'slot_kb', 'offset', 'ota', 'boot', 'owner', 'data_kb', 'data_file', 'data_offset')}
+        json.dump({'games': [{k: r.get(k) for k in ('rom', 'title', 'project', 'binary', 'slot_kb', 'offset', 'ota', 'boot', 'owner', 'builtin', 'data_kb', 'data_file', 'data_offset')}
                              for r in rows],
                    'mqart_kb': art_kb, 'flash_mb': b.get('flash_mb', 16)}, f, indent=2)
 

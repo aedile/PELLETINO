@@ -115,6 +115,7 @@ extern "C" void app_main(void) {
   // Initialize audio (ES8311 + I2S)
   ESP_LOGI(TAG, "Initializing audio...");
   audio_init();
+  if (medalboot_muted()) audio_set_mute(true);   /* muted elsewhere: stay muted */
 
   /* far enough in to be sure this image works: stop the launcher counting attempts */
   medalboot_game_running();

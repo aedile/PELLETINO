@@ -18,6 +18,8 @@ bool  input_imu_ok(void);
 bool  input_button_down(void);   /* live level, usable before the loop starts */
 int   input_hold_ms(void);       /* how long it has been held, 0 when released */
 bool  input_take_hold(void);     /* fires once, when the hold reaches the threshold */
+bool  input_take_mute(void);     /* both buttons pressed together */
+bool  input_take_wake(void);     /* either button pressed and let go, on its own */
 
 #ifdef __cplusplus
 }

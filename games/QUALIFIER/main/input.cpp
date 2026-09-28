@@ -12,13 +12,14 @@
  *   tilt (rotate it like a wheel) -> steering
  *   accelerator                   -> automatic (held down for you)
  *   BOOT tap                      -> shift gear (low <-> high)
- *   BOOT hold 3 s                 -> sound off and on   (standard)
+ *   BOOT + PWR                     -> sound off and on   (standard)
  *   BOOT hold 10 s                -> back to the menu    (standard)
  *   PWR short press               -> coin, then start    (standard)
  *   PWR hold 1 s                  -> power off            (standard)
  */
 #include "input.h"
 #include "medal_input.h"
+#include "display.h"
 #include "medalboot.h"
 #include "qmi8658.h"
 #include "audio_hal.h"
@@ -46,8 +47,11 @@ static void read_accel_dbg(int16_t *x, int16_t *y, int16_t *z)
 
 static void on_mute(void)
 {
-    audio_set_mute(!audio_get_mute());
-    ESP_LOGI(TAG, "sound %s", audio_get_mute() ? "off" : "on");
+    bool muted = !audio_get_mute();
+    audio_set_mute(muted);
+    medalboot_set_muted(muted);                 /* holds in the menu and every other game */
+    display_toast(muted ? "SOUND OFF" : "SOUND ON", 1500);
+    ESP_LOGI(TAG, "sound %s", muted ? "off" : "on");
 }
 
 void input_init(void)

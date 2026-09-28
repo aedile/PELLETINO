@@ -1,4 +1,4 @@
-# MINIMAME game manifest
+# PELLETINO game manifest
 # ============================================================================
 # Every game listed here is pre-approved: artwork exists, a driver exists or is
 # planned, and a partition slot can be reserved for it. This file is the ONLY
@@ -8,8 +8,8 @@
 #
 #   Drop its ROM zip into roms/ using the MAME name below, e.g. roms/galaga.zip
 #
-# That is the whole procedure. `./minimame build` finds it, reserves a slot,
-# puts its marquee in the menu, and leaves everything else out. Games whose ROM
+# That is the whole procedure. `./pelletino build` finds it, reserves a slot,
+# puts it on the wheel, and leaves everything else out. Games whose ROM
 # you do not have are simply absent - no slot, no menu entry, no wasted flash.
 #
 # To override the automatic behaviour, set `enabled` on a game:
@@ -30,28 +30,39 @@ default_slot_kb = 768   # for games whose size we have not measured yet
 # GHOSTERAMA carries BOTH Pac-Man and Ms. Pac-Man in one image and picks between them
 # at boot. Ms. Pac-Man owns the slot; Pac-Man rides it via `boots` below, so the pair
 # costs one 1 MB slot, not two. Selecting either records which one the image should run.
+# --- built into the launcher: a menu entry with no flash slot of its own ------
+
+[[game]]
+rom = "credits"
+title = "Credits"
+builtin = "credits"      # the launcher runs this itself instead of chain-booting
+
 [[game]]
 rom = "mspacman"
 title = "Ms. Pac-Man"
+by = "Midway 1982"
 project = "GHOSTERAMA"
-binary = "build_docker/pelletino.bin"   # one image carries both Pac-Men; picked at boot
+binary = "build_docker/ghosterama.bin"   # one image carries both Pac-Men; picked at boot
 slot_kb = 1024
 
 [[game]]
 rom = "polepos"
 title = "Pole Position"
+by = "Namco 1982"
 project = "QUALIFIER"
 slot_kb = 1024
 
 [[game]]
 rom = "starwars"
 title = "Star Wars"
+by = "Atari 1983"
 project = "TRENCHRUNNER"
 slot_kb = 768
 
 [[game]]
 rom = "arkanoidu"
 title = "Arkanoid"
+by = "Taito 1986"
 project = "VAUS"
 slot_kb = 768
 enabled = false      # cut for the full Street Fighter clip
@@ -59,42 +70,49 @@ enabled = false      # cut for the full Street Fighter clip
 [[game]]
 rom = "gyruss"
 title = "Gyruss"
+by = "Konami 1983"
 project = "TOCCATA"
 slot_kb = 768
 
 [[game]]
 rom = "galaga"
 title = "Galaga"
+by = "Namco 1981"
 project = "SWARMFIGHTER"
 slot_kb = 512
 
 [[game]]
 rom = "digdug"
 title = "Dig Dug"
+by = "Namco 1982"
 project = "STRATUM"
 slot_kb = 512
 
 [[game]]
 rom = "dkong"
 title = "Donkey Kong"
+by = "Nintendo 1981"
 project = "GIRDER"
 slot_kb = 448
 
 [[game]]
 rom = "centiped"
 title = "Centipede"
+by = "Atari 1980"
 project = "CHILOPODA"
 slot_kb = 448
 
 [[game]]
 rom = "frogger"
 title = "Frogger"
+by = "Konami 1981"
 project = "RIBBIT"
 slot_kb = 448
 
 [[game]]
 rom = "rallyx"
 title = "Rally-X"
+by = "Namco 1980"
 project = "SMOKESCREEN"
 slot_kb = 512
 enabled = false      # cut for the full Street Fighter clip
@@ -102,18 +120,21 @@ enabled = false      # cut for the full Street Fighter clip
 [[game]]
 rom = "tempest"
 title = "Tempest"
+by = "Atari 1981"
 project = "SPINDLE"
 slot_kb = 448
 
 [[game]]
 rom = "asteroid"
 title = "Asteroids"
+by = "Atari 1979"
 project = "AEROLITE"
 slot_kb = 384
 
 [[game]]
 rom = "missile"
 title = "Missile Command"
+by = "Atari 1980"
 project = "SILO"
 slot_kb = 384
 
@@ -123,66 +144,77 @@ slot_kb = 384
 [[game]]
 rom = "mario"
 title = "Mario Bros."
+by = "Nintendo 1983"
 project = "PLUMBER"
 slot_kb = 512
 
 [[game]]
 rom = "mrdo"
 title = "Mr. Do!"
+by = "Universal 1982"
 project = "BIGTOP"
 slot_kb = 512
 
 [[game]]
 rom = "timeplt"
 title = "Time Pilot"
+by = "Konami 1982"
 project = "CHRONO"
 slot_kb = 512
 
 [[game]]
 rom = "btime"
 title = "Burger Time"
+by = "Data East 1982"
 project = "GRIDDLE"
 slot_kb = 448
 
 [[game]]
 rom = "rbtapper"
 title = "Root Beer Tapper"
+by = "Midway 1984"
 project = "KEG"
 slot_kb = 768
 
 [[game]]
 rom = "joust"
 title = "Joust"
+by = "Williams 1982"
 project = "OSTRICH"
 slot_kb = 448
 
 [[game]]
 rom = "mpatrolw"
 title = "Moon Patrol"
+by = "Irem 1982"
 project = "BUGGY"
 slot_kb = 512
 
 [[game]]
 rom = "llander"
 title = "Lunar Lander"
+by = "Atari 1979"
 project = "REGOLITH"
 slot_kb = 384
 
 [[game]]
 rom = "galaxian"
 title = "Galaxian"
+by = "Namco 1979"
 project = "ARMADA"
 slot_kb = 448
 
 [[game]]
 rom = "invaders"
 title = "Space Invaders"
+by = "Taito 1978"
 project = "PHALANX"
 slot_kb = 448
 
 [[game]]
 rom = "sf2"
 title = "Street Fighter II"
+by = "Capcom 1991"
 project = "HADOUKEN"
 slot_kb = 512
 data_kb = 5504
@@ -193,6 +225,7 @@ data_file = "media.bin"
 [[game]]
 rom = "pacman"
 title = "Pac-Man"
+by = "Namco 1980"
 project = "GHOSTERAMA"
 boots = "mspacman"    # rides Ms. Pac-Man's image and slot; selection records "pacman"
 
@@ -201,5 +234,6 @@ boots = "mspacman"    # rides Ms. Pac-Man's image and slot; selection records "p
 [[game]]
 rom = "esb"
 title = "Empire Strikes Back"
+by = "Atari 1985"
 project = "WALKERRUN"
 slot_kb = 1024

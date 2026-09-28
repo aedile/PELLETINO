@@ -22,7 +22,7 @@ Hold the medal upright; Burger Time's monitor was vertical.
 | **Middle button (BOOT)** | Pepper |
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
-| **BOOT, hold 3 s** | Sound off / on |
+| **Both buttons together** | Sound off / on |
 | **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 Walking is four-way, so the **dominant axis wins** — a diagonal resolves to

@@ -29,7 +29,8 @@ static float neutral_lr, neutral_ud;
 static int64_t imu_last_us, pwr_down_since, boot_down_since, coin_seq_start;
 static bool pwr_was_down, boot_was_down;
 static int  coin_seq;                 /* 0 idle, 1 coin held, 2 gap, 3 start held */
-static bool hold_armed, mute_fired, exit_fired;
+static bool hold_armed, exit_fired;
+static bool chord;                   /* both buttons went down together */
 static int64_t hold_since;
 
 /* the last trusted reading, held so a momentary bad pose does not jerk the controls */
@@ -117,7 +118,7 @@ void medal_input_init(const medal_input_config_t *c)
 
     have_neutral = false; held_valid = false;
     coin_seq = 0; pwr_was_down = boot_was_down = false;
-    hold_armed = mute_fired = false;
+    hold_armed = chord = false;
     imu_last_us = pwr_down_since = boot_down_since = coin_seq_start = hold_since = 0;
 
     gpio_config_t bat = {};
@@ -155,34 +156,18 @@ void medal_input_init(const medal_input_config_t *c)
 }
 
 /*
- * The two things a long press can mean. Holding a button for a few seconds toggles the sound -
- * this is a thing people wear places, and some of those places need to be quiet - and holding
- * it a good deal longer leaves the game for the menu.
- *
- * When both are configured the sound has to wait for the release, because a hold long enough to
- * leave passes through the shorter one on its way. With no exit gesture there is nothing to
- * pass through, and the sound fires the moment it is due, as it always has.
+ * Holding BOOT for a long time leaves the game for the menu. It used to toggle the sound on
+ * the way, at three seconds; the sound has its own gesture now - both buttons together, the
+ * same as in the menu - so a hold means one thing only.
  */
 static void hold_gestures(bool boot, int64_t now)
 {
-    if (!cfg.mute_hold_us && !cfg.exit_hold_us) return;
+    if (!cfg.exit_hold_us) return;
 
     if (!boot) { hold_armed = false; return; }
 
-    if (!hold_armed) { hold_armed = true; mute_fired = exit_fired = false; hold_since = now; }
-    int64_t held = now - hold_since;
-
-    /*
-     * Both gestures fire while the button is held, at their own times, so a three-second hold
-     * toggles the sound the moment it crosses three seconds - not only when the button is
-     * released, which is what made it feel like nothing was happening. Holding on to the exit
-     * time simply also leaves for the menu; the sound toggle on the way there is harmless.
-     */
-    if (cfg.mute_hold_us && !mute_fired && held >= (int64_t)cfg.mute_hold_us) {
-        mute_fired = true;
-        if (cfg.on_mute) cfg.on_mute();
-    }
-    if (cfg.exit_hold_us && !exit_fired && held >= (int64_t)cfg.exit_hold_us) {
+    if (!hold_armed) { hold_armed = true; exit_fired = false; hold_since = now; }
+    if (!exit_fired && now - hold_since >= (int64_t)cfg.exit_hold_us) {
         exit_fired = true;
         if (cfg.on_exit) cfg.on_exit();
     }
@@ -195,6 +180,21 @@ void medal_input_poll(medal_input_state_t *st)
 
     bool boot = gpio_get_level(PIN_BTN_BOOT) == 0;
     bool pwr  = gpio_get_level(PIN_BTN_PWR) == 0;
+    /*
+     * Both buttons together is the sound, everywhere on the medal. It fires as the second one
+     * goes down, and from then until both are up again neither button counts as itself -
+     * otherwise letting go would put a coin in, and holding on would power the medal off.
+     */
+    if (boot && pwr && !chord) {
+        chord = true;
+        if (cfg.on_mute) cfg.on_mute();
+    }
+    if (chord) {
+        if (!boot && !pwr) chord = false;
+        boot = pwr = false;
+        boot_was_down = pwr_was_down = false;
+        hold_armed = false;
+    }
     st->boot = boot; st->pwr = pwr;
 
     if (boot && !boot_was_down) boot_down_since = now;

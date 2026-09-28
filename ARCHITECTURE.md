@@ -1,6 +1,6 @@
 # MINIMAME
 
-A menu medal. It browses marquee artwork and chain-boots the other game medals;
+A menu. It turns a wheel of game logos and chain-boots the games;
 it runs no emulation itself.
 
 Hardware: Waveshare ESP32-C6-LCD-1.69 — 240×280 ST7789V2, 16 MB flash,
@@ -24,8 +24,8 @@ needs no table mapping games to slots:
 esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, "galaga")
 ```
 
-`NULL` means not installed, and the menu greys that marquee out. Adding a game
-means adding a marquee and a partition — **the launcher is never recompiled**.
+`NULL` means not installed, and the menu says so. Adding a game
+means adding its artwork and a partition — **the launcher is never recompiled**.
 
 ## Sticky selection
 
@@ -81,42 +81,40 @@ which one it was asked for.
 
 ## Memory
 
-There is no framebuffer. 240×280 RGB565 would be 131 KB of 512 KB with no PSRAM,
-so the screen is drawn in horizontal bands (`components/gfx`): clear a band, draw
-what intersects it, push it, move down. Two buffers are the whole UI cost — a
-19 KB band and a 17 KB scratch for marquee rows.
+Everything the launcher shows is animated, so it is all drawn into one frame
+buffer (`components/fest`): 240×280 at 8 bits a pixel, 67 KB, with a palette —
+a 6×6×5 colour cube, a few named colours, and 56 entries the wheel reloads with
+the colours of whichever screenshot is behind it. It is converted to the panel's
+RGB565 twenty rows at a time on the way out, through a 10 KB strip, which is
+also where the scanlines are put in. With the wheel up and music playing there
+is 323 KB of heap free.
 
-**Every pixel in a band is RGB565 stored big-endian.** The marquee blob is packed
-that way too, so blitting art is a `memcpy` rather than a per-pixel byte swap, and
-bands go straight to `display_write_preswapped()`. Build colours with `gfx_rgb()`,
-which returns a value already swapped — never write raw RGB565 into a band.
-
-Marquees are read with `esp_partition_read()` rather than a memory map. That lands
-pixels in RAM, which SPI DMA can reach — **flash-mapped addresses cannot be used as
-a DMA source** — and avoids the MMU's limits on how much can be mapped at once.
+The artwork partition is memory-mapped and pictures are decoded a row at a time
+straight out of flash into the frame buffer. **Flash-mapped addresses cannot be
+used as a DMA source**, which is one more reason nothing goes from the artwork
+to the panel directly.
 
 ## Input
 
-Tilt browses, one game per detent. Raw tilt would rip through sixteen games in
-half a second, so a step fires only when roll crosses 18°, and no further step can
-fire until roll falls back inside 8°. Holding past the threshold auto-repeats,
-slowly at first. PWR short-presses re-level the neutral pose; long-press cuts the
-battery rail. `BAT_EN` (GPIO15) must stay HIGH or the medal powers itself off.
+The launcher is driven by the two buttons; tilt does nothing in it. BOOT steps
+forward and PWR back, a two second hold on BOOT picks, a one second hold on PWR
+cuts the battery rail, and both together is mute. `BAT_EN` (GPIO15) must stay
+HIGH or the board powers itself off.
 
 ## Artwork pipeline
 
 ```
-marquees/*.png            source art, any resolution
-  └─ tools/pack_marquees.py
-       ├─ lcd/preview/*.png   fitted PNGs, for eyeballing
+art/logo/*.png, art/snap/*.png    source art, any resolution (tools/fetch_art.py)
+  └─ tools/pack_art.py
+       ├─ lcd/preview/*.png   the screenshots as fitted, for eyeballing
        └─ lcd/marquees.bin    the blob that gets flashed
             └─ tools/flash_mqart.sh   writes it to the mqart partition
 ```
 
-Art is fitted inside 208×104 preserving aspect. At 208 wide, most marquees land
-between 49 and 81 px tall; Star Wars is the one outlier that is height-limited
-instead, at 179×104. The app and the artwork flash separately, so updating every
-marquee needs no rebuild.
+Each game gets its logo at the three sizes it rests at on the wheel and one
+screenshot the size of the panel, all run-length coded a row at a time; the
+header of `tools/pack_art.py` is the format's documentation. The app and the
+artwork flash separately, so changing the art needs no rebuild.
 
 ## Flash budget (16 MB)
 
@@ -127,7 +125,7 @@ any other pick live, and `./pelletino pick` chooses one that fits.
 | Region | Size | Notes |
 |---|---|---|
 | `launcher` | 512 KB | built: 245 KB |
-| `mqart` | 640 KB | blob: 472 KB, 17 marquees |
+| `mqart` | 640 KB | blob: 477 KB, 17 games |
 | 16 game slots | ~9.1 MB | right-sized per game, not uniform |
 | `media` (SF2 video) | 5.5 MB | the one data partition; what makes flash the binding limit |
 | free | 0.31 MB | not enough for even the smallest game (384 KB) |
@@ -146,7 +144,8 @@ Rules that were learned the hard way and are easy to violate without noticing:
   from `games.toml` plus whatever is in `roms/`, and overwritten on every build.
   Change `games.toml` (or the pick) instead.
 - **Do not touch `lcd/marquees.bin` by hand.** Regenerate it with
-  `tools/pack_marquees.py`; the launcher trusts its header.
+  `tools/pack_art.py`. The launcher checks what it reads from it, but
+  it is not a format to edit by hand.
 - **Do not add a `#define`-style build switch.** Galagino's model (edit a
   `config.h`, run a converter by hand) was deliberately rejected: the presence
   of a ROM zip in `roms/` *is* the switch, and the partition table follows from

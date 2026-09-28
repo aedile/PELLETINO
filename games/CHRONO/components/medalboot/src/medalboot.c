@@ -142,3 +142,23 @@ void medalboot_exit_to_menu(void)
     medalboot_clear_selected();
     esp_restart();
 }
+
+/* ---- sound: one setting for the whole medal ------------------------------- */
+
+#define K_MUTED     "muted"
+
+bool medalboot_muted(void)
+{
+    if (!ensure_nvs()) return false;
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return false;
+    uint8_t v = 0;
+    nvs_get_u8(h, K_MUTED, &v);
+    nvs_close(h);
+    return v != 0;
+}
+
+void medalboot_set_muted(bool muted)
+{
+    set_u8(K_MUTED, muted ? 1 : 0);
+}

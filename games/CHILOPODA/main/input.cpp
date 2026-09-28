@@ -11,11 +11,12 @@
  *
  *   twist left / right  -> the ball, left and right
  *   tip away / toward   -> the ball, up and down
- *   BOOT button         -> fire; hold 3 s for sound off and on
+ *   BOOT button         -> fire
  *   PWR short press     -> coin, then start half a second later; long press (1 s) -> power off
  */
 #include "input.h"
 #include "medal_input.h"
+#include "display.h"
 #include "medalboot.h"
 #include "qmi8658.h"
 #include "audio_hal.h"
@@ -35,8 +36,11 @@ static int16_t acc_x, acc_y;             /* 8.8 fixed point: counts owed but not
 
 static void on_mute(void)
 {
-    audio_set_mute(!audio_get_mute());
-    ESP_LOGI(TAG, "sound %s", audio_get_mute() ? "off" : "on");
+    bool muted = !audio_get_mute();
+    audio_set_mute(muted);
+    medalboot_set_muted(muted);                 /* holds in the menu and every other game */
+    display_toast(muted ? "SOUND OFF" : "SOUND ON", 1500);
+    ESP_LOGI(TAG, "sound %s", muted ? "off" : "on");
 }
 
 /* a fresh zero means the ball starts from a standstill: drop whatever counts were owed */

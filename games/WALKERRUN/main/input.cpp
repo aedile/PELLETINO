@@ -2,9 +2,10 @@
  * input.cpp - medal controls for Star Wars
  *   tilt (QMI8658 IMU) -> flight yoke pitch/yaw
  *   BOOT button (GPIO9)  -> fire (also starts a game in free play)
- *                           held 3-13 s and released: sound on/off
+ *                           with PWR, together: sound on/off
  *                           held 13 s: the easter egg (input_take_gesture)
  *   PWR button (GPIO18)  -> short press: coin, long press (1 s): power off
+ *   both together      -> sound off and on (the same everywhere on the medal)
  */
 #include "input.h"
 #include "qmi8658.h"

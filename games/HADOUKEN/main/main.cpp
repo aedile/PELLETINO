@@ -7,7 +7,7 @@
  * loop. The player is the one that used to be Star Wars' easter egg. Anyone building their
  * own medal can pack whatever clip they like with tools/pack_media.py.
  *
- *   BOOT hold 3 s   -> sound off and on
+ *   BOOT + PWR       -> sound off and on
  *   BOOT hold 10 s  -> back to the MINIMAME menu
  *   PWR hold 1 s    -> power off
  */
@@ -24,8 +24,11 @@ static const char *TAG = "HADOUKEN";
 
 static void on_mute(void)
 {
-    audio_set_mute(!audio_get_mute());
-    ESP_LOGI(TAG, "sound %s", audio_get_mute() ? "off" : "on");
+    bool muted = !audio_get_mute();
+    audio_set_mute(muted);
+    medalboot_set_muted(muted);                 /* holds in the menu and every other game */
+    display_toast(muted ? "SOUND OFF" : "SOUND ON", 1500);
+    ESP_LOGI(TAG, "sound %s", muted ? "off" : "on");
 }
 
 /* runs inside the player's loop: the shared gestures, and nothing else ends the clip */
@@ -43,6 +46,7 @@ extern "C" void app_main(void)
     display_init();
     display_set_backlight(DISPLAY_BRIGHTNESS_ACTIVE);
     audio_init();
+    if (medalboot_muted()) audio_set_mute(true);   /* muted elsewhere: stay muted */
 
     medal_input_config_t cfg = {};
     cfg.init_i2c = true;

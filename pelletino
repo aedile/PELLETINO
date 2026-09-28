@@ -37,6 +37,11 @@ ensure_venv() {
 
 cmd_status()  { python3 tools/configure.py --check; }
 
+cmd_install() {
+    ensure_venv
+    "$VENV/bin/python" tools/install.py "$@"
+}
+
 cmd_pick() {
     ensure_venv
     "$VENV/bin/python" tools/pick.py "$@"
@@ -44,8 +49,8 @@ cmd_pick() {
 
 cmd_art() {
     ensure_venv
-    say "fetching marquee art (from a third-party archive - see tools/fetch_marquees.py)"
-    "$VENV/bin/python" tools/fetch_marquees.py "$@"
+    say "fetching logos and screenshots (from a third-party archive - see tools/fetch_art.py)"
+    "$VENV/bin/python" tools/fetch_art.py "$@"
 }
 
 cmd_games() {
@@ -64,18 +69,22 @@ PY
 
 cmd_build() {
     need_docker; ensure_venv
-    say "artwork (text placeholders for anything without a real banner)"
-    "$VENV/bin/python" tools/make_placeholders.py
-    "$VENV/bin/python" tools/pack_marquees.py | tail -3
+    say "artwork (a game without any gets its title in text)"
+    "$VENV/bin/python" tools/pack_art.py | tail -3
     # music/splash.mid is picked up at CMake configure time, so make sure configure
     # re-runs when it is added, removed or swapped
-    touch components/chiptune/CMakeLists.txt
+    touch components/chiptune/CMakeLists.txt main/CMakeLists.txt
     say "generating partition table"
     python3 tools/configure.py
     say "building firmware"
-    docker run --rm -v "$PWD":/project -w /project "$IDF_IMAGE" \
-        idf.py -B "$BUILD" -DIDF_TARGET=esp32c6 build 2>&1 | tail -4
-    ok "firmware at $BUILD/pelletino.bin"
+    mkdir -p build
+    if ! docker run --rm -v "$PWD":/project -w /project "$IDF_IMAGE" \
+        idf.py -B "$BUILD" -DIDF_TARGET=esp32c6 build > build/launcher.log 2>&1; then
+        grep -E 'error|Error' build/launcher.log | head -12
+        warn "the launcher did not build - the full log is build/launcher.log"
+        exit 1
+    fi
+    ok "firmware at $BUILD/pelletino.bin ($(($(wc -c < "$BUILD/pelletino.bin") / 1024)) KB)"
     echo "   next: ./pelletino flash"
 }
 
@@ -91,6 +100,8 @@ cmd_help() {
     cat <<'EOF'
 
   MINIMAME - a multi-game arcade medal for the Waveshare ESP32-C6-LCD-1.69
+
+    ./install.sh             everything: ROMs in roms/ to a flashed medal, in one step
 
     ./pelletino              what this build contains, and what it is missing
     ./pelletino games        the approved list, and which ROMs you have
@@ -116,6 +127,7 @@ EOF
 case "${1:-status}" in
     status|'')  cmd_status ;;
     games|list) cmd_games ;;
+    install)    shift; cmd_install "$@" ;;
     pick)       shift; cmd_pick "$@" ;;
     build)      cmd_build ;;
     flash)      shift; cmd_flash "$@" ;;

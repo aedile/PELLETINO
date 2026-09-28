@@ -81,6 +81,7 @@ while IFS=$'\t' read -r rom title project binary offset data_file data_offset ow
 done < <(python3 -c "
 import json
 for g in json.load(open('$MANIFEST'))['games']:
+    if g.get('builtin'): continue          # lives in the launcher: nothing to flash
     print('\t'.join([g['rom'], g['title'], str(g.get('project') or ''), str(g.get('binary') or '-'), hex(g['offset']),
                      str(g.get('data_file') or '-'), hex(g.get('data_offset') or 0), str(g.get('owner') or '-')]))
 ")

@@ -72,6 +72,7 @@ static void send_data_dma(const uint8_t *data, size_t len) {
 #define ST7789_Y_OFFSET 20
 
 void display_set_window(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
+  display_toast_window(x, y, w, h);
   uint8_t data[4];
 
   // Column address set
@@ -180,6 +181,7 @@ void display_init(void) {
 }
 
 void display_write(const uint16_t *data, uint32_t len) {
+  display_toast_overlay((uint16_t *)data, len, false);
   size_t bytes = len * 2;
   if (bytes > DMA_BUFFER_SIZE) {
     bytes = DMA_BUFFER_SIZE;
@@ -214,6 +216,7 @@ void display_write(const uint16_t *data, uint32_t len) {
 }
 
 void display_write_preswapped(const uint16_t *data, uint32_t len) {
+  display_toast_overlay((uint16_t *)data, len, true);
   // For pre-byte-swapped data - no copy needed, just DMA directly
   size_t bytes = len * 2;
   if (bytes > DMA_BUFFER_SIZE) {

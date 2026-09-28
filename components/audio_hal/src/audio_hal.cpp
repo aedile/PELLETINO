@@ -25,6 +25,8 @@ static volatile uint32_t audio_underruns = 0;
 // Keep about 3 frames of audio queued ahead of the DAC (latency vs. jitter margin)
 static constexpr uint32_t AUDIO_TARGET_BYTES = (AUDIO_SAMPLE_RATE * 3 / 60) * sizeof(int16_t);
 
+static int audio_peak = 0;                         // loudest sample rendered since last asked
+
 // Mute state
 static bool audio_muted = false;
 
@@ -50,6 +52,8 @@ static esp_err_t es8311_write_reg(uint8_t reg, uint8_t value)
     return i2c_master_write_to_device(I2C_NUM_0, ES8311_ADDR, data, 2, pdMS_TO_TICKS(100));
 }
 
+static void es8311_configure(void);
+
 static esp_err_t es8311_init(void)
 {
     ESP_LOGI(TAG, "Initializing ES8311 codec");
@@ -74,6 +78,16 @@ static esp_err_t es8311_init(void)
         ESP_LOGI(TAG, "I2C already installed (%s), continuing", esp_err_to_name(ret));
     }
 
+    es8311_configure();
+    ESP_LOGI(TAG, "ES8311 initialized");
+    return ESP_OK;
+}
+
+// Bring the codec up from nothing. Used at start-up and again whenever the sound is
+// turned back on, so the codec is never brought back by a different route from the
+// one that is known to make sound.
+static void es8311_configure(void)
+{
     // Reset ES8311
     es8311_write_reg(ES8311_REG_RESET, 0x3F);
     vTaskDelay(pdMS_TO_TICKS(20));
@@ -113,9 +127,6 @@ static esp_err_t es8311_init(void)
     // Enable DAC
     es8311_write_reg(0x00, 0x80);  // Reset cleared, chip active
     es8311_write_reg(0x01, 0x3F);  // Clocks enabled
-
-    ESP_LOGI(TAG, "ES8311 initialized");
-    return ESP_OK;
 }
 
 // I2S ISR: one DMA descriptor finished playing
@@ -240,8 +251,19 @@ void audio_update(void)
     if (samples == 0) return;
 
     audio_render(sample_buffer, (int)samples, AUDIO_SAMPLE_RATE);
+    for (uint32_t i = 0; i < samples; i++) {
+        int v = sample_buffer[i] < 0 ? -sample_buffer[i] : sample_buffer[i];
+        if (v > audio_peak) audio_peak = v;
+    }
     pending_off = 0; pending_len = samples;
     audio_flush_pending();
+}
+
+void audio_get_stats(uint32_t *played_bytes, int *peak)
+{
+    *played_bytes = audio_bytes_sent;
+    *peak = audio_peak;
+    audio_peak = 0;
 }
 
 uint32_t audio_get_underrun_count(void)
@@ -289,39 +311,10 @@ void audio_set_power_state(bool enabled)
              i2s_channel_enable(i2s_tx_handle);
         }
         
-        // Power up ES8311 - need to restore full codec configuration for I2S sync
-        
-        // Clock manager - critical for I2S synchronization
-        es8311_write_reg(0x01, 0x3F);  // CLK Manager 1
-        es8311_write_reg(0x02, 0x00);  // CLK Manager 2
-        es8311_write_reg(0x03, 0x10);  // CLK Manager 3
-        es8311_write_reg(0x04, 0x10);  // CLK Manager 4
-        es8311_write_reg(0x05, 0x00);  // CLK Manager 5
-        es8311_write_reg(0x06, 0x03);  // CLK Manager 6
-        es8311_write_reg(0x07, 0x00);  // CLK Manager 7
-        es8311_write_reg(0x08, 0xFF);  // CLK Manager 8
-        
-        // Serial data port: 16-bit word length, standard I2S (Philips) format
-        es8311_write_reg(ES8311_REG_SDPOUT, 0x0C);
-        es8311_write_reg(ES8311_REG_SDPIN, 0x0C);
-        
-        // System control and power
-        es8311_write_reg(ES8311_REG_SYS_CTRL, 0x00);
-        es8311_write_reg(0x0E, 0x02);  // System Control 2
-        es8311_write_reg(0x0F, 0x44);  // System Control 3
-        es8311_write_reg(0x10, 0x0C);  // System Power
-        es8311_write_reg(0x11, 0x00);  // System Power
-        
-        // DAC settings (critical for audio output)
-        es8311_write_reg(0x12, 0x00);
-        es8311_write_reg(0x13, 0x10);  // ADC/DAC config
-        es8311_write_reg(0x14, 0x10);
-        es8311_write_reg(ES8311_REG_DAC_VOL, 0xBF);  // DAC volume (fairly loud)
-        
-        // Enable DAC
-        es8311_write_reg(0x00, 0x80);  // Reset cleared, chip active
-        es8311_write_reg(0x01, 0x3F);  // Clocks enabled
-        
+        // The codec was put to sleep: start it again exactly as at power-on, now
+        // that the I2S clocks it depends on are running
+        es8311_configure();
+
         codec_powered = true;
         vTaskDelay(pdMS_TO_TICKS(10));  // Small delay for codec to stabilize
         

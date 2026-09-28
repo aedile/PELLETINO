@@ -1,13 +1,12 @@
 #pragma once
-
+#include <stdbool.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* Plays the opening sequence with music. Blocking, about 6 seconds; any press of
- * the button ends it early. Safe to call when audio or the framebuffer will not
- * initialise - it simply returns. */
-void splash_run(void);
-
+/* The opening, once through: about twelve seconds. Draws into the fest frame
+ * buffer, which the caller owns, and leaves the music alone - so a tune can run
+ * on from this into whatever follows. True if the button was pressed. */
+bool splash_scene(void);
 #ifdef __cplusplus
 }
 #endif

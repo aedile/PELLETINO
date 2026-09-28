@@ -10,9 +10,10 @@ sdkconfig.old
 *.dSYM/
 lcd/preview/
 
-# splash music is the composer's; supply your own (see music/README.md)
-music/*.mid
-music/*.midi
+# music belongs to whoever wrote it; supply your own (see music/README.md)
+music/*
+!music/README.md
+!music/credits.example.txt
 
 # marquee artwork is copyrighted (game logos); ship none - fetch or supply your own
 marquees/*.png
@@ -50,3 +51,7 @@ selection.txt
 partitions.csv
 .claude/
 **/.claude/
+
+# the wheel's artwork is copyrighted; ship none - fetch or supply your own (tools/fetch_art.py)
+art/
+host/preview

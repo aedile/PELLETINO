@@ -20,7 +20,7 @@ A San Antonio Fiesta medal is a collectible pin. This one plays Joust.
 | **Middle button (BOOT)** | Flap |
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
-| **BOOT, hold 3 s** | Sound off / on |
+| **Both buttons together** | Sound off / on |
 | **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 Joust is a flap game: you gain height by tapping BOOT repeatedly, not by holding

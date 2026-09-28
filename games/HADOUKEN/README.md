@@ -14,7 +14,7 @@ Anyone building their own medal can put whatever clip they like here.
 
 | Control | What it does |
 |---|---|
-| **Middle button, hold 3 seconds** | Sound off and on |
+| **Both buttons together** | Sound off and on |
 | **Middle button, hold 10 seconds** | Back to the MINIMAME menu |
 | **Power button, hold 1 second** | Power off |
 

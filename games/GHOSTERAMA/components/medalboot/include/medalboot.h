@@ -61,6 +61,13 @@ bool medalboot_exit_hold(bool button_down);
  * Pac-Man and Ms. Pac-Man). Returns false if the game was not started by the menu. */
 bool medalboot_rom(char *out, size_t len);
 
+/* --- sound, everywhere ---
+ * Muting is one setting for the whole medal: set in the menu or in any game, it
+ * holds in every other and across power cycles. Each image reads it once at
+ * startup and writes it whenever the player changes it. */
+bool medalboot_muted(void);
+void medalboot_set_muted(bool muted);
+
 #ifdef __cplusplus
 }
 #endif

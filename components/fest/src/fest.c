@@ -7,6 +7,8 @@
 
 uint8_t *fest_fb;
 uint16_t fest_pal[256];
+static uint16_t pal_dim[256];                     /* the same colours on a scanline */
+bool fest_crt;
 
 #define STRIP 20                                  /* rows converted per SPI push */
 static uint16_t *strip;                           /* FB_W * STRIP, DMA-capable */
@@ -17,6 +19,12 @@ static uint16_t rgb(uint8_t r, uint8_t g, uint8_t b)
     return (uint16_t)((c >> 8) | (c << 8));       /* pre-swapped for the panel */
 }
 
+void fest_colour(uint8_t i, uint8_t r, uint8_t g, uint8_t b)
+{
+    fest_pal[i] = rgb(r, g, b);
+    pal_dim[i]  = rgb((uint8_t)(r * 3 / 4), (uint8_t)(g * 3 / 4), (uint8_t)(b * 3 / 4));
+}
+
 bool fest_init(void)
 {
     if (fest_fb) return true;
@@ -25,14 +33,14 @@ bool fest_init(void)
     if (!fest_fb || !strip) { fest_free(); return false; }
 
     for (int i = 0; i < 180; i++)                 /* the 6x6x5 cube */
-        fest_pal[i] = rgb((i / 30) * 51, ((i / 5) % 6) * 51, (i % 5) * 63);
-    fest_pal[UI_BLACK]  = rgb(0, 0, 0);
-    fest_pal[UI_WHITE]  = rgb(255, 255, 255);
-    fest_pal[UI_GREY]   = rgb(128, 128, 128);
-    fest_pal[UI_YELLOW] = rgb(255, 220, 0);
-    fest_pal[UI_GREEN]  = rgb(40, 220, 40);
-    fest_pal[UI_RED]    = rgb(240, 40, 40);
-    fest_pal[UI_BLUE]   = rgb(40, 80, 220);
+        fest_colour((uint8_t)i, (i / 30) * 51, ((i / 5) % 6) * 51, (i % 5) * 63);
+    fest_colour(UI_BLACK, 0, 0, 0);
+    fest_colour(UI_WHITE, 255, 255, 255);
+    fest_colour(UI_GREY, 128, 128, 128);
+    fest_colour(UI_YELLOW, 255, 220, 0);
+    fest_colour(UI_GREEN, 40, 220, 40);
+    fest_colour(UI_RED, 240, 40, 40);
+    fest_colour(UI_BLUE, 40, 80, 220);
     return true;
 }
 
@@ -92,7 +100,10 @@ void fest_present(void)
         int h = FB_H - y < STRIP ? FB_H - y : STRIP;
         const uint8_t *src = fest_fb + (size_t)y * FB_W;
         uint16_t *dst = strip;
-        for (int i = 0, n = FB_W * h; i < n; i++) *dst++ = fest_pal[*src++];
+        for (int r = 0; r < h; r++) {
+            const uint16_t *pal = (fest_crt && ((y + r) & 1)) ? pal_dim : fest_pal;
+            for (int x = 0; x < FB_W; x++) *dst++ = pal[*src++];
+        }
         display_set_window(0, (uint16_t)y, FB_W, (uint16_t)h);
         display_write_preswapped(strip, (uint32_t)FB_W * h);
         display_wait_done();

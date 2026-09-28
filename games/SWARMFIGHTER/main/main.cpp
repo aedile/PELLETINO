@@ -50,6 +50,7 @@ extern "C" void app_main(void)
     render_init();
     input_init();
     audio_init();
+    if (medalboot_muted()) audio_set_mute(true);   /* muted elsewhere: stay muted */
     medalboot_game_running();   /* far enough in to be sure this image works */
     ESP_LOGI(TAG, "ready, free heap %lu", (unsigned long)esp_get_free_heap_size());
 

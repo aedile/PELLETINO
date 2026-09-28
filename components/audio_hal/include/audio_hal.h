@@ -71,6 +71,13 @@ void audio_set_volume(uint8_t volume);
 void audio_set_power_state(bool enabled);
 
 /**
+ * For checking that sound is really being made: how many bytes the DAC has
+ * taken since the channel was opened, and the loudest sample rendered since
+ * this was last called.
+ */
+void audio_get_stats(uint32_t *played_bytes, int *peak);
+
+/**
  * Set mute state
  * @param muted true to mute audio, false to unmute
  */

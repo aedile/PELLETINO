@@ -21,7 +21,7 @@ A San Antonio Fiesta medal is a collectible pin. This one plays Root Beer Tapper
 | **Middle button (BOOT)** | Pour — **hold** to keep filling |
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
-| **BOOT, hold 3 s** | Sound off / on |
+| **Both buttons together** | Sound off / on |
 | **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 Pour is a **hold**, not a tap: the longer you hold BOOT the fuller the glass, and

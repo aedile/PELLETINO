@@ -5,11 +5,14 @@
 
 static const char *TAG = "mqart";
 
-#define MQART_MAGIC     "MQ03"
+#define MQART_MAGIC     "MQ04"
 #define MQART_SUBTYPE   0x40
-#define DISK_ENTRY_SZ   60      /* 12s rom, 12s boot, 24s title, u16 w, u16 h, u32 off, u32 len */
+#define DISK_IMG_SZ     12      /* u16 w, u16 h, u32 off, u32 len */
+#define DISK_ENTRY_SZ   (12 + 12 + 24 + 24 + 4 * DISK_IMG_SZ)
+#define SNAP_HEAD       (MQART_SNAP_COLOURS * 3)
 
-static const esp_partition_t *s_part;
+static const uint8_t *s_map;            /* the whole partition */
+static size_t s_size;
 static mqart_entry_t s_entries[MQART_MAX];
 static int s_count;
 
@@ -19,60 +22,76 @@ static uint32_t rd32(const uint8_t *p)
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
+/* Where a picture's row table starts, within the picture. */
+static uint32_t head_of(const mqart_img_t *im)
+{
+    for (int i = 0; i < s_count; i++)
+        if (im == &s_entries[i].snap) return SNAP_HEAD;
+    return 0;
+}
+
+/* Read one picture's description. One that would read outside the partition or
+ * overflow the panel is dropped - the entry survives, and is drawn without it. */
+static void read_img(const uint8_t *d, mqart_img_t *im, uint32_t head, const char *rom, const char *what)
+{
+    im->w = rd16(d); im->h = rd16(d + 2); im->off = rd32(d + 4); im->len = rd32(d + 8);
+    if (im->w == 0) return;
+    if (im->h == 0 || im->w > MQART_MAX_W || im->h > MQART_MAX_H ||
+        im->off > s_size || im->len > s_size - im->off || im->len < head + 4u * im->h) {
+        ESP_LOGW(TAG, "%s: %s is malformed, ignored", rom, what);
+        memset(im, 0, sizeof *im);
+    }
+}
+
 esp_err_t mqart_init(void)
 {
     s_count = 0;
-    s_part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
+    const esp_partition_t *part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
                                       (esp_partition_subtype_t)MQART_SUBTYPE, "mqart");
-    if (!s_part) {
+    if (!part) {
         ESP_LOGE(TAG, "no 'mqart' partition - flash it with tools/flash_mqart.sh");
         return ESP_ERR_NOT_FOUND;
     }
-
-    uint8_t hdr[8];
-    esp_err_t err = esp_partition_read(s_part, 0, hdr, sizeof hdr);
-    if (err != ESP_OK) return err;
-    if (memcmp(hdr, MQART_MAGIC, 4) != 0) {
-        ESP_LOGE(TAG, "bad magic %.4s (want %s) - partition not flashed?", (char *)hdr, MQART_MAGIC);
-        return ESP_ERR_INVALID_STATE;
+    if (!s_map) {
+        esp_partition_mmap_handle_t h;
+        const void *p;
+        esp_err_t err = esp_partition_mmap(part, 0, part->size, ESP_PARTITION_MMAP_DATA, &p, &h);
+        if (err != ESP_OK) { ESP_LOGE(TAG, "cannot map the partition: %s", esp_err_to_name(err)); return err; }
+        s_map = p;
+        s_size = part->size;
     }
 
-    int count = rd16(hdr + 4);
-    int esz   = rd16(hdr + 6);
-    if (esz != DISK_ENTRY_SZ) {
-        ESP_LOGE(TAG, "entry size %d, expected %d", esz, DISK_ENTRY_SZ);
+    if (memcmp(s_map, MQART_MAGIC, 4) != 0) {
+        ESP_LOGE(TAG, "bad magic (want %s) - artwork not flashed, or from an older build", MQART_MAGIC);
+        return ESP_ERR_INVALID_STATE;
+    }
+    int count = rd16(s_map + 4);
+    if (rd16(s_map + 6) != DISK_ENTRY_SZ) {
+        ESP_LOGE(TAG, "entry size %d, expected %d", rd16(s_map + 6), DISK_ENTRY_SZ);
         return ESP_ERR_INVALID_VERSION;
     }
     if (count > MQART_MAX) {
-        ESP_LOGW(TAG, "blob holds %d marquees, keeping first %d", count, MQART_MAX);
+        ESP_LOGW(TAG, "blob holds %d entries, keeping first %d", count, MQART_MAX);
         count = MQART_MAX;
     }
+    if (8 + (size_t)count * DISK_ENTRY_SZ > s_size) return ESP_ERR_INVALID_SIZE;
 
     for (int i = 0; i < count; i++) {
-        uint8_t e[DISK_ENTRY_SZ];
-        err = esp_partition_read(s_part, 8 + (size_t)i * DISK_ENTRY_SZ, e, sizeof e);
-        if (err != ESP_OK) return err;
-
-        mqart_entry_t *m = &s_entries[s_count];
-        memcpy(m->rom, e, 12);        m->rom[12]   = 0;
-        memcpy(m->boot, e + 12, 12);  m->boot[12]  = 0;
-        memcpy(m->title, e + 24, 24); m->title[24] = 0;
-        m->w   = rd16(e + 48);
-        m->h   = rd16(e + 50);
-        m->off = rd32(e + 52);
-        m->len = rd32(e + 56);
+        const uint8_t *e = s_map + 8 + (size_t)i * DISK_ENTRY_SZ;
+        mqart_entry_t *m = &s_entries[i];
+        memset(m, 0, sizeof *m);
+        memcpy(m->rom, e, 12);
+        memcpy(m->boot, e + 12, 12);
+        memcpy(m->title, e + 24, 24);
+        memcpy(m->by, e + 48, 24);
         if (m->boot[0] == 0) memcpy(m->boot, m->rom, sizeof m->boot);   /* default: boot self */
-
-        /* Refuse anything that would read past the partition or overflow the box. */
-        if (m->w == 0 || m->h == 0 || m->w > MQART_BOX_W || m->h > MQART_BOX_H ||
-            m->len != (uint32_t)m->w * m->h * 2 || m->off + m->len > s_part->size) {
-            ESP_LOGW(TAG, "entry %d (%s) is malformed, skipping", i, m->rom);
-            continue;
-        }
-        s_count++;
+        for (int k = 0; k < MQART_LOGOS; k++)
+            read_img(e + 72 + k * DISK_IMG_SZ, &m->logo[k], 0, m->rom, "a logo");
+        read_img(e + 72 + MQART_LOGOS * DISK_IMG_SZ, &m->snap, SNAP_HEAD, m->rom, "the snap");
     }
+    s_count = count;
 
-    ESP_LOGI(TAG, "%d marquees in %u KB partition", s_count, (unsigned)(s_part->size / 1024));
+    ESP_LOGI(TAG, "%d entries in %u KB partition", s_count, (unsigned)(s_size / 1024));
     return s_count ? ESP_OK : ESP_ERR_INVALID_STATE;
 }
 
@@ -96,9 +115,37 @@ const char *mqart_boot_label(const char *rom)
     return (i >= 0 && s_entries[i].boot[0]) ? s_entries[i].boot : rom;
 }
 
-esp_err_t mqart_read_rows(const mqart_entry_t *e, int row, int nrows, void *dst)
+const uint8_t *mqart_snap_colours(const mqart_entry_t *e)
 {
-    if (!s_part || !e || row < 0 || nrows <= 0 || row + nrows > e->h) return ESP_ERR_INVALID_ARG;
-    size_t stride = (size_t)e->w * 2;
-    return esp_partition_read(s_part, e->off + (size_t)row * stride, dst, stride * nrows);
+    return (e && e->snap.w) ? s_map + e->snap.off : NULL;
+}
+
+bool mqart_row(const mqart_img_t *im, int y, uint8_t *dst)
+{
+    if (!s_map || !im || !im->w || y < 0 || y >= im->h) return false;
+    const uint8_t *img = s_map + im->off, *end = img + im->len;
+    uint32_t at = rd32(img + head_of(im) + 4u * (uint32_t)y);
+    if (at >= im->len) return false;
+
+    /* control < 128: that many + 1 bytes follow as they are; otherwise the next
+     * byte, control - 126 times. Nothing is taken on trust: a row that runs past
+     * the picture or past its own width stops there. */
+    const uint8_t *s = img + at;
+    int left = im->w;
+    while (left > 0) {
+        if (s >= end) return false;
+        int c = *s++;
+        if (c < 128) {
+            int n = c + 1;
+            if (n > left || n > end - s) return false;
+            memcpy(dst, s, (size_t)n);
+            s += n; dst += n; left -= n;
+        } else {
+            int n = c - 126;
+            if (n > left || s >= end) return false;
+            memset(dst, *s++, (size_t)n);
+            dst += n; left -= n;
+        }
+    }
+    return true;
 }

@@ -1,0 +1,9 @@
+Opening
+~Name of the piece
+~Who composed it
+~(c) year, who owns it
+
+Credits
+~Name of the piece
+~Who composed it
+~(c) year, who owns it

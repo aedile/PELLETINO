@@ -9,6 +9,8 @@
 
 #include <cstdint>
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -89,6 +91,18 @@ void display_set_backlight(uint8_t brightness);
 // Brightness levels for adaptive power management
 #define DISPLAY_BRIGHTNESS_ACTIVE  153  // 60% for active gameplay
 #define DISPLAY_BRIGHTNESS_IDLE    76   // 30% for idle/attract mode
+
+/**
+ * Show a short message over whatever is on the panel, for ms milliseconds.
+ * Works in any image and with any renderer: it is drawn into the rows as they
+ * are pushed. Thirteen characters at most. Safe to call from any task.
+ */
+void display_toast(const char *text, uint32_t ms);
+bool display_toast_active(void);
+
+/* used by the driver itself */
+void display_toast_window(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+void display_toast_overlay(uint16_t *data, uint32_t len, bool swapped);
 
 #ifdef __cplusplus
 }

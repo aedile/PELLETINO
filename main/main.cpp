@@ -10,12 +10,17 @@
  *   button held at power-on     -> forget the selection, browse
  *   selected but never confirms -> after MEDALBOOT_MAX_ATTEMPTS, browse
  */
+#include <string.h>
 #include "menu.h"
 #include "input.h"
 #include "games.h"
 #include "mqart.h"
 #include "medalboot.h"
 #include "splash.h"
+#include "chiptune.h"
+#include "fest.h"
+#include "credits.h"
+#include "sound.h"
 #include "battery.h"
 #include "audio_hal.h"
 #include "display.h"
@@ -26,10 +31,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-static const char *TAG = "minimame";
+static const char *TAG = "pelletino";
 
 #define BOOT_ESCAPE_MS  600      /* hold the button this long at power-on for the menu */
-#define HOLD_REDRAW_MS   50      /* repaint rate while the progress bar is filling */
+#define MENU_FPS         30
+#define MENU_IDLE_MS  45000      /* left alone in the menu this long, it goes back to attract mode */
 
 /* True only if the button stayed down for the whole window - a knock will not do. */
 static bool button_held_at_boot(void)
@@ -47,12 +53,75 @@ static void launch(const char *rom)
     /* A shared slot (Pac-Man riding Ms. Pac-Man's image) records its own ROM as the
      * selection - so the image knows which variant to run - but chain-boots the slot
      * owner's partition. For every other game the boot label is the ROM itself. */
+    chip_stop();
+    audio_update();
     menu_select_rom(rom);
     menu_set_mode(MENU_LAUNCHING);
     menu_render();
     medalboot_note_attempt();
     game_launch(mqart_boot_label(rom));   /* does not return */
 }
+
+/*
+ * Attract mode: the opening, then the credits roll, then the opening again, for
+ * as long as nobody touches it. The music is not its business - one tune is
+ * started before the first of these and plays on through the menu and back.
+ *
+ * A button ends it - either one, pressed and let go. Both buttons together is
+ * mute, and does not end it.
+ */
+static void attract(void)
+{
+    if (!fest_init()) { menu_init(); return; }  /* no room to draw: straight to the menu */
+    fest_crt = false;                           /* these scenes draw their own scanlines */
+
+    for (int pass = 1; ; pass++) {
+        ESP_LOGI(TAG, "attract: opening (pass %d)", pass);
+        if (splash_scene()) break;
+        ESP_LOGI(TAG, "attract: credits roll");
+        if (credits_scene()) break;
+    }
+    ESP_LOGI(TAG, "attract: button pressed, on to the menu");
+
+    input_take_hold();                          /* that press was "wake up", not "pick this" */
+    input_take_nav();
+    menu_init();
+}
+
+#ifdef PELLETINO_SELFTEST
+/*
+ * A launcher that tests itself, for when nobody can press the buttons: it starts
+ * muted and skips attract mode, turns the wheel every other second, turns the
+ * sound on after six, and reports once a second. After twelve it lets go, so
+ * the menu should give up and return to attract mode. Nothing is saved.
+ * Build it with PELLETINO_SELFTEST set in the environment idf.py runs in.
+ */
+static uint32_t selftest_frames, selftest_render_us;
+
+static bool selftest_tick(void)             /* true while it is "pressing buttons" */
+{
+    static int64_t began;
+    static int last = -1;
+    int64_t now = esp_timer_get_time();
+    if (!began) began = now;
+    int s = (int)((now - began) / 1000000);
+    if (s == last || s > 12) return s <= 12;
+    last = s;
+
+    uint32_t played; int peak;
+    audio_get_stats(&played, &peak);
+    ESP_LOGI(TAG, "selftest %2ds: %s, %u frames, %u ms each, played %u bytes, peak %d, heap %u (low %u)",
+             s, audio_get_mute() ? "muted" : "sound on", (unsigned)selftest_frames,
+             selftest_frames ? (unsigned)(selftest_render_us / selftest_frames / 1000) : 0,
+             (unsigned)played, peak, (unsigned)esp_get_free_heap_size(),
+             (unsigned)esp_get_minimum_free_heap_size());
+    selftest_frames = selftest_render_us = 0;
+
+    if (s == 6) audio_set_mute(false);
+    if (s & 1) menu_nav(s % 8 == 7 ? -1 : +1);
+    return true;
+}
+#endif
 
 extern "C" void app_main(void)
 {
@@ -85,6 +154,7 @@ extern "C" void app_main(void)
      * game - the exit gesture appeared to relaunch instead).
      */
     char sel[24];
+    (void)sel;
     if (esp_reset_reason() == ESP_RST_SW) {
         ESP_LOGI(TAG, "software restart - a game asked for the menu");
         medalboot_clear_selected();
@@ -94,6 +164,7 @@ extern "C" void app_main(void)
         medalboot_clear_selected();
         /* Wait for release so the same press does not immediately pick a game. */
         while (input_button_down()) vTaskDelay(pdMS_TO_TICKS(20));
+#ifndef PELLETINO_SELFTEST                     /* the self-test is of the launcher: stay in it */
     } else if (medalboot_get_selected(sel, sizeof sel)) {
         if (!game_installed(mqart_boot_label(sel))) {
             ESP_LOGW(TAG, "%s is selected but not installed", sel);
@@ -109,60 +180,79 @@ extern "C" void app_main(void)
         } else {
             launch(sel);         /* does not return */
         }
+#endif
     }
 
-    /* Only on the way to the menu - a selected medal boots straight into its game
-     * above, and nobody wants six seconds of titles in front of every launch. */
+    /* Only on the way to the menu - with a game selected it boots straight into its game
+     * above, and nobody wants twelve seconds of titles in front of every launch. */
     audio_init();
+    sound_init();
 
-    /* The splash runs before the menu allocates. Its frame buffer is 178 KB and
-     * the song parses into a linked list about as large; both at once does not
-     * fit in 420 KB, and tml_load_memory does not survive a failed malloc. */
-    splash_run();
+    if (chip_load(CHIP_TUNE_SPLASH)) chip_play();
+#ifdef PELLETINO_SELFTEST
+    audio_set_mute(true);
     menu_init();
+#else
+    attract();
+#endif
 
-    /* Open the carousel on whatever was played last. */
+    /* Open the wheel on whatever was played last. */
     char last[24];
     if (medalboot_get_last(last, sizeof last)) menu_select_rom(last);
     menu_set_mode(MENU_BROWSE);
 
-    ESP_LOGI(TAG, "%d games in the carousel", mqart_count());
+    ESP_LOGI(TAG, "%d entries on the wheel", mqart_count());
 
-    bool dirty = true;
-    int64_t last_hold_draw = 0;
+    int64_t touched = esp_timer_get_time();
+    int64_t due = touched;
     while (true) {
+        audio_update();                         /* the music carries on in the menu */
         input_poll();
         battery_tick();
 
+        bool busy = sound_poll();
+        if (input_take_wake()) busy = true;
+        if (input_hold_ms() > 0) busy = true;
+
         nav_t nav = input_take_nav();
-        if (nav == NAV_NEXT) { menu_nav(+1); dirty = true; }
-        else if (nav == NAV_PREV) { menu_nav(-1); dirty = true; }
+        if (nav == NAV_NEXT) { menu_nav(+1); busy = true; }
+        else if (nav == NAV_PREV) { menu_nav(-1); busy = true; }
 
         if (input_take_hold()) {
             const char *rom = menu_current_rom();
-            if (rom && game_installed(mqart_boot_label(rom))) {
+            const char *label = rom ? mqart_boot_label(rom) : NULL;
+            if (label && label[0] == '@') {
+                /* Built into the launcher. It is not a selection - nobody wants
+                 * to boot to the credits - so nothing is recorded. */
+                if (!strcmp(label, "@credits")) credits_run();
+                menu_set_mode(MENU_BROWSE);
+            } else if (rom && game_installed(mqart_boot_label(rom))) {
                 medalboot_set_selected(rom);   /* sticky from now on */
                 launch(rom);                   /* does not return */
             }
-            dirty = true;                      /* not installed: repaint */
+            busy = true;
         }
 
-        /*
-         * Animate the progress bar without repainting at full loop rate, and without
-         * repainting anything but the rows it occupies - a full repaint here is what made the
-         * panel wipe in strips while the button was held.
-         */
+#ifdef PELLETINO_SELFTEST
+        if (selftest_tick()) busy = true;
+#endif
         int64_t now = esp_timer_get_time();
-        bool bar_only = false;
-        if (input_hold_ms() > 0 && now - last_hold_draw >= HOLD_REDRAW_MS * 1000) {
-            last_hold_draw = now;
-            if (!dirty) bar_only = true;
+        if (busy) touched = now;
+        if (now - touched >= (int64_t)MENU_IDLE_MS * 1000) {
+            ESP_LOGI(TAG, "nobody here - back to attract mode");
+            attract();                          /* comes back when a button is pressed */
+            touched = due = esp_timer_get_time();
+            continue;
         }
-        if (input_hold_ms() == 0 && last_hold_draw) { last_hold_draw = 0; if (!dirty) bar_only = true; }
 
-        if (dirty)          { menu_render(); dirty = false; }
-        else if (bar_only)  { menu_render_range(MENU_HOLD_BAR_Y0, MENU_HOLD_BAR_Y1); }
+        menu_render();
+#ifdef PELLETINO_SELFTEST
+        selftest_frames++;
+        selftest_render_us += (uint32_t)(esp_timer_get_time() - now);
+#endif
 
-        vTaskDelay(pdMS_TO_TICKS(16));
+        due += 1000000 / MENU_FPS;
+        if (due < esp_timer_get_time()) due = esp_timer_get_time();     /* a slow frame: do not chase it */
+        while (esp_timer_get_time() < due) { audio_update(); vTaskDelay(1); }
     }
 }

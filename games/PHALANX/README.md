@@ -23,7 +23,7 @@ stands up the same way you do.
 | **Middle button (BOOT)** | Fire |
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
-| **BOOT, hold 3 s** | Sound off / on |
+| **Both buttons together** | Sound off / on |
 | **BOOT, hold 10 s** | Back to the PELLETINO menu |
 
 Tilt is measured against however you are holding the medal *right now*. Coin up

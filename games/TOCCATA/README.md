@@ -20,7 +20,7 @@ way your hand does.
 |---|---|
 | **Twist left / right** | Around the ring |
 | **Middle button** | Fire |
-| **Middle button, hold 3 seconds** | Sound off and on |
+| **Both buttons together** | Sound off and on |
 | **Power button, short press** | Insert a coin and start |
 | **Power button, hold 1 second** | Power off |
 

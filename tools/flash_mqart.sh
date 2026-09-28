@@ -2,7 +2,7 @@
 # Flash the marquee blob into the mqart partition.
 #
 # The app and the artwork are flashed separately on purpose: re-running
-# pack_marquees.py and this script updates every marquee without rebuilding or
+# pack_art.py and this script updates every marquee without rebuilding or
 # reflashing the launcher.
 #
 # Run from the host, not the build container - Docker Desktop on macOS cannot
@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.."
 BLOB=lcd/marquees.bin
 PORT="${1:-}"
 
-[ -f "$BLOB" ] || { echo "no $BLOB - run tools/pack_marquees.py first" >&2; exit 1; }
+[ -f "$BLOB" ] || { echo "no $BLOB - run tools/pack_art.py first" >&2; exit 1; }
 
 # Take the offset and size straight from the partition table so they cannot drift.
 read -r OFFSET SIZE < <(awk -F',' '/^mqart/ {gsub(/ /,"",$4); gsub(/ /,"",$5); print $4, $5}' partitions.csv)

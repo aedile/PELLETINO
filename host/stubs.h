@@ -19,9 +19,6 @@ typedef int esp_err_t;
 static inline void *heap_caps_malloc(size_t n, int caps)
 {
     (void)caps;
-#ifdef PREVIEW_STRIPS
-    if (n > 100000) return NULL;   /* pretend the whole-screen buffer would not fit */
-#endif
     return malloc(n);
 }
 
@@ -33,5 +30,22 @@ typedef enum { ESP_PARTITION_TYPE_APP = 0, ESP_PARTITION_TYPE_DATA = 1 } esp_par
 typedef int esp_partition_subtype_t;
 typedef struct { size_t size; } esp_partition_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 const esp_partition_t *esp_partition_find_first(esp_partition_type_t t, esp_partition_subtype_t s, const char *label);
-esp_err_t esp_partition_read(const esp_partition_t *p, size_t off, void *dst, size_t n);
+#ifdef __cplusplus
+}
+#endif
+typedef int esp_partition_mmap_handle_t;
+#define ESP_PARTITION_MMAP_DATA 0
+#ifdef __cplusplus
+extern "C" {
+#endif
+esp_err_t esp_partition_mmap(const esp_partition_t *p, size_t off, size_t n, int kind,
+                             const void **out, esp_partition_mmap_handle_t *h);
+static inline const char *esp_err_to_name(esp_err_t e) { (void)e; return "error"; }
+static inline void heap_caps_free(void *p) { free(p); }
+#ifdef __cplusplus
+}
+#endif

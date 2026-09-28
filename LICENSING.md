@@ -91,7 +91,15 @@ the zlib licence:
 > removed or altered from any source distribution.
 
 The file is vendored unaltered and keeps its own header notice. It parses the
-splash MIDI; the AY-3-8910 playback around it is this project's own and 0BSD.
+MIDI files; the AY-3-8910 playback around it is this project's own and 0BSD.
+
+### The NES sound chip and NSF player: ours
+
+`components/chiptune/src/apu2a03.c` and `nsf.c` were written for this project so
+that the launcher could play NSF music **without** an NES emulator. The obvious
+one to borrow, nofrendo, is GPL and would have relicensed the launcher; this is
+0BSD like the rest of it. The 6502 underneath is `m6502fast.h`, the same core the
+Atari games here use.
 
 The zlib licence is permissive and carries no copyleft or non-commercial term, so
 it does not change the bundle's licensing.
@@ -126,13 +134,13 @@ non-commercial or copyleft core:
 The non-commercial restriction on the bundle comes only from bundling them with
 the Fayzullin-Z80 games; on their own they carry no such limit.
 
-## Game ROMs, marquee art and music: not here, your responsibility
+## Game ROMs, artwork and music: not here, your responsibility
 
-This project distributes **no game ROMs, no marquee artwork and no music**. The ROMs are
-copyrighted by their owners; the marquee art is copyrighted by its owners.
-`./pelletino art` can fetch marquees from a third-party archive on your request,
-and you supply the ROMs yourself. The splash tune is whatever you drop in
-`music/splash.mid` (see `music/README.md`); nothing is committed, and the
+This project distributes **no game ROMs, no artwork and no music**, and hosts none. The ROMs are
+copyrighted by their owners; so are the logos and screenshots.
+`./pelletino art` can download those from a third-party archive on your request,
+and you supply the ROMs yourself. The music is whatever you
+install with `tools/add_music.py` (see `music/README.md`); nothing is committed, and the
 composition and the particular sequence are both someone's to license. What you do with copyrighted ROMs and
 art, and whether you are entitled to them, is between you and their owners.
 

@@ -9,11 +9,12 @@
  *
  *   twist left / right  -> left and right
  *   tip away / toward   -> up and down
- *   BOOT button         -> pour (hold it to fill a glass); hold 3 s for sound off and on
+ *   BOOT button         -> pour (hold it to fill a glass)
  *   PWR short press     -> coin, then start half a second later; long press (1 s) -> power off
  */
 #include "input.h"
 #include "medal_input.h"
+#include "display.h"
 #include "medalboot.h"
 #include "qmi8658.h"
 #include "audio_hal.h"
@@ -36,8 +37,11 @@ static int64_t last_log;
 
 static void on_mute(void)
 {
-    audio_set_mute(!audio_get_mute());
-    ESP_LOGI(TAG, "sound %s", audio_get_mute() ? "off" : "on");
+    bool muted = !audio_get_mute();
+    audio_set_mute(muted);
+    medalboot_set_muted(muted);                 /* holds in the menu and every other game */
+    display_toast(muted ? "SOUND OFF" : "SOUND ON", 1500);
+    ESP_LOGI(TAG, "sound %s", muted ? "off" : "on");
 }
 
 /* a fresh zero means a fresh stick: whatever was held before it is not held now */
