@@ -34,7 +34,7 @@ static bool ensure_nvs(void)
     return ready;
 }
 
-#define NS          "minimame"
+#define NS          "minimame"  /* the launcher's old name; kept so flashed medals keep their settings */
 #define K_SELECTED  "selected"   /* rom to auto-boot; absent = show the menu */
 #define K_LAST      "last"       /* rom the menu should open on */
 #define K_ATTEMPTS  "attempts"   /* consecutive unconfirmed boots of K_SELECTED */

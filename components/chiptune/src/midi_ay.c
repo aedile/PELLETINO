@@ -125,7 +125,13 @@ static void midi_render(int16_t *buf, int samples, int rate)
             }
             cur = cur->next;
         }
-        if (!cur) { midi_rewind(); continue; }          /* loop back to the top */
+        if (!cur) {                                     /* loop back to the top */
+            midi_rewind();
+            /* A file with nothing after its first instant (every event at t=0, or none)
+             * would rewind forever without producing a sample: give it silence instead. */
+            if (!cur || cur->time == 0) { memset(buf, 0, (size_t)samples * sizeof *buf); return; }
+            continue;
+        }
 
         uint64_t due = (uint64_t)cur->time * (unsigned)rate / 1000ull;
         int n = (due > samples_played) ? (int)(due - samples_played) : 1;

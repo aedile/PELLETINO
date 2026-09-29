@@ -27,9 +27,6 @@ default_slot_kb = 768   # for games whose size we have not measured yet
 # --- measured: every one of these has a working build, and the slot is its measured
 # --- binary size rounded up to 64 KB with at least ten percent to spare. Sizes as of 9 September 2026.
 
-# GHOSTERAMA carries BOTH Pac-Man and Ms. Pac-Man in one image and picks between them
-# at boot. Ms. Pac-Man owns the slot; Pac-Man rides it via `boots` below, so the pair
-# costs one 1 MB slot, not two. Selecting either records which one the image should run.
 # --- built into the launcher: a menu entry with no flash slot of its own ------
 
 [[game]]
@@ -37,6 +34,9 @@ rom = "credits"
 title = "Credits"
 builtin = "credits"      # the launcher runs this itself instead of chain-booting
 
+# GHOSTERAMA carries BOTH Pac-Man and Ms. Pac-Man in one image and picks between them
+# at boot. Ms. Pac-Man owns the slot; Pac-Man rides it via `boots` (see the pacman entry
+# at the end), so the pair costs one 1 MB slot, not two.
 [[game]]
 rom = "mspacman"
 title = "Ms. Pac-Man"
@@ -138,9 +138,6 @@ by = "Atari 1980"
 project = "SILO"
 slot_kb = 384
 
-# Not an emulator: a video clip. Street Fighter II's attract mode, letterboxed on the
-# portrait panel and looped. The clip lives in a data partition of its own, sized here;
-# the player is 336 KB. Pack a clip with games/HADOUKEN/tools/pack_media.py.
 [[game]]
 rom = "mario"
 title = "Mario Bros."
@@ -211,6 +208,9 @@ by = "Taito 1978"
 project = "PHALANX"
 slot_kb = 448
 
+# Not an emulator: a video clip. Street Fighter II's attract mode, letterboxed on the
+# portrait panel and looped. The clip lives in a data partition of its own, sized here;
+# the player is 336 KB. Pack a clip with games/HADOUKEN/tools/pack_media.py.
 [[game]]
 rom = "sf2"
 title = "Street Fighter II"

@@ -46,7 +46,7 @@ extern "C" void app_main(void)
     /* Before anything else: if we were chain-booted from the menu, make sure the
      * next reset goes back to it rather than here. */
     /*
-     * FIRST LINE, before anything that can fail: point the boot partition back at the MINIMAME
+     * FIRST LINE, before anything that can fail: point the boot partition back at the PELLETINO
      * launcher, so a panic or a brownout lands in the menu instead of boot-looping.
      */
     medalboot_game_startup();

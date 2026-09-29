@@ -17,7 +17,7 @@ speaker on your shirt.
 -->
 
 <!-- Video link goes here, e.g.
-**[Watch it run (YouTube)](https://youtu.be/...)**
+
 -->
 
 <p align="center">

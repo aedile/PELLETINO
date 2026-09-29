@@ -15,7 +15,7 @@ Anyone building their own medal can put whatever clip they like here.
 | Control | What it does |
 |---|---|
 | **Both buttons together** | Sound off and on |
-| **Middle button, hold 10 seconds** | Back to the MINIMAME menu |
+| **Middle button, hold 10 seconds** | Back to the PELLETINO menu |
 | **Power button, hold 1 second** | Power off |
 
 There is nothing to play. It loops.
@@ -43,7 +43,7 @@ one frame at a time in a 16 KB buffer and indexes up to 1024 frames; at these
 settings frames are around 6–8 KB. Roughly: **12 fps at 240×180 costs about
 75 KB per second**, so a minute is 4.5 MB.
 
-Under MINIMAME, drop the file at `games/HADOUKEN/media.bin` and set `data_kb`
+Under PELLETINO, drop the file at `games/HADOUKEN/media.bin` and set `data_kb`
 in `games.toml` to its size rounded up — the launcher lays out a `media`
 partition next to the game's slot and flashes the file into it. The file being
 there is what puts the game in the build, the way a ROM zip does for the others.

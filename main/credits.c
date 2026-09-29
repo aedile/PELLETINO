@@ -71,6 +71,7 @@ static const char *const before_music[] = {
     "Mr. Do!\tUniversal 1982",
     "Burger Time\tData East 1982",
     "Tapper\tBally Midway 1984",
+    "Street Fighter II\tCapcom 1991",
     "",
     "~Every game belongs to its",
     "~maker. No ROMs ship with",

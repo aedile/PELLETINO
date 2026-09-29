@@ -28,7 +28,7 @@ def price(cfg, picked):
     art_kb, _ = C.mqart_kb(len(rows))
     _, end = C.build_table(dict(b), [dict(r) for r in rows], art_kb)
     flash = b.get('flash_mb', 16) * 1024 * C.K
-    nslots = sum(1 for r in rows if not r.get('owner'))
+    nslots = sum(1 for r in rows if not r.get('owner') and not r.get('builtin'))   # same rule as configure.py
     over = end > flash or nslots > C.OTA_MAX
     return rows, nslots, end, flash, over
 
@@ -38,7 +38,7 @@ def candidates(cfg):
     with the slot cost it adds (0 for a rider that shares a slot)."""
     _, rows, skipped = C.resolve(cfg, picked=None)      # None = everything present
     present = rows + [r for r in skipped
-                      if r['why'].startswith(('roms/', 'GHOSTERAMA', 'shares')) or 'not picked' in r['why']]
+                      if r['why'].startswith(('roms/', 'shares')) or '/' in r['why'] or 'not picked' in r['why']]
     # de-dup, keep games.toml order
     seen, out = set(), []
     order = [g['rom'] for g in cfg.get('game', [])]

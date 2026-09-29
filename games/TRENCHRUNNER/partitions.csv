@@ -1,5 +1,5 @@
 # Name,   Type, SubType, Offset,    Size,     Flags
-# Only used when TRENCHRUNNER is built and flashed on its own. Under MINIMAME the
+# Only used when TRENCHRUNNER is built and flashed on its own. Under PELLETINO the
 # launcher's table is the one on the device, and this image is relocated into a
 # game slot - IDF app images are position independent across app partitions.
 nvs,      data, nvs,     0x9000,    0x6000,

@@ -8,7 +8,7 @@
  *   tilt                -> the yoke: twisting yaws, tipping pitches
  *   BOOT button         -> fire (also starts a game in free play)
  *                          held 3 s and released: sound on and off
- *                          held 10 s: back to the MINIMAME menu
+ *                          held 10 s: back to the PELLETINO menu
  *   PWR short press     -> coin; long press (1 s) -> power off
  *
  * The sound and exit holds are medal_input's own now. They used to be hand-rolled here because

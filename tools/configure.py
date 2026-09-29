@@ -117,12 +117,15 @@ def resolve(cfg, picked='auto'):
             die(f'{rom} is forced on in games.toml but {payload_desc} is missing')
         # art is optional: a game without any is drawn with its title in text
 
+        # every app partition must start on a 64 KB boundary, so a slot is a whole number of them
+        slot_kb = g.get('slot_kb', default_slot)
+        slot_kb = -(-slot_kb // 64) * 64
         rec = dict(rom=rom, title=g.get('title', rom), by=g.get('by', ''), project=g.get('project'),
                    binary=g.get('binary'),          # optional: where this game's .bin is, under the project
                    data_kb=g.get('data_kb', 0),     # optional: a data partition of its own, e.g. a video clip
                    data_file=g.get('data_file'),    # optional: the file to flash into it, under the project
                    boot=boot, owner=owner, builtin=builtin,   # boot label; owner set iff this entry rides another's slot
-                   slot_kb=g.get('slot_kb', default_slot), why=why, has_art=has_art)
+                   slot_kb=slot_kb, why=why, has_art=has_art)
         (rows if on else skipped).append(rec)
 
     # A shared entry only belongs in the build if its owner made it in - it has no
@@ -197,7 +200,7 @@ def main():
     b, rows, skipped = resolve(cfg)
     flash = b.get('flash_mb', 16) * 1024 * K
 
-    if not rows:
+    if not [r for r in rows if not r.get('builtin')]:
         die('nothing to build - put an approved ROM zip in roms/ (see games.toml)')
     nslots = sum(1 for r in rows if not r.get('owner') and not r.get('builtin'))
     if nslots > OTA_MAX:
@@ -231,7 +234,7 @@ def main():
         for r in skipped:
             print(f'    {r["title"]:<{w}}  {r["why"]}')
 
-    stray = sorted(f[:-4] for f in os.listdir(ROMS) if f.endswith('.zip')) if os.path.isdir(ROMS) else []
+    stray = sorted(f[:-4] for f in os.listdir(ROMS) if f.lower().endswith('.zip')) if os.path.isdir(ROMS) else []
     known = {g['rom'] for g in cfg.get('game', [])}
     extra = [s for s in stray if s not in known]
     if extra:

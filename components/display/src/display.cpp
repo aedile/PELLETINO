@@ -243,9 +243,6 @@ void display_fill(uint16_t color) {
   // A polling transfer is refused while a queued one is in flight: drain first
   display_wait_done();
 
-  // A polling transfer is refused while a queued one is in flight: drain first
-  display_wait_done();
-
   display_set_window(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
   // Fill in chunks using buffer 0

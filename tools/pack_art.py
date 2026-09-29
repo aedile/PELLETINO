@@ -124,7 +124,7 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
     _, rows, _ = configure.resolve(configure.load())
-    if not rows:
+    if not [r for r in rows if not r.get('builtin')]:
         sys.exit('no games in this build - put an approved ROM zip in roms/')
     # the wheel runs by title, not by ROM name - 'sf2' sorts before 'starwars' but
     # Street Fighter II comes after Star Wars - with the launcher's own entries last

@@ -1,7 +1,7 @@
 /*
  * medalboot.h - which game the medal boots into, and how to get back out.
  *
- * Shared by the MINIMAME launcher and every game image. Copy this component into
+ * Shared by the PELLETINO launcher and every game image. Copy this component into
  * a game project (or point at it with EXTRA_COMPONENT_DIRS) so both ends agree
  * on the NVS keys.
  *

@@ -9,6 +9,7 @@
  *   selected, installed         -> boot it
  *   button held at power-on     -> forget the selection, browse
  *   selected but never confirms -> after MEDALBOOT_MAX_ATTEMPTS, browse
+ *   selected and keeps crashing -> after MAX_CRASHES in a row, browse
  */
 #include <string.h>
 #include "menu.h"
@@ -26,6 +27,7 @@
 #include "audio_hal.h"
 #include "display.h"
 #include "nvs_flash.h"
+#include "nvs.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_timer.h"
@@ -35,6 +37,7 @@
 static const char *TAG = "pelletino";
 
 #define BOOT_ESCAPE_MS  600      /* hold the button this long at power-on for the menu */
+#define MAX_CRASHES       3      /* crashes in a row before the launcher stops re-launching a game */
 #define MENU_FPS         30
 #define MENU_IDLE_MS  45000      /* left alone in the menu this long, it goes back to attract mode */
 
@@ -46,6 +49,45 @@ static bool button_held_at_boot(void)
         vTaskDelay(pdMS_TO_TICKS(20));
     }
     return true;
+}
+
+/*
+ * How many times in a row the selected game has crashed. medalboot's attempts
+ * counter only covers a game that dies before medalboot_game_running(); a game
+ * that confirms it is up and then panics, trips a watchdog or browns out lands
+ * back here with a selection intact and would be relaunched forever. This count
+ * is the launcher's own, kept in its own NVS namespace, and no game clears it.
+ */
+#define NS_LAUNCHER  "pelletino"
+#define K_CRASHES    "crashes"
+
+static int crashes_get(void)
+{
+    nvs_handle_t h; uint8_t v = 0;
+    if (nvs_open(NS_LAUNCHER, NVS_READONLY, &h) != ESP_OK) return 0;
+    nvs_get_u8(h, K_CRASHES, &v);
+    nvs_close(h);
+    return v;
+}
+
+static void crashes_set(int v)
+{
+    nvs_handle_t h;
+    if (nvs_open(NS_LAUNCHER, NVS_READWRITE, &h) != ESP_OK) return;
+    nvs_set_u8(h, K_CRASHES, (uint8_t)v);
+    nvs_commit(h);
+    nvs_close(h);
+}
+
+static bool reset_was_a_crash(void)
+{
+    switch (esp_reset_reason()) {
+    case ESP_RST_PANIC: case ESP_RST_INT_WDT: case ESP_RST_TASK_WDT:
+    case ESP_RST_WDT:   case ESP_RST_BROWNOUT:
+        return true;
+    default:
+        return false;
+    }
 }
 
 /* One frame of the menu, and then whatever is left of a thirtieth of a second. */
@@ -62,7 +104,7 @@ static void menu_frame(void)
  * the one picked last time: they get the send-off - the coin, the logo coming out
  * of the screen, the flash. A medal that is only switching on gets its game.
  */
-static void launch(const char *rom, bool chosen)
+static bool launch(const char *rom, bool chosen)
 {
     menu_init();                        /* may not have been needed until now */
     /* A shared slot (Pac-Man riding Ms. Pac-Man's image) records its own ROM as the
@@ -80,7 +122,18 @@ static void launch(const char *rom, bool chosen)
     chip_stop();
     audio_update();
     medalboot_note_attempt();
-    game_launch(mqart_boot_label(rom));   /* does not return */
+    if (game_launch(mqart_boot_label(rom))) return true;   /* does not return */
+
+    /* The slot exists but holds nothing bootable (a build that failed, a game never
+     * flashed). Forget it, say so, and go back to the wheel rather than sit on a
+     * white screen with a selection that would be retried at every power-on. */
+    ESP_LOGW(TAG, "%s would not start - clearing the selection", rom);
+    medalboot_clear_selected();
+    menu_show_message("COULD NOT START", "NOTHING IN ITS SLOT");
+    menu_render();
+    vTaskDelay(pdMS_TO_TICKS(2500));
+    menu_set_mode(MENU_BROWSE);
+    return false;
 }
 
 /*
@@ -220,17 +273,30 @@ extern "C" void app_main(void)
     if (esp_reset_reason() == ESP_RST_SW) {
         ESP_LOGI(TAG, "software restart - a game asked for the menu");
         medalboot_clear_selected();
+        crashes_set(0);
         while (input_button_down()) vTaskDelay(pdMS_TO_TICKS(20));   /* the exit hold is probably still down */
     } else if (button_held_at_boot()) {
         ESP_LOGI(TAG, "button held at boot - clearing the selection");
         medalboot_clear_selected();
+        crashes_set(0);
         /* Wait for release so the same press does not immediately pick a game. */
         while (input_button_down()) vTaskDelay(pdMS_TO_TICKS(20));
 #ifndef PELLETINO_SELFTEST                     /* the self-test is of the launcher: stay in it */
     } else if (medalboot_get_selected(sel, sizeof sel)) {
+        int crashes = reset_was_a_crash() ? crashes_get() + 1 : 0;
+        crashes_set(crashes);
         if (!game_installed(mqart_boot_label(sel))) {
             ESP_LOGW(TAG, "%s is selected but not installed", sel);
             medalboot_clear_selected();
+        } else if (crashes >= MAX_CRASHES) {
+            ESP_LOGW(TAG, "%s crashed %d times in a row (last reset reason %d)", sel, crashes, (int)esp_reset_reason());
+            medalboot_clear_selected();
+            crashes_set(0);
+            menu_select_rom(sel);
+            menu_show_message("KEEPS CRASHING", "HOLD TO PICK ANOTHER");
+            menu_render();
+            vTaskDelay(pdMS_TO_TICKS(2500));
+            menu_set_mode(MENU_BROWSE);
         } else if (medalboot_attempts() >= MEDALBOOT_MAX_ATTEMPTS) {
             ESP_LOGW(TAG, "%s failed to start %d times", sel, medalboot_attempts());
             medalboot_clear_selected();
@@ -240,7 +306,7 @@ extern "C" void app_main(void)
             vTaskDelay(pdMS_TO_TICKS(2500));
             menu_set_mode(MENU_BROWSE);
         } else {
-            launch(sel, false);  /* does not return */
+            launch(sel, false);  /* does not return unless the slot is empty */
         }
 #endif
     }
@@ -289,7 +355,9 @@ extern "C" void app_main(void)
                 menu_set_mode(MENU_BROWSE);
             } else if (rom && game_installed(mqart_boot_label(rom))) {
                 medalboot_set_selected(rom);   /* sticky from now on */
-                launch(rom, true);             /* does not return */
+                crashes_set(0);
+                launch(rom, true);             /* does not return unless the slot is empty */
+                touched = esp_timer_get_time();
             }
             busy = true;
         }

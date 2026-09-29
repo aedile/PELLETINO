@@ -27,7 +27,7 @@ extern "C" void app_main(void)
 {
     /*
      * FIRST LINE, before anything that can fail. This points the boot partition back at the
-     * MINIMAME launcher, so a panic, a watchdog bite or a brownout lands in the menu instead
+     * PELLETINO launcher, so a panic, a watchdog bite or a brownout lands in the menu instead
      * of boot-looping a broken game.
      */
     medalboot_game_startup();

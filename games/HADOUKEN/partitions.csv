@@ -1,5 +1,5 @@
 # Name,   Type, SubType, Offset,    Size,     Flags
-# Only used when HADOUKEN is built and flashed on its own. Under MINIMAME the launcher's
+# Only used when HADOUKEN is built and flashed on its own. Under PELLETINO the launcher's
 # table is the one on the device: this image goes in a game slot and the clip in a data
 # partition the launcher lays out next to it (see games.toml, `data_kb`).
 nvs,      data, nvs,     0x9000,    0x6000,

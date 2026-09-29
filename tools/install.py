@@ -73,17 +73,25 @@ def find_port():
 # ---------------------------------------------------------------- 2. what was supplied
 
 def survey(cfg):
-    """Group the approved games by the project that builds them."""
+    """Group the approved games by the project that builds them.
+
+    Returns the ROMs present (a video game counts as present when its media file is
+    under its project), every approved game by name, the projects with the games each
+    builds, and the set of games that have no ROM to convert (the video ones)."""
     roms_dir = os.path.join(ROOT, 'roms')
     os.makedirs(roms_dir, exist_ok=True)
     present = {f[:-4] for f in os.listdir(roms_dir) if f.lower().endswith('.zip')}
     known = {g['rom']: g for g in cfg.get('game', [])}
-    projects = {}                                        # project -> every rom it builds from
+    projects, media = {}, set()                          # project -> every rom it builds from
     for g in cfg.get('game', []):
-        if g.get('builtin') or g.get('data_file') or not g.get('project'): continue
+        if g.get('builtin') or not g.get('project'): continue
         if g.get('enabled') is False: continue
+        if g.get('data_file'):
+            media.add(g['rom'])
+            if os.path.exists(os.path.join(ROOT, 'games', g['project'], g['data_file'])):
+                present.add(g['rom'])
         projects.setdefault(g['project'], []).append(g['rom'])
-    return present, known, projects
+    return present, known, projects, media
 
 # ---------------------------------------------------------------- 3. convert and build
 
@@ -101,6 +109,7 @@ def last_lines(log, n=3):
     return ' / '.join((keep or lines)[-n:])[:300]
 
 def convert(project, roms, tmp, log):
+    if not roms: return None                             # a video game: nothing to convert
     conv = os.path.join(ROOT, 'games', project, 'tools', 'convert_roms.py')
     if not os.path.exists(conv): return f'no converter at games/{project}/tools/convert_roms.py'
     several = len(roms) > 1
@@ -145,18 +154,20 @@ def main():
     started = time.time()
     preflight(not a.no_flash)
     cfg = C.load()
-    present, known, projects = survey(cfg)
+    present, known, projects, media = survey(cfg)
 
     say('looking in roms/')
-    approved = sorted(r for r in present if r in known)
+    approved = sorted(r for r in present if r in known and r not in media)
     strangers = sorted(r for r in present if r not in known)
-    if not approved:
+    clips = sorted(r for r in present if r in media)
+    if not approved and not clips:
         print(f'\n  There are no ROMs in roms/ that this project knows how to run.\n'
               f'  Put zip files there using their MAME names - for example roms/galaga.zip -\n'
               f'  and run this again. To see every name it accepts:  ./pelletino games\n')
         if strangers: print(f'  Found but not supported: {", ".join(strangers)}\n')
         sys.exit(1)
     note(f'{len(approved)} game ROM{"s" if len(approved) != 1 else ""} found: ' + ', '.join(known[r].get('title', r) for r in approved))
+    if clips: note('video clip found for: ' + ', '.join(known[r].get('title', r) for r in clips))
     if strangers: note(f'{D}not supported, ignored: {", ".join(strangers)}{X}')
 
     # which projects can be built from what is here
@@ -185,7 +196,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         while True:
             cand = [r for r in P.candidates(cfg)
-                    if (r['rom'] in buildable and r['rom'] not in failed) or r.get('builtin') or r.get('data_file')]
+                    if (r['rom'] in buildable and r['rom'] not in failed) or r.get('builtin')]
             if had_pick is not None:
                 chosen = {r['rom'] for r in cand if r['rom'] in set(had_pick) or r.get('builtin')}
             else:
@@ -211,7 +222,7 @@ def main():
                 open(log, 'w').close()
                 print(f'    [{i:>2}/{len(wanted)}] {title:<32}', end='', flush=True)
                 t0 = time.time()
-                why = convert(project, roms, os.path.join(tmp, project), log) or build(project, log)
+                why = convert(project, [r for r in roms if r not in media], os.path.join(tmp, project), log) or build(project, log)
                 if why:
                     print(f'{R}failed{X}')
                     failed.update(roms)

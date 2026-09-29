@@ -35,10 +35,18 @@ def find_tune(path, tmp):
     ext = os.path.splitext(path)[1].lower()
     if ext == '.midi': ext = '.mid'
     if ext in KINDS: return path, ext
-    if ext in ('.zip', '.7z'):
-        # bsdtar reads both, and ships with macOS and most Linux distributions
-        if subprocess.run(['tar', '-xf', path, '-C', tmp]).returncode != 0:
-            die(f'could not unpack {os.path.basename(path)} (is it a real {ext} archive?)')
+    if ext == '.zip':
+        import zipfile
+        try:
+            with zipfile.ZipFile(path) as z: z.extractall(tmp)
+        except zipfile.BadZipFile:
+            die(f'could not unpack {os.path.basename(path)} (is it a real zip archive?)')
+    elif ext == '.7z':
+        # bsdtar (macOS) reads 7z; GNU tar does not, so fall back to 7z / 7za if present
+        for cmd in (['tar', '-xf', path, '-C', tmp], ['7z', 'x', '-y', f'-o{tmp}', path], ['7za', 'x', '-y', f'-o{tmp}', path]):
+            if shutil.which(cmd[0]) and subprocess.run(cmd, capture_output=True).returncode == 0: break
+        else:
+            die(f'could not unpack {os.path.basename(path)}: install 7-Zip (7z) or extract it yourself')
         found = sorted(os.path.join(r, f) for r, _, fs in os.walk(tmp) for f in fs
                        if os.path.splitext(f)[1].lower() in KINDS + ('.midi',))
         if not found: die('no .nsf or .mid inside that archive')

@@ -22,7 +22,7 @@ GHOSTERAMA aims to provide:
    # See: https://docs.espressif.com/projects/esp-idf/en/latest/esp32c6/get-started/
 
    # Clone the repository
-   git clone https://github.com/yourusername/GHOSTERAMA.git
+   git clone https://github.com/aedile/GHOSTERAMA.git
    cd GHOSTERAMA
 
    # Build the project

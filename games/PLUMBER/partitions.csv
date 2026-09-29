@@ -1,0 +1,7 @@
+# Name,   Type, SubType, Offset,   Size,    Flags
+# Standalone table for building and flashing PLUMBER on its own (4 MB layout).
+# Inside PELLETINO the image is flashed into a slot of the launcher's generated
+# table instead; only the image is used, this table is not.
+nvs,      data, nvs,     0x9000,   0x6000,
+phy_init, data, phy,     0xf000,   0x1000,
+factory,  app,  factory, 0x10000,  0x3F0000,
