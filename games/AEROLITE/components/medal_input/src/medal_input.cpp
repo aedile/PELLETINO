@@ -37,18 +37,17 @@ static int64_t hold_since;
 
 /*
  * The backlight is most of what the battery goes on, so a medal nobody is touching turns it
- * down, and later off. "Touching" is a button, or the medal being moved - which is every
+ * down. Down, never off: a medal that has gone dark looks like one that has died. "Touching" is a button, or the medal being moved - which is every
  * moment of a game being played, since tilt is the controller, and every moment of a medal
  * being worn. One left on a table showing its attract mode is what this is for.
  *
  * A button pressed while the panel is dimmed only wakes it. It is not a coin or a shot.
  */
 #define DIM_AFTER_US    (2 * 60 * 1000000LL)
-#define DARK_AFTER_US  (10 * 60 * 1000000LL)
 #define DIM_BRIGHTNESS  25                  /* of 255 */
 #define MOVED_COUNTS    2500                /* about nine degrees of tilt, at 16384 to the g */
 
-enum { LIT, DIMMED, DARK };
+enum { LIT, DIMMED };
 static int     screen;
 static bool    waking;                      /* the press that woke it is still down */
 static int64_t touched_us;
@@ -61,10 +60,9 @@ static void screen_tick(int64_t now, bool touched)
         if (screen != LIT) { display_set_backlight(DISPLAY_BRIGHTNESS_ACTIVE); screen = LIT; }
         return;
     }
-    int want = now - touched_us >= DARK_AFTER_US ? DARK : now - touched_us >= DIM_AFTER_US ? DIMMED : LIT;
-    if (want > screen) {
-        display_set_backlight(want == DARK ? 0 : DIM_BRIGHTNESS);
-        screen = want;
+    if (screen == LIT && now - touched_us >= DIM_AFTER_US) {
+        display_set_backlight(DIM_BRIGHTNESS);
+        screen = DIMMED;
     }
 }
 

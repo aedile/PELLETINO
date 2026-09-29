@@ -3,8 +3,7 @@
  *   BOOT button (GPIO9)  -> short press: next game; HOLD to pick it (INPUT_SELECT_HOLD_MS)
  *   PWR button (GPIO18)  -> short press: previous game; long (1 s): power off
  *   both together        -> sound: loud, quiet, off
- *   nothing, for a while -> the backlight goes down, then off; a button or being moved
- *                           brings it back
+ *   nothing, for a while -> the backlight goes down; a button or being moved brings it back
  *   tilt (QMI8658)       -> off for now. Four passes of tuning never made it feel right in
  *                           the hand, so the buttons drive the carousel until it does; the
  *                           detent code is kept below, behind NAV_TILT.
@@ -178,18 +177,17 @@ void input_init(void)
 bool input_imu_ok(void) { return imu_ok; }
 
 /*
- * The backlight is most of what the battery goes on, so left alone it is turned down, and
- * later off. A button brings it back, and so does being moved - a medal being worn is showing
+ * The backlight is most of what the battery goes on, so left alone it is turned down - down,
+ * never off, because a medal that has gone dark looks like one that has died. A button brings it back, and so does being moved - a medal being worn is showing
  * its attract mode to the room and should stay lit; one on a table is showing it to nobody.
  */
 #define DIM_AFTER_US    (2 * 60 * 1000000LL)
-#define DARK_AFTER_US  (10 * 60 * 1000000LL)
 #define DIM_BRIGHTNESS  25                  /* of 255 */
 #define MOVED_COUNTS    2500                /* about nine degrees of tilt, at 16384 to the g */
 
 static void screen_tick(int64_t now, bool pressed)
 {
-    enum { LIT, DIMMED, DARK };
+    enum { LIT, DIMMED };
     static int     screen;
     static int64_t touched_us, looked_us;
     static int16_t seen_x, seen_y, seen_z;
@@ -208,10 +206,9 @@ static void screen_tick(int64_t now, bool pressed)
         if (screen != LIT) { display_set_backlight(DISPLAY_BRIGHTNESS_ACTIVE); screen = LIT; }
         return;
     }
-    int want = now - touched_us >= DARK_AFTER_US ? DARK : now - touched_us >= DIM_AFTER_US ? DIMMED : LIT;
-    if (want > screen) {
-        display_set_backlight(want == DARK ? 0 : DIM_BRIGHTNESS);
-        screen = want;
+    if (screen == LIT && now - touched_us >= DIM_AFTER_US) {
+        display_set_backlight(DIM_BRIGHTNESS);
+        screen = DIMMED;
     }
 }
 

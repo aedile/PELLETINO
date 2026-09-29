@@ -246,8 +246,8 @@ never also inserts a coin, fires, or turns the wheel.
 
 ### The backlight
 
-Left alone for two minutes the screen dims, and after ten it goes dark. A button
-brings it back, and so does being moved — so a game being played, or a medal
+Left alone for two minutes the screen dims. It never goes dark. A button
+brings it back to full, and so does being moved — so a game being played, or a medal
 being worn, stays lit, and one left on a table does not run its battery down
 showing attract mode to nobody. In a game, a button pressed while the screen is
 dimmed only wakes it; it is not a coin or a shot. The times are at the top of
