@@ -29,8 +29,8 @@ means adding its artwork and a partition — **the launcher is never recompiled*
 
 ## Sticky selection
 
-The medal remembers what you picked. Once a game is selected it boots straight
-into it and the menu never appears, which is what you want on a medal you hand to
+It remembers what you picked. Once a game is selected it boots straight
+into it and the menu never appears, which is what you want on something you hand to
 someone. The selection lives in NVS and survives power cycles.
 
 | | |
@@ -39,7 +39,7 @@ someone. The selection lives in NVS and survives power cycles.
 | In a game, **hold the button 10 s** | forgets the selection, returns to the menu |
 | **Hold the button while powering on** | forgets the selection, shows the menu |
 
-Taps do nothing at all, so a medal cannot be started by a knock in a pocket. The
+Taps do nothing at all, so it cannot be started by a knock in a pocket. The
 menu fills a progress bar while the button is held — without it nobody knows how
 long "a few seconds" means.
 
@@ -70,7 +70,7 @@ anything can fail, so a panic, a watchdog bite or a brownout lands in the menu
 rather than boot-looping a broken game. That is exactly why it must be the genuine
 first statement of `app_main`: a panic *before* it runs never reaches the
 launcher, so neither the attempts counter nor the power-on escape can rescue
-the medal. Putting it after display or IMU setup silently breaks the safety
+the device. Putting it after display or IMU setup silently breaks the safety
 property and nothing will complain. `medalboot_game_running()` clears the
 loop guard: if a selected game is booted `MEDALBOOT_MAX_ATTEMPTS` times without
 ever confirming it got that far, the launcher gives up on it and shows the menu
@@ -155,7 +155,7 @@ Rules that were learned the hard way and are easy to violate without noticing:
   games that work, to reclaim flash that is not needed.
 - **Do not skip the hardware step.** A host harness that stubs the panel is only
   as honest as the stub: one verified pixels perfectly for two days while the
-  real DMA path was throwing most of them away. Prove a change on the medal.
+  real DMA path was throwing most of them away. Prove a change on the hardware.
 - **Do not power the codec down without a path back up.** The shared
   `audio_hal` copied into every game deletes the I2S channel and sleeps the
   ES8311 on mute; for months nothing re-powered them, so the 3 s mute hold was

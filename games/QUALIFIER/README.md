@@ -73,7 +73,7 @@ pixel with black bars above and below (`ORIENTATION_PORTRAIT` in
   accelerator, so hold it the way you want it first. About 30 degrees is
   full lock.
 * **BOOT button** (middle) is the accelerator.
-* **PWR button** (side), tap: insert a coin (the race starts by itself). Hold
+* **PWR button** (top), tap: insert a coin (the race starts by itself). Hold
   for half a second and release: shift between low and high gear. Hold for
   two seconds: power off.
 
