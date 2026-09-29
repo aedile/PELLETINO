@@ -478,8 +478,9 @@ and the menu, how memory is used, and why chain-booting beat one big image.
 - **Arkanoid and Rally-X are switched off in `games.toml` as shipped**, to make
   room for the full Street Fighter II clip. Delete that line to bring one
   back, and leave something else out.
-- **Battery gauge:** Uses a piecewise-linear Look-Up Table (LUT) for standard
-  3.7 V LiPo discharge curves (`main/battery.c`) to avoid linear estimation drift.
+- **The battery percentage is an estimate.** It comes from a standard 3.7 V
+  LiPo discharge curve (the table at the top of `main/battery.c`), read while
+  the board is running, so it dips under load.
 - **Roadmap:** Future exploration includes ESP-NOW peer-to-peer multiplayer and
   badge "score bumping" (trading high scores wirelessly between devices).
 - **A game that crashes before its first line runs** (the one that points the

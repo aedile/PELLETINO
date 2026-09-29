@@ -36,7 +36,7 @@ static const struct { const char *what, *does; } rows[] = {
     { "TILT",            "MOVE, STEER" },
     { "TOP BUTTON",      "COIN, START" },
     { "MIDDLE BUTTON",   "FIRE, JUMP" },
-    { "HOLD MIDDLE 10S", "TO THE MENU" },
+    { "HOLD MIDDLE 5S",  "TO THE MENU" },
     { "",                NULL },
     { "ANYWHERE",        NULL },
     { "BOTH BUTTONS",    "SOUND" },

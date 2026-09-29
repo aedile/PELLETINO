@@ -292,7 +292,10 @@ static void footer(const mqart_entry_t *e, bool installed)
         text_centred(FB_W / 2, top + 12, "LAUNCHING", UI_GREEN, 1);
         return;
     }
-    uint32_t hs = (installed && e->rom) ? medalboot_get_highscore(e->rom) : 0;
+    /* read from flash when the selection changes, not thirty times a second */
+    static int hs_of = -1;
+    static uint32_t hs;
+    if (hs_of != s_sel) { hs_of = s_sel; hs = installed ? medalboot_get_highscore(e->rom) : 0; }
     if (hs > 0 && ((s_frame / 64) & 1)) {
         char hsb[32];
         snprintf(hsb, sizeof hsb, "HI %lu", (unsigned long)hs);

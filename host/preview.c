@@ -67,6 +67,7 @@ int  battery_percent(void)          { return charge; }
 bool sound_muted(void)              { return muted; }
 bool sound_quiet(void)              { return quiet; }
 void chip_tone(int hz)              { (void)hz; }
+uint32_t medalboot_get_highscore(const char *rom) { return !strcmp(rom, "galaga") ? 30000 : 0; }
 void chip_sfx(chip_sfx_t w)         { (void)w; }
 
 static const char *outdir;
