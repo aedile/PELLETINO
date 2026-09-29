@@ -70,6 +70,35 @@ as derivative — the obligation is attribution and notice retention, not copyle
 and not a commercial restriction. Each game's `THIRD_PARTY_NOTICES.md` names the
 drivers it was written from and carries that notice.
 
+A few files are **not** independent implementations but straight ports of MAME
+code, and say so in their headers, which carry a BSD-3-Clause line rather than
+the project's 0BSD one:
+
+| file | from |
+|---|---|
+| `QUALIFIER/core/z8000/z8002.c` | generated from MAME's Z8000 core (`z8000ops.hxx`, `z8000tbl.hxx`, `z8000.cpp`) |
+| `SPINDLE`, `TRENCHRUNNER`, `WALKERRUN` `core/avg.c` | `avgdvg.cpp`, the Atari Analog Vector Generator |
+| `SPINDLE/core/mathbox.c` | `mathbox.cpp` |
+| `TRENCHRUNNER`, `WALKERRUN` `core/starwars.c` | `starwars.cpp`, `starwars_m.cpp` |
+| `TRENCHRUNNER`, `WALKERRUN` `core/tms5220.c` | `tms5220.cpp` and the coefficient tables in `tms5110r.hxx` |
+| `WALKERRUN/core/slapstic.c` | the pre-2022 `slapstic.cpp` |
+
+BSD-3-Clause is permissive: those files may be used and sold, with the notice
+kept. They do not change the bundle's licensing.
+
+## GHOSTERAMA and Galagino: unresolved
+
+Three files in `games/GHOSTERAMA` say in their headers that they were "ported
+from Galagino" (Till Harbaum's ESP32 arcade emulator, the project that inspired
+this one): `components/pacman_hw/src/pacman_hw.cpp`, `pacman_video.cpp` and
+`components/audio_hal/src/namco_wsg.cpp`; `tools/convert_roms.py` is based on
+Galagino's ROM converter. **Galagino publishes no license file**, which by
+default means its author keeps all rights. Until he grants one, or confirms
+those files are independent work, they are excluded from GHOSTERAMA's 0BSD
+grant (see its `LICENSE` and `THIRD_PARTY_NOTICES.md`) and a flashed GHOSTERAMA
+image should be treated as "share with his goodwill", not as licensed. The
+other 25 games do not use any Galagino code.
+
 ## The launcher's own third-party code
 
 ### TinyMidiLoader (zlib)
@@ -115,13 +144,25 @@ around it.
 > Star Wars (TRENCHRUNNER), Gyruss (TOCCATA — also non-commercial, above),
 > Joust (OSTRICH), Empire Strikes Back (WALKERRUN).
 
-## RealNetworks RPSL (the Street Fighter II video and the easter-egg clips)
+**Gyruss is a conflict, not a combination.** TOCCATA links the GPL-3.0 6809
+(for the KONAMI-1 sub-CPU) with the Fayzullin Z80 (for the main CPU) in one
+firmware. GPL-3.0 section 10 forbids imposing further restrictions on the
+combined work, and "non-commercial only" is exactly such a restriction, so a
+flashed TOCCATA image cannot be distributed under the GPL's terms at all. The
+source files can sit side by side in this repository, and you can build the
+image for yourself, but do not pass a built TOCCATA image to anyone else. The
+fix is a permissively licensed 6809 or a permissively licensed Z80 for that one
+game; neither is done yet.
 
-The MP3 side of the Street Fighter II video "game" (HADOUKEN), and the old
-easter-egg clips in the Star Wars / Empire projects, use RealNetworks' Helix
-fixed-point MP3 decoder under the RealNetworks Public Source License. That
+## RealNetworks RPSL (the Street Fighter II video)
+
+The MP3 side of the Street Fighter II video "game" (HADOUKEN) uses RealNetworks'
+Helix fixed-point MP3 decoder under the RealNetworks Public Source License. That
 component keeps its own notice and source-availability terms; see the component
-directory and each game's `THIRD_PARTY_NOTICES.md`.
+directory and HADOUKEN's `THIRD_PARTY_NOTICES.md`. The RPSL is generally held to
+be incompatible with the GPL, which is why the easter-egg clip player that used
+to sit in the Star Wars and Empire Strikes Back projects (both GPL-3.0) has been
+removed: HADOUKEN carries no GPL code, so it is the only place Helix lives.
 
 ## Fully permissive games (BSD-3-Clause / MIT — these could even be sold)
 
@@ -137,7 +178,9 @@ the Fayzullin-Z80 games; on their own they carry no such limit.
 ## Game ROMs, artwork and music: not here, your responsibility
 
 This project distributes **no game ROMs, no artwork and no music**, and hosts none. The ROMs are
-copyrighted by their owners; so are the logos and screenshots.
+copyrighted by their owners; so are the logos and screenshots. The two photographs and the 3D
+models under `games/GHOSTERAMA/` show the 1.0 medal, and the medal and its printed insert carry
+Pac-Man's likeness; they are documentation of the build, not artwork offered for reuse.
 `./pelletino art` can download those from a third-party archive on your request,
 and you supply the ROMs yourself. The music is whatever you
 install with `tools/add_music.py` (see `music/README.md`); nothing is committed, and the

@@ -4,8 +4,11 @@ notice preservation, no conditions.
 That covers the code written for this project: everything under main/, host/,
 tools/, components/audio_hal, components/display, components/imu,
 components/medal_input, and the files core/tempest.c, core/tempest.h,
-core/mathbox.c, core/mathbox.h, core/pokey.c, core/pokey.h, core/avg.c,
-core/avg.h and core/m6502fast.h.
+core/mathbox.h, core/pokey.c, core/pokey.h, core/avg.h and core/m6502fast.h.
+
+It does not cover core/avg.c and core/mathbox.c, which are ports of MAME
+source code (BSD-3-Clause, notice to be kept; see THIRD_PARTY_NOTICES.md and
+the headers of those files).
 
 It does not cover the game ROMs, which are not distributed here and never will
 be. See THIRD_PARTY_NOTICES.md for the code this project is derived from.

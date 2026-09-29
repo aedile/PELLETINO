@@ -1,4 +1,4 @@
-# MINIMAME
+# PELLETINO
 
 A menu. It turns a wheel of game logos and chain-boots the games;
 it runs no emulation itself.
@@ -8,10 +8,11 @@ Hardware: Waveshare ESP32-C6-LCD-1.69 — 240×280 ST7789V2, 16 MB flash,
 
 ## Why chain-boot instead of one image
 
-Six game firmwares already exist as independent projects, and their `display.cpp`
-has diverged between them. Merging them into shared components would be a large
-refactor with real regression risk on games that currently work, to reclaim about
-3 MB of duplicated IDF runtime out of 16 MB that is otherwise unused.
+The game firmwares (26 of them now) exist as independent projects, and their
+`display.cpp` and `audio_hal.cpp` have diverged between them. Merging them into
+shared components would be a large refactor with real regression risk on games
+that currently work, to reclaim about 3 MB of duplicated IDF runtime out of
+16 MB that is otherwise unused.
 
 Flash is the cheap resource here. Each game keeps its own repo and its own image.
 
@@ -37,14 +38,18 @@ someone. The selection lives in NVS and survives power cycles.
 |---|---|
 | In the menu, **hold the button 2 s** on a game | selects it and boots it, permanently |
 | In a game, **hold the button 10 s** | forgets the selection, returns to the menu |
-| **Hold the button while powering on** | forgets the selection, shows the menu |
+| **Hold the button as the screen lights** | forgets the selection, shows the menu |
+| A game **crashes three times in a row** | forgets the selection, shows the menu |
 
 Taps do nothing at all, so it cannot be started by a knock in a pocket. The
 menu fills a progress bar while the button is held — without it nobody knows how
 long "a few seconds" means.
 
-The power-on escape is the one that always works, and it is worth knowing about
-before you need it.
+The power-on escape needs one caveat. BOOT is GPIO9, the ESP32-C6's boot-mode
+strap: if it is already down when the chip comes out of reset, the ROM enters
+serial download mode and nothing of ours runs. So press it the moment the screen
+lights, not before, and keep it down for the 600 ms window the launcher then
+samples. It works after a software reset too, where the strap is not read.
 
 ## What a game must do
 
@@ -66,8 +71,12 @@ void app_main(void)
 ```
 
 `medalboot_game_startup()` points the boot partition back at the launcher before
-anything can fail, so a panic, a watchdog bite or a brownout lands in the menu
-rather than boot-looping a broken game. That is exactly why it must be the genuine
+anything can fail, so a panic, a watchdog bite or a brownout lands in the
+launcher rather than boot-looping a broken game. The launcher then counts it: a
+crash-type reset with a game selected bumps a counter of its own (the game
+cannot clear it), and after three in a row the selection is dropped and the
+menu says `KEEPS CRASHING`. A clean exit, a power cycle or picking a game
+resets the count. That is exactly why it must be the genuine
 first statement of `app_main`: a panic *before* it runs never reaches the
 launcher, so neither the attempts counter nor the power-on escape can rescue
 the device. Putting it after display or IMU setup silently breaks the safety
@@ -124,7 +133,7 @@ any other pick live, and `./pelletino pick` chooses one that fits.
 
 | Region | Size | Notes |
 |---|---|---|
-| `launcher` | 512 KB | built: 245 KB |
+| `launcher` | 512 KB | built: 324 KB |
 | `mqart` | 640 KB | blob: 477 KB, 17 games |
 | 16 game slots | ~9.1 MB | right-sized per game, not uniform |
 | `media` (SF2 video) | 5.5 MB | the one data partition; what makes flash the binding limit |
@@ -133,8 +142,9 @@ any other pick live, and `./pelletino pick` chooses one that fits.
 **All 16 OTA slots are used — `ota_0` through `ota_15` is ESP-IDF's hard cap.**
 If a seventeenth game is ever wanted, collapse a pair that shares hardware onto
 one image and select the ROM at boot: GHOSTERAMA already carries Pac-Man and
-Ms. Pac-Man, and WALKERRUN carries Star Wars and Empire Strikes Back. Each merge
-frees a slot and deletes a duplicated codebase.
+Ms. Pac-Man, and TRENCHRUNNER (Star Wars) and WALKERRUN (Empire Strikes Back)
+share a codebase and could. Each merge frees a slot and deletes a duplicated
+codebase.
 
 ## Things not to do
 

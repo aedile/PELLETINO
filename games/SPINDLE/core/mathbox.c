@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: BSD-3-Clause
+ * Ported to plain C for PELLETINO by Jesse Castro, 2026, from MAME (src/mame/atari/mathbox.cpp),
+ * copyright Eric Smith and the MAME team. Redistribution and use are permitted under
+ * the BSD-3-Clause license; the notice, conditions and disclaimer in this game's
+ * THIRD_PARTY_NOTICES.md apply to this file. */
 /*
  * mathbox.c - see mathbox.h. Ported from MAME's mathbox.cpp (Eric Smith, BSD-3-Clause).
  * The register names and the flow are kept as they are there, because the arithmetic only

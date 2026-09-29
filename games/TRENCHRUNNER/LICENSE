@@ -4,22 +4,19 @@ notice preservation, no conditions at all.
 
 That covers the code written for this project: everything under main/, host/,
 tools/, components/audio_hal, components/display, components/imu, and the
-files core/starwars.c, core/starwars.h, core/sound.c, core/sound.h,
-core/pokey.c, core/pokey.h, core/tms5220.c, core/tms5220.h, core/avg.c,
-core/avg.h.
+files core/starwars.h, core/sound.c, core/sound.h, core/pokey.c, core/pokey.h,
+core/tms5220.h, core/avg.h and core/autoplay.h.
 
-Four things carry their own licenses, listed in THIRD_PARTY_NOTICES.md:
+Two things carry their own licenses, listed in THIRD_PARTY_NOTICES.md:
 
   * core/e6809.c and core/e6809.h are the 6809 CPU core from vecx, which is
     GPL-3.0. Because a build of this project links that core in, the combined
     firmware and host harness must be distributed under the terms of the
     GPL-3.0 as well. Replace that one file with a permissively licensed core
     and the whole project is 0BSD.
-  * Several files are ports of MAME source code, which is BSD-3-Clause and
-    requires the copyright notice to be kept.
-  * components/helix_mp3 is RealNetworks' libhelix-mp3 decoder (RealNetworks
-    Public Source License), used only by the easter-egg clip player.
-  * The clip player decodes JPEG with ChaN's TJpgDec from the ESP32-C6 ROM.
+  * core/avg.c, core/starwars.c and core/tms5220.c are ports of MAME source
+    code, which is BSD-3-Clause and requires the copyright notice to be kept.
+    They say so in their headers.
 
 The Star Wars ROM images are not part of this project and are not licensed
 by it. They remain the property of their copyright holders.

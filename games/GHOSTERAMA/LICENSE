@@ -1,55 +1,35 @@
-# GHOSTERAMA License
+GHOSTERAMA is released under the Zero-Clause BSD license (0BSD): no
+attribution, no notice preservation, no conditions. It was PELLETINO 1.0 and
+is licensed the same way as the rest of PELLETINO.
 
-GHOSTERAMA is an open-source project for educational and preservation purposes. This project contains code from multiple sources with different licenses:
+That covers the code written for this project: everything under main/,
+tools/ and components/, with three exceptions:
 
-## Project License
+  * components/z80_cpu/src/ holds Marat Fayzullin's Z80 emulator when you
+    build it. Those files are not in this repository (they are gitignored;
+    only the wrapper z80_cpu.c is ours). They are free for non-commercial use
+    only, so a flashed GHOSTERAMA image may be shared but not sold.
+  * components/pacman_hw/src/pacman_hw.cpp, pacman_video.cpp,
+    components/audio_hal/src/namco_wsg.cpp and tools/convert_roms.py credit
+    Till Harbaum's Galagino as their source. Galagino publishes no license.
+    See THIRD_PARTY_NOTICES.md; those files are not covered by this grant
+    until that is settled.
+  * The game ROMs, the medal's Pac-Man likeness (model/, photos/) and the
+    Fiesta insert artwork are not licensed by this project. Pac-Man and its
+    characters belong to Bandai Namco; the photos and models are here as
+    documentation of the build, not for reuse.
 
-**GHOSTERAMA Core Code** - MIT License
+---
 
-Copyright (c) 2026 Jesse Castro
+Copyright (C) 2026 Jesse Castro
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-## Third-Party Components
-
-### Z80 CPU Emulator
-- **Source:** Marat Fayzullin (http://fms.komkon.org/EMUL8/)
-- **License:** Freeware for non-commercial use
-- **Files:** `components/z80_cpu/src/*`
-- **Copyright:** Copyright (C) Marat Fayzullin 1994-2007
-
-### ESP-IDF Framework
-- **Source:** Espressif Systems (https://github.com/espressif/esp-idf)
-- **License:** Apache License 2.0
-- **Usage:** Build system and hardware abstraction
-
-### Galagino Reference
-- **Source:** Till Harbaum (https://github.com/harbaum/galagino)
-- **License:** MIT License
-- **Usage:** Reference implementation patterns
-
-## ROM Files Disclaimer
-
-**ROM files are NOT included** in this repository and must be obtained legally from the original Pac-Man arcade hardware or legitimate sources. This project does not distribute copyrighted ROM files.
-
-Users are responsible for ensuring compliance with copyright laws when obtaining and using ROM files.
-
-## Hardware Compatibility
-
-This project is designed specifically for the Waveshare ESP32-C6-LCD-1.69 development board and may not work on other hardware configurations.
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.

@@ -1,11 +1,12 @@
-PLUMBER is released under the Zero-Clause BSD license (0BSD): no attribution, no
-notice preservation, no conditions.
+PLUMBER is released under the Zero-Clause BSD license (0BSD): no attribution,
+no notice preservation, no conditions.
 
 That covers the code written for this project: everything under main/, host/,
-tools/, components/audio_hal, components/display, components/imu, and the files
-core/dkong.c, core/dkong.h, core/dkong_internal.h, core/dkong_video.c,
-core/dkong_sound.c and core/mcs48.h. It does not cover core/z80/, which is Marat
-Fayzullin's emulator and is non-commercial only.
+tools/, components/audio_hal, components/display, components/emu,
+components/imu, components/medal_input, components/medalboot, and the files
+core/mario.c, core/mario.h, core/mario_internal.h, core/mario_sound.c,
+core/mario_video.c and core/mcs48.h. It does not cover core/z80/, which is
+Marat Fayzullin's emulator and is non-commercial only.
 
 It does not cover the game ROMs, which are not distributed here and never will
 be. See THIRD_PARTY_NOTICES.md for the code this project is derived from.

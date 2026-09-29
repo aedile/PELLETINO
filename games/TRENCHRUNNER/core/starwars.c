@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: BSD-3-Clause
+ * Ported to plain C for PELLETINO by Jesse Castro, 2026, from MAME (src/mame/atari/starwars.cpp and starwars_m.cpp),
+ * copyright Steve Baines, Frank Palazzolo and the MAME team. Redistribution and use are permitted under
+ * the BSD-3-Clause license; the notice, conditions and disclaimer in this game's
+ * THIRD_PARTY_NOTICES.md apply to this file. */
 /*
  * starwars.c - Atari Star Wars main board emulation (see starwars.h)
  *

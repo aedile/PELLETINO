@@ -152,12 +152,9 @@ The `model/` directory contains all STL files needed to print your own GHOSTERAM
 
 #### Where to Get ROMs
 
-1. **Internet Archive** (Recommended)
-   - Visit [archive.org](https://archive.org/) and search for "Pac-Man MAME ROM"
-   - Look for MAME 0.37b5 ROM set or similar public domain collections
-
-2. **Own Original Hardware**
-   - Extract ROMs from your legally owned Pac-Man PCB
+The ROMs are Namco's (and Midway's, for Ms. Pac-Man). This project does not
+distribute them, host them, or point at anywhere that does. Dump them from a
+board you own, or use a set you are otherwise entitled to.
 
 #### Required ROM Files
 

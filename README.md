@@ -10,8 +10,10 @@ makefile.
 
 > **Licensing in one line:** the code written here is 0BSD, but the assembled
 > bundle is **free to share, not to sell**. Most games embed a non-commercial
-> Z80 core, and four are GPL-3.0. GitHub's sidebar says "0BSD"; that covers our
-> code only. Read [LICENSING.md](LICENSING.md) before you distribute.
+> Z80 core, and four are GPL-3.0. One of those, Gyruss, combines the two and
+> cannot be passed on as a built image at all. GitHub's sidebar says "0BSD";
+> that covers our code only. Read [LICENSING.md](LICENSING.md) before you
+> distribute.
 >
 > **No ROMs, no artwork and no music are included.** Those belong to their
 > owners; supplying them is your part.
@@ -165,8 +167,9 @@ and slow exactly once.
 
 Writes the bootloader, the partition table, the launcher, the artwork blob, and
 each game that has been built, to its own slot. Games you haven't built leave
-their slot empty and show as `NOT INSTALLED` in the menu. Flash them later
-without rebuilding anything else.
+their slot empty and show as `NOT INSTALLED` in the menu (the launcher checks
+that the slot actually holds an image, not just that it exists). Flash them
+later without rebuilding anything else.
 
 ### 6. First boot
 
@@ -174,7 +177,10 @@ It starts in attract mode. Press either button to reach the wheel. Tap the
 middle button (**BOOT**) for the next game and the top button (**PWR**) for the
 previous one, and hold the middle button for two seconds on a game to pick it.
 From then on it boots straight into that game. To come back, hold the middle
-button for ten seconds in the game, or hold it while powering on.
+button for ten seconds in the game, or press and hold it the moment the screen
+lights after power-on. Not before: BOOT is the ESP32-C6's boot-mode strap, and
+holding it while the chip resets puts it into serial download mode instead. A
+game that crashes three times in a row also drops back to the menu.
 
 ### Troubleshooting
 
@@ -186,6 +192,9 @@ button for ten seconds in the game, or hold it while powering on.
 | Menu says `NO ARTWORK` | The `mqart` partition was never written. Re-run `./pelletino flash`. |
 | Every game says `NOT INSTALLED` | Expected before any game firmware is built. The launcher works; the slots are empty. |
 | The launcher is silent | No music supplied, or the sound is off (`MUTED` in the header). See [Music](#music) and [Sound](#sound). |
+| `COULD NOT START` / `NOTHING IN ITS SLOT` | The game's slot exists but nothing was flashed into it, usually because its firmware failed to build. Check `build/install-logs/`. |
+| `KEEPS CRASHING` | The selected game crashed three boots in a row; the selection was dropped so the menu is reachable again. |
+| The board is in download mode after power-on | BOOT was held while the chip reset. Release it, reset, and press it once the screen lights. |
 
 ---
 
@@ -326,8 +335,10 @@ and it goes back to the loop. One tune plays through all of it.
 None of this runs when a game is selected. That boots straight into the game.
 
 The title, the instructions and the credits are drawn in code
-(`components/fest`). There is no artwork, sprite sheet or bitmap in the
-repository, and no character from any game is reproduced.
+(`components/fest`). The launcher has no artwork, sprite sheet or bitmap in the
+repository and reproduces no character from any game. The only pictures
+committed anywhere are two photographs and the 3D models of the original
+Pac-Man medal under `games/GHOSTERAMA/`.
 
 ## The wheel
 
@@ -409,7 +420,8 @@ II ships as its attract-mode reel. The clip lives in its own data partition.
   the size limit and encoding settings; a longer clip needs a bigger `data_kb`
   in `games.toml`.
 - The video slot is switched on by `games/HADOUKEN/media.bin` existing, the same
-  way a ROM zip switches on an emulated game.
+  way a ROM zip switches on an emulated game. `./install.sh` builds the player
+  firmware like any other game; there is no ROM to convert first.
 
 Only one game per build may carry a data partition (it is labelled `media`, which
 is the label the player looks for).
@@ -483,11 +495,21 @@ and the menu, how memory is used, and why chain-booting beat one big image.
   discharge in a straight line, so the middle of the range reads high.
 - **A game that crashes before its first line runs** (the one that points the
   boot partition back at the launcher) can boot-loop, because control never
-  reaches the menu. `ARCHITECTURE.md` covers the handshake.
+  reaches the menu. `ARCHITECTURE.md` covers the handshake. A game that crashes
+  after it is running is relaunched up to three times, then dropped.
+- **The task watchdog is off in every game** (`CONFIG_ESP_TASK_WDT_EN=n` in each
+  `sdkconfig.defaults`). The emulation loops run on the main task and were
+  tuned without it; turning it back on has not been tested and may need the
+  loops to feed it.
+- **The battery cutoff only runs in the launcher.** The games do not read the
+  battery, so a medal left switched on in a game runs the cell down until the
+  brownout detector trips. Three brownouts in a row drop it back to the menu,
+  where the cutoff can act.
 - **Empire Strikes Back (`esb`) is approved but not playable.** It runs on the
   same vector core as Star Wars, but the scene is heavier and it does not hold
   frame rate. That is why it has no row in the controls table.
-- **No hero video or photos yet** in this repository.
+- **No hero video yet** in this repository. The two photos under
+  `games/GHOSTERAMA/photos` are of the 1.0 Pac-Man medal.
 
 ---
 

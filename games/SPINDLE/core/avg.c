@@ -1,6 +1,8 @@
-/* SPDX-License-Identifier: 0BSD  Copyright (C) 2026 Jesse Castro
- * Written for PELLETINO; hardware behaviour referenced against MAME (BSD-3-Clause).
- * See LICENSING.md, "Emulator cores and MAME". */
+/* SPDX-License-Identifier: BSD-3-Clause
+ * Ported to plain C for PELLETINO by Jesse Castro, 2026, from MAME (src/devices/video/avgdvg.cpp),
+ * copyright Mathis Rosenhauer, Eric Smith and the MAME team. Redistribution and use are permitted under
+ * the BSD-3-Clause license; the notice, conditions and disclaimer in this game's
+ * THIRD_PARTY_NOTICES.md apply to this file. */
 /*
  * avg.c - Atari AVG (Tempest) - see avg.h
  */

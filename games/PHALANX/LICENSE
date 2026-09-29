@@ -1,11 +1,11 @@
-PHALANX is released under the Zero-Clause BSD license (0BSD): no attribution, no
-notice preservation, no conditions.
+PHALANX is released under the Zero-Clause BSD license (0BSD): no attribution,
+no notice preservation, no conditions.
 
 That covers the code written for this project: everything under main/, host/,
-tools/, components/audio_hal, components/display, components/imu, and the files
-core/frogger.c, core/frogger.h, core/frogger_internal.h, core/frogger_video.c,
-core/ay8910.c and core/ay8910.h. It does not cover core/z80/, which is Marat
-Fayzullin's emulator and is non-commercial only.
+tools/, components/audio_hal, components/display, components/emu,
+components/imu, components/medal_input, components/medalboot, and the files
+core/invaders.c, core/invaders.h and core/invaders_sound.c. It does not cover
+core/z80/, which is Marat Fayzullin's emulator and is non-commercial only.
 
 It does not cover the game ROMs, which are not distributed here and never will
 be. See THIRD_PARTY_NOTICES.md for the code this project is derived from.

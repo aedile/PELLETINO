@@ -19,6 +19,10 @@
  *   - added e6809_get_pc();
  *   - the einline helpers are declared static inline always_inline and the
  *     ea_indexed local 'ea' is initialized.
+ * MODIFIED again for TOCCATA (Gyruss) by Jesse Castro, September 2026:
+ *   - the opcode fetch is split out from ordinary reads (E6809_READ8_OP /
+ *     e6809_read8_op) so the board can decrypt it: the KONAMI-1 sub-CPU is a
+ *     6809 whose opcodes, and only its opcodes, are scrambled.
  * The original file is unchanged otherwise.
  */
 #include <stdio.h>

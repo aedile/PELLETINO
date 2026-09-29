@@ -7,7 +7,7 @@ Complete guide to acquiring and converting Pac-Man ROM files for GHOSTERAMA.
 **IMPORTANT:** ROM files are copyrighted by Bandai Namco Entertainment and are **NOT** included with this project. You must obtain them legally through one of these methods:
 
 1. **Own the original arcade hardware** and extract ROMs yourself
-2. **Download from Internet Archive** (public domain collections)
+2. **Use a set you are otherwise entitled to**; this project does not say where to find one
 3. **Purchase licensed retro game compilations** that include extractable ROMs
 
 **This project is for educational and preservation purposes only.**
@@ -66,37 +66,16 @@ crc32 pacman.6e  # If crc32 tool installed
 python3 -c "import hashlib; print(hashlib.sha1(open('pacman.6e','rb').read()).hexdigest())"
 ```
 
-## 🌐 Downloading from Internet Archive
+## 🌐 Getting the files
 
-### Step 1: Visit Archive.org
-
-1. Go to [archive.org](https://archive.org/)
-2. Search for: **"MAME 0.37b5 ROM"** or **"Pac-Man arcade ROM"**
-3. Look for public domain ROM collections
-
-### Step 2: Download ROM Set
-
-1. Find a Pac-Man ROM set (usually named `pacman.zip`)
-2. Download the ZIP file
-3. Extract it to a temporary folder
-
-### Step 3: Locate Required Files
-
-The ZIP will contain all the files listed above. They may be in subdirectories like:
-```
-pacman.zip
-├── roms/
-│   ├── pacman.6e
-│   ├── pacman.6f
-│   ├── ...etc
-```
-
-### Step 4: Copy to Tools Directory
+The ROMs are copyrighted and this project does not distribute them, host them,
+or say where to find them. Dump them from a board you own, or use a set you are
+otherwise entitled to, and put the ten files in one folder:
 
 ```bash
 cd /path/to/GHOSTERAMA
 mkdir -p tools/roms_temp
-cp /path/to/extracted/pacman/* tools/roms_temp/
+cp /path/to/your/pacman/* tools/roms_temp/
 ```
 
 ## 🔄 ROM Conversion

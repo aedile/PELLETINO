@@ -1,9 +1,10 @@
-REGOLITH is released under the Zero-Clause BSD license (0BSD): no attribution, no
-notice preservation, no conditions.
+REGOLITH is released under the Zero-Clause BSD license (0BSD): no attribution,
+no notice preservation, no conditions.
 
 That covers the code written for this project: everything under main/, host/,
-tools/, components/audio_hal, components/display, components/imu, and the files
-core/asteroids.c, core/asteroids.h and core/m6502fast.h.
+tools/, components/audio_hal, components/display, components/emu,
+components/imu, components/medal_input, components/medalboot, and the files
+core/llander.c, core/llander.h and core/m6502fast.h.
 
 It does not cover the game ROMs, which are not distributed here and never will
 be. See THIRD_PARTY_NOTICES.md for the code this project is derived from.
