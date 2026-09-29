@@ -1,7 +1,6 @@
 # Name,   Type, SubType, Offset,    Size,     Flags
-# 16 MB flash (W25Q128 on the ESP32-C6-LCD-1.69). App 1 MB, then the packed
-# easter-egg media (MJPEG + MP3 clips, see tools/pack_media.py) at 0x110000.
+# Standalone table for building and flashing WALKERRUN on its own. Inside
+# PELLETINO the image is flashed into a slot of the launcher's generated table.
 nvs,      data, nvs,     0x9000,    0x6000,
 phy_init, data, phy,     0xf000,    0x1000,
 factory,  app,  factory, 0x10000,   0x100000,
-media,    data, 0x40,    0x110000,  0xEE0000,

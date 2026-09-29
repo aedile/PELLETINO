@@ -3,7 +3,6 @@
  *   tilt (QMI8658 IMU) -> flight yoke pitch/yaw
  *   BOOT button (GPIO9)  -> fire (also starts a game in free play)
  *                           with PWR, together: sound on/off
- *                           held 13 s: the easter egg (input_take_gesture)
  *   PWR button (GPIO18)  -> short press: coin, long press (1 s): power off
  *   both together      -> sound off and on (the same everywhere on the medal)
  */
@@ -40,10 +39,8 @@ static float g0_yaw_ang, g0_pitch_ang;    /* neutral pose */
 static bool have_neutral;
 static bool fire_was_down;
 static int64_t fire_down_since;
-static bool fire_hold_consumed;           /* the 13 s gesture fired; ignore the release */
 static int pending_gesture = GESTURE_NONE;
 #define HOLD_SOUND_US   3000000
-#define HOLD_EGG_US    13000000
 
 /* The medal is held sideways (landscape) and roughly upright, screen facing the
  * player, like a yoke. Gravity then lies mostly along the panel's short axis
@@ -131,15 +128,10 @@ void input_update(sw_input_t *in)
     if (boot && !fire_was_down) {
         if (!have_neutral) capture_neutral();
         fire_down_since = now;
-        fire_hold_consumed = false;
     }
-    if (boot && !fire_hold_consumed && now - fire_down_since >= HOLD_EGG_US) {
-        pending_gesture = GESTURE_EGG;
-        fire_hold_consumed = true;
-    }
-    if (!boot && fire_was_down && !fire_hold_consumed) {
+    if (!boot && fire_was_down) {
         int64_t held = now - fire_down_since;
-        if (held >= HOLD_SOUND_US && held < HOLD_EGG_US) pending_gesture = GESTURE_TOGGLE_SOUND;
+        if (held >= HOLD_SOUND_US) pending_gesture = GESTURE_TOGGLE_SOUND;
     }
     fire_was_down = boot;
 

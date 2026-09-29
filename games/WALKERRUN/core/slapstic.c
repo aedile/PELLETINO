@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: BSD-3-Clause
+ * Ported to plain C for PELLETINO by Jesse Castro, 2026, from MAME (src/mame/machine/slapstic.cpp, pre-2022),
+ * copyright Aaron Giles and the MAME team. Redistribution and use are permitted under
+ * the BSD-3-Clause license; the notice, conditions and disclaimer in this game's
+ * THIRD_PARTY_NOTICES.md apply to this file. */
 /*
  * slapstic.c - Atari slapstic 137412-101 (see slapstic.h). State machine and table from the
  * pre-2022 MAME slapstic.cpp (BSD-3-Clause, copyright Aaron Giles and the MAME team).

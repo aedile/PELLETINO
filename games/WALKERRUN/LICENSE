@@ -1,12 +1,11 @@
-TRENCHRUNNER is released under the Zero-Clause BSD license (0BSD), the most
+WALKERRUN is released under the Zero-Clause BSD license (0BSD), the most
 permissive license the Open Source Initiative approves: no attribution, no
 notice preservation, no conditions at all.
 
 That covers the code written for this project: everything under main/, host/,
-tools/, components/audio_hal, components/display, components/imu, and the
-files core/starwars.c, core/starwars.h, core/sound.c, core/sound.h,
-core/pokey.c, core/pokey.h, core/tms5220.c, core/tms5220.h, core/avg.c,
-core/avg.h.
+tools/, components/audio_hal, components/display, components/emu,
+components/imu, and the files core/starwars.h, core/sound.c, core/sound.h,
+core/pokey.c, core/pokey.h, core/tms5220.h, core/avg.h and core/slapstic.h.
 
 Two things carry their own licenses, listed in THIRD_PARTY_NOTICES.md:
 
@@ -15,11 +14,13 @@ Two things carry their own licenses, listed in THIRD_PARTY_NOTICES.md:
     firmware and host harness must be distributed under the terms of the
     GPL-3.0 as well. Replace that one file with a permissively licensed core
     and the whole project is 0BSD.
-  * Several files are ports of MAME source code, which is BSD-3-Clause and
-    requires the copyright notice to be kept.
+  * core/avg.c, core/starwars.c, core/tms5220.c and core/slapstic.c are ports
+    of MAME source code, which is BSD-3-Clause and requires the copyright
+    notice to be kept. They say so in their headers.
 
-The Star Wars ROM images are not part of this project and are not licensed
-by it. They remain the property of their copyright holders.
+The Star Wars and Empire Strikes Back ROM images are not part of this project
+and are not licensed by it. They remain the property of their copyright
+holders.
 
 ----------------------------------------------------------------------------
 

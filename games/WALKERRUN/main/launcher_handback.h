@@ -1,5 +1,5 @@
 /*
- * launcher_handback.h - point the boot partition back at the MINIMAME launcher.
+ * launcher_handback.h - point the boot partition back at the PELLETINO launcher.
  *
  * The menu medal chain-boots a game by setting the boot partition and restarting. If the game
  * left it pointed at itself, then a crash, a watchdog bite or a brownout would boot straight

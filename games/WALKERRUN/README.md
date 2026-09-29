@@ -64,8 +64,8 @@ All of that is emulated here, in plain C, and it runs in real time on a single
 
 ## Building and flashing
 
-The partition table assumes the 16 MB flash the ESP32-C6-LCD-1.69 has (1 MB
-for the app, the rest for the easter-egg media).
+The partition table gives the app 1 MB; the rest of the flash is unused when
+the game is built on its own.
 
 1. Clone this repository and put the ROM files in a folder called `starwars/`
    at the top level. That folder is ignored by git.
@@ -121,55 +121,10 @@ The game is set to free play with six shields on the easy difficulty. To
 change that, edit the `sw_set_dips` call in `main/main.cpp`; the DIP switch
 bits are documented next to it.
 
-### Sound off, and the easter egg
+### Sound off
 
 Hold the fire button for three seconds and let go: the sound toggles off or
-on, for wearing the medal somewhere it needs to be quiet. Keep holding for
-thirteen seconds and something else happens: the sound comes on, the game
-pauses, and the medal plays a video clip from its flash, then drops you back
-into the game where you left it. Each long hold plays the next clip. Pressing
-fire during a clip ends it early.
-
-The clips are not part of this repository. To add your own, put a couple of
-short videos somewhere and run
-
-```
-tools/encode_media.sh clip1.mp4 clip2.mp4
-python3 -m esptool --chip esp32c6 --port /dev/cu.usbmodem101 -b 921600 write_flash 0x110000 media/media.bin
-```
-
-which encodes them as 240x136 MJPEG at 24 fps with 32 kHz mono MP3 audio
-(`ffmpeg` needed), packs them, and writes them to the `media` partition. The
-player decodes JPEG with the decoder in the ESP32-C6's ROM and MP3 with
-libhelix, holding no whole frame in memory: it borrows the renderer's frame
-buffer while the game is paused and needs about 36 KB of heap on top. Expect
-about 22 of the 24 frames per second on this chip. Without a media image the
-long hold does nothing.
-
-### Sound off, and the easter egg
-
-Hold the fire button for three seconds and let go: the sound toggles off or
-on, for wearing the medal somewhere it needs to be quiet. Keep holding for
-thirteen seconds and something else happens: the sound comes on, the game
-stops, and the medal plays a video clip from its flash. When the clip ends the
-game restarts at its attract screen, like a fresh power-up. Each long hold
-plays the next clip. Pressing fire during a clip ends it early.
-
-The clips are not part of this repository. To add your own, put a couple of
-short videos somewhere and run
-
-```
-tools/encode_media.sh clip1.mp4 clip2.mp4
-python3 -m esptool --chip esp32c6 --port /dev/cu.usbmodem101 -b 921600 write_flash 0x110000 media/media.bin
-```
-
-which encodes them as 240x136 MJPEG at 24 fps with 32 kHz mono MP3 audio
-(`ffmpeg` needed), packs them, and writes them to the `media` partition. The
-player decodes JPEG with the decoder in the ESP32-C6's ROM and MP3 with
-libhelix, holding no whole frame in memory: it borrows the renderer's frame
-buffer while the game is stopped and needs about 36 KB of heap on top. Expect
-about 22 of the 24 frames per second on this chip. Without a media image the
-long hold does nothing.
+on, for wearing the medal somewhere it needs to be quiet.
 
 ### Marquee
 
