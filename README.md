@@ -1,6 +1,6 @@
 # PELLETINO
 
-**Twenty-six arcade games in your pocket. Spin the wheel, hold the button to pick one, and it boots straight into that game forever after. One $20 ESP32-C6 board, 16 MB of flash, no SD card, no PSRAM.**
+**An arcade in your pocket: up to seventeen games at a time, chosen from twenty-six. Spin the wheel, hold the button to pick one, and it boots straight into that game forever after. One $20 ESP32-C6 board, 16 MB of flash, no SD card, no PSRAM.**
 
 PELLETINO is the menu. Every game is a separate firmware image in its own flash
 slot, and the launcher chain-boots them — so a game gets the whole chip to itself
