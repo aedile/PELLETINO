@@ -3,6 +3,7 @@
  * See medal_input.h for what this is and why the pose has to be checked.
  */
 #include "medal_input.h"
+#include "display.h"
 #include "driver/gpio.h"
 #include "driver/i2c.h"
 #include "esp_log.h"
@@ -10,6 +11,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 static const char *TAG = "MEDAL_IN";
@@ -32,6 +34,49 @@ static int  coin_seq;                 /* 0 idle, 1 coin held, 2 gap, 3 start hel
 static bool hold_armed, exit_fired;
 static bool chord;                   /* both buttons went down together */
 static int64_t hold_since;
+
+/*
+ * The backlight is most of what the battery goes on, so a medal nobody is touching turns it
+ * down, and later off. "Touching" is a button, or the medal being moved - which is every
+ * moment of a game being played, since tilt is the controller, and every moment of a medal
+ * being worn. One left on a table showing its attract mode is what this is for.
+ *
+ * A button pressed while the panel is dimmed only wakes it. It is not a coin or a shot.
+ */
+#define DIM_AFTER_US    (2 * 60 * 1000000LL)
+#define DARK_AFTER_US  (10 * 60 * 1000000LL)
+#define DIM_BRIGHTNESS  25                  /* of 255 */
+#define MOVED_COUNTS    2500                /* about nine degrees of tilt, at 16384 to the g */
+
+enum { LIT, DIMMED, DARK };
+static int     screen;
+static bool    waking;                      /* the press that woke it is still down */
+static int64_t touched_us;
+static int16_t seen_x, seen_y, seen_z;
+
+static void screen_tick(int64_t now, bool touched)
+{
+    if (touched) {
+        touched_us = now;
+        if (screen != LIT) { display_set_backlight(DISPLAY_BRIGHTNESS_ACTIVE); screen = LIT; }
+        return;
+    }
+    int want = now - touched_us >= DARK_AFTER_US ? DARK : now - touched_us >= DIM_AFTER_US ? DIMMED : LIT;
+    if (want > screen) {
+        display_set_backlight(want == DARK ? 0 : DIM_BRIGHTNESS);
+        screen = want;
+    }
+}
+
+static bool moved(void)
+{
+    if (!imu_ok || !cfg.read_accel) return false;
+    int16_t x, y, z;
+    cfg.read_accel(&x, &y, &z);
+    if (abs(x - seen_x) + abs(y - seen_y) + abs(z - seen_z) < MOVED_COUNTS) return false;
+    seen_x = x; seen_y = y; seen_z = z;
+    return true;
+}
 
 /* the last trusted reading, held so a momentary bad pose does not jerk the controls */
 static float held_lr, held_ud;
@@ -120,6 +165,7 @@ void medal_input_init(const medal_input_config_t *c)
     coin_seq = 0; pwr_was_down = boot_was_down = false;
     hold_armed = chord = false;
     imu_last_us = pwr_down_since = boot_down_since = coin_seq_start = hold_since = 0;
+    screen = LIT; waking = false; touched_us = esp_timer_get_time();
 
     gpio_config_t bat = {};
     bat.pin_bit_mask = 1ULL << PIN_BAT_EN;
@@ -180,6 +226,18 @@ void medal_input_poll(medal_input_state_t *st)
 
     bool boot = gpio_get_level(PIN_BTN_BOOT) == 0;
     bool pwr  = gpio_get_level(PIN_BTN_PWR) == 0;
+
+    if ((boot || pwr) && screen != LIT) waking = true;
+    static int64_t moved_last_us;
+    bool stirred = false;
+    if (now - moved_last_us >= 100000) { moved_last_us = now; stirred = moved(); }
+    screen_tick(now, boot || pwr || stirred);
+    if (waking) {
+        if (!boot && !pwr) waking = false;
+        boot = pwr = false;
+        boot_was_down = pwr_was_down = false;
+        hold_armed = false;
+    }
     /*
      * Both buttons together is the sound, everywhere on the medal. It fires as the second one
      * goes down, and from then until both are up again neither button counts as itself -

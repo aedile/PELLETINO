@@ -17,6 +17,7 @@
 #include "display.h"
 #include "audio_hal.h"
 #include "medal_input.h"
+#include "qmi8658.h"
 #include "medalboot.h"
 #include "egg.h"
 
@@ -24,11 +25,11 @@ static const char *TAG = "HADOUKEN";
 
 static void on_mute(void)
 {
-    bool muted = !audio_get_mute();
-    audio_set_mute(muted);
-    medalboot_set_muted(muted);                 /* holds in the menu and every other game */
-    display_toast(muted ? "SOUND OFF" : "SOUND ON", 1500);
-    ESP_LOGI(TAG, "sound %s", muted ? "off" : "on");
+    medalboot_sound_t s = medalboot_sound_next();      /* loud, quiet, off - and it holds everywhere */
+    audio_set_volume(medalboot_sound_volume(s));
+    audio_set_mute(s == MEDALBOOT_SOUND_OFF);
+    display_toast(medalboot_sound_name(s), 1500);
+    ESP_LOGI(TAG, "%s", medalboot_sound_name(s));
 }
 
 /* runs inside the player's loop: the shared gestures, and nothing else ends the clip */
@@ -46,7 +47,8 @@ extern "C" void app_main(void)
     display_init();
     display_set_backlight(DISPLAY_BRIGHTNESS_ACTIVE);
     audio_init();
-    if (medalboot_muted()) audio_set_mute(true);   /* muted elsewhere: stay muted */
+    audio_set_volume(medalboot_sound_volume(medalboot_sound()));   /* as it was left, here or anywhere */
+    if (medalboot_muted()) audio_set_mute(true);
 
     medal_input_config_t cfg = {};
     cfg.init_i2c = true;
@@ -54,7 +56,9 @@ extern "C" void app_main(void)
     cfg.on_mute = on_mute;
     cfg.exit_hold_us = MEDALBOOT_EXIT_HOLD_MS * 1000;
     cfg.on_exit = medalboot_exit_to_menu;
-    medal_input_init(&cfg);              /* no IMU: nothing here is tilt-driven */
+    cfg.imu_init = qmi8658_init;         /* nothing here is tilt-driven, but being moved is what */
+    cfg.read_accel = qmi8658_read_accel; /* keeps the backlight up on a medal that is being worn */
+    medal_input_init(&cfg);
     egg_set_poll(poll);
 
     medalboot_game_running();

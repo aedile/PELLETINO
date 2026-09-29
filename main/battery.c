@@ -7,6 +7,7 @@
  * about 3.0 V, and this board carries no protection circuit of its own.
  */
 #include "battery.h"
+#include "chiptune.h"
 #include "display.h"
 #include "driver/gpio.h"
 #include "esp_adc/adc_oneshot.h"
@@ -96,6 +97,22 @@ void battery_tick(void)
     int before = pct;
     battery_percent();
     if (pct == before && last_mv == 0) return;
+
+    /* Say so before it runs out: once as it gets low, once more when there are
+     * minutes left. Three readings in a row, because one can be a sag. */
+    static int warned, run, seen_mv;
+    int level = pct < 0 ? 0 : pct <= BATT_CRIT_PCT ? 2 : pct <= BATT_LOW_PCT ? 1 : 0;
+    if (last_mv != seen_mv) {
+        seen_mv = last_mv;
+        run = level ? run + 1 : 0;
+        if (pct > BATT_LOW_PCT + 5) warned = 0;         /* it has been charged since */
+    }
+    if (level > warned && run >= 3) {
+        warned = level;
+        display_toast(level == 2 ? "BATTERY DYING" : "BATTERY LOW", 3000);
+        chip_sfx(CHIP_SFX_LOW);
+        ESP_LOGW(TAG, "%d%%: warned", pct);
+    }
 
     /* A big SPI push or a loud passage sags the rail for a few milliseconds. Only
      * a run of low readings, seconds apart, means the pack is actually flat. */

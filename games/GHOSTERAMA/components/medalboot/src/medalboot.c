@@ -147,18 +147,41 @@ void medalboot_exit_to_menu(void)
 
 #define K_MUTED     "muted"
 
-bool medalboot_muted(void)
+medalboot_sound_t medalboot_sound(void)
 {
-    if (!ensure_nvs()) return false;
+    if (!ensure_nvs()) return MEDALBOOT_SOUND_LOUD;
     nvs_handle_t h;
-    if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return false;
+    if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return MEDALBOOT_SOUND_LOUD;
     uint8_t v = 0;
     nvs_get_u8(h, K_MUTED, &v);
     nvs_close(h);
-    return v != 0;
+    return v <= MEDALBOOT_SOUND_QUIET ? (medalboot_sound_t)v : MEDALBOOT_SOUND_OFF;
 }
+
+medalboot_sound_t medalboot_sound_next(void)
+{
+    medalboot_sound_t s = medalboot_sound();
+    s = s == MEDALBOOT_SOUND_LOUD  ? MEDALBOOT_SOUND_QUIET
+      : s == MEDALBOOT_SOUND_QUIET ? MEDALBOOT_SOUND_OFF
+      :                              MEDALBOOT_SOUND_LOUD;
+    set_u8(K_MUTED, (uint8_t)s);
+    return s;
+}
+
+const char *medalboot_sound_name(medalboot_sound_t s)
+{
+    return s == MEDALBOOT_SOUND_OFF ? "SOUND OFF" : s == MEDALBOOT_SOUND_QUIET ? "SOUND QUIET" : "SOUND LOUD";
+}
+
+/* The ES8311's DAC volume, half a decibel a step, 0xBF being 0 dB. Quiet is 14 dB down. */
+uint8_t medalboot_sound_volume(medalboot_sound_t s)
+{
+    return s == MEDALBOOT_SOUND_QUIET ? 0xBF - 28 : 0xBF;
+}
+
+bool medalboot_muted(void) { return medalboot_sound() == MEDALBOOT_SOUND_OFF; }
 
 void medalboot_set_muted(bool muted)
 {
-    set_u8(K_MUTED, muted ? 1 : 0);
+    set_u8(K_MUTED, muted ? MEDALBOOT_SOUND_OFF : MEDALBOOT_SOUND_LOUD);
 }

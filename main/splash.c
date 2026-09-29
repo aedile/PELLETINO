@@ -1,9 +1,10 @@
 /*
  * splash.c - the attract sequence.
  *
- * A starfield, a perspective grid rising to a horizon, a cabinet, and the
- * wordmark - then scanlines over the whole thing so it reads like a CRT rather
- * than an LCD. Everything is drawn from primitives in components/fest: no
+ * The wordmark crosses a starfield and leaves; the screen flashes white, with
+ * the sound of a blade being drawn; and the title screen is there as the flash
+ * clears - a perspective grid, a cabinet, the wordmark - with scanlines over the
+ * whole thing so it reads like a CRT rather than an LCD. Everything is drawn from primitives in components/fest: no
  * artwork ships, and no character from any game is reproduced.
  *
  * This draws and nothing else: the frame buffer and the music belong to the
@@ -24,9 +25,12 @@
 #include <stdio.h>
 
 #define FPS      30
-#define P1_END    56            /* wordmark flies in over stars */
-#define P2_END   150            /* the grid rises, the cabinet arrives */
-#define P3_END   360            /* the full attract screen */
+#define WORD_W   (9 * 16)       /* PELLETINO at scale 2 */
+#define FLY_STEP  6             /* pixels a frame */
+#define P1_END   ((FB_W + 40 + WORD_W) / FLY_STEP + 6)   /* the wordmark crosses and is gone, then a beat of empty sky */
+#define FLASH_FULL 3            /* frames of nothing but white */
+#define FLASH_FADE 14           /* frames for the title screen to come up out of it */
+#define P3_END   360            /* the title screen holds until here */
 #define CX       (FB_W / 2)
 #define HORIZON  150
 
@@ -43,7 +47,6 @@ static void speed_lines(int t)
     }
 }
 
-/* PELLETINO at scale 2 is 160 px wide, so it centres with a real margin */
 static void wordmark(int x, int y, bool bright)
 {
     fest_text_scaled(x, y, "PELLETINO", bright ? UI_WHITE : CUBE(4,4,5), 2);
@@ -71,27 +74,25 @@ bool splash_scene(void)
         input_poll();                       /* the power button still has to work */
         battery_tick();
         sound_poll();                       /* both buttons: sound off/on */
-        if (input_take_wake()) return true;
+        if (input_take_wake()) { fest_white = 0; return true; }
 
         fest_clear(UI_BLACK);
         fest_stars(t);
 
         if (t < P1_END) {
             speed_lines(t);
-            wordmark(FB_W + 40 - t * 6, 120, true);
-        } else if (t < P2_END) {
-            int k = t - P1_END, span = P2_END - P1_END;
-            /* the grid rises out of the bottom as the wordmark settles */
-            int h = HORIZON + (FB_H - HORIZON) * (span - k) / span;
-            fest_grid(t, h);
-            wordmark(CX - 8 * 9, 120 - 76 * k / span, true);
+            wordmark(FB_W + 40 - t * FLY_STEP, 120, true);
         } else {
-            int k = t - P2_END;
+            int k = t - P1_END;
+            if (k == 0) chip_sfx(CHIP_SFX_SHING);
+            fest_white = k < FLASH_FULL ? 255
+                       : k < FLASH_FULL + FLASH_FADE ? (uint8_t)(255 * (FLASH_FULL + FLASH_FADE - k) / FLASH_FADE)
+                       : 0;
             fest_grid(t, HORIZON);
             fest_cabinet(t, CX, HORIZON + 46);
-            wordmark(CX - 8 * 9, 44, true);
+            wordmark(CX - WORD_W / 2, 44, true);
             fest_text_center(70, games, arcade_colours[2]);
-            if ((k / 12) & 1) fest_text_center(250, "PRESS THE BUTTON", UI_WHITE);
+            if (k > FLASH_FULL + FLASH_FADE && ((k / 12) & 1)) fest_text_center(250, "PRESS THE BUTTON", UI_WHITE);
         }
 
         fest_scanlines();

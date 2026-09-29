@@ -4,8 +4,8 @@
  * Each medal is a Waveshare ESP32-C6-LCD-1.69 in a pin: an ST7789 panel, a QMI8658 IMU, two
  * buttons (BOOT and PWR) and a battery rail that the firmware has to hold on. Every game does
  * the same things with that hardware - hold the rail up, watch the two buttons, run the
- * coin-then-start sequence off a short press, power down on a long one, toggle the sound on a
- * long press of the other button, and turn the accelerometer into an angle relative to however
+ * coin-then-start sequence off a short press, power down on a long one, step the sound on both
+ * together, turn the backlight down when nobody is there, and turn the accelerometer into an angle relative to however
  * the player is holding the thing.
  *
  * What differs between games is only the last step: what the angle *means*. A trackball wants a

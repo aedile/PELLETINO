@@ -51,11 +51,11 @@ static void on_mute(void)
     /* mute_fired is not set here any more: the sound is both buttons together now, and
      * medal_input swallows that press itself, so there is no BOOT release to disown. Setting
      * it would throw away the next real coin instead. */
-    bool m = !audio_get_mute();
-    audio_set_mute(m);
-    medalboot_set_muted(m);                     /* holds in the menu and every other game */
-    display_toast(m ? "SOUND OFF" : "SOUND ON", 1500);
-    ESP_LOGI(TAG, "sound %s", m ? "off" : "on");
+    medalboot_sound_t s = medalboot_sound_next();      /* loud, quiet, off - and it holds everywhere */
+    audio_set_volume(medalboot_sound_volume(s));
+    audio_set_mute(s == MEDALBOOT_SOUND_OFF);
+    display_toast(medalboot_sound_name(s), 1500);
+    ESP_LOGI(TAG, "%s", medalboot_sound_name(s));
 }
 
 /* a fresh zero means a fresh stick: whatever was held before it is not held now */

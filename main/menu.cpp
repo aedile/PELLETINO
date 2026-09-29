@@ -20,6 +20,7 @@
 #include "input.h"
 #include "battery.h"
 #include "sound.h"
+#include "chiptune.h"
 #include "esp_log.h"
 #include <string.h>
 #include <stdlib.h>
@@ -28,8 +29,10 @@
 
 static const char *TAG = "menu";
 
+/* The panel's corners are rounded - by about 40 pixels - so nothing that has to
+ * be read goes near them: the header and the footer are centred, and short. */
 #define HEADER_H   18
-#define FOOTER_H   20
+#define FOOTER_H   32
 #define CENTRE_Y  140
 #define STEP      256           /* one place on the wheel, in the units s_turn counts */
 #define MIDDLE    (2 * STEP)    /* the place in the middle */
@@ -50,6 +53,10 @@ static int         s_frame;
 static int         s_colours_of; /* whose screenshot colours are loaded, -1 for nobody's */
 static menu_mode_t s_mode;
 static const char *s_msg1, *s_msg2;
+static int         s_launch = -1; /* frames into the launch, -1 when there is none */
+
+#define LAUNCH_FRAMES  26
+#define LAUNCH_WHITE    9         /* the last of them, going to white */
 
 void menu_release(void)
 {
@@ -76,7 +83,24 @@ const char *menu_current_title(void)
     return e ? e->title : NULL;
 }
 
-void menu_set_mode(menu_mode_t m) { s_mode = m; }
+void menu_set_mode(menu_mode_t m) { s_mode = m; s_launch = -1; fest_white = 0; }
+
+void menu_begin_launch(void)
+{
+    s_mode = MENU_LAUNCHING;
+    s_launch = 0;
+    s_turn = 0;
+    chip_tone(0);
+    chip_sfx(CHIP_SFX_COIN);
+}
+
+bool menu_launch_done(void) { return s_launch < 0 || s_launch >= LAUNCH_FRAMES; }
+
+bool menu_current_is_builtin(void)
+{
+    const mqart_entry_t *e = mqart_get(s_sel);
+    return e && e->boot[0] == '@';
+}
 
 void menu_select_rom(const char *rom)
 {
@@ -97,6 +121,7 @@ void menu_nav(int delta)
     /* taps faster than the wheel turns pile up, but only so far: past two
      * places it would be drawing logos that are nowhere near the panel */
     s_turn += delta * STEP;
+    if (s_mode != MENU_SHOWCASE) chip_sfx(CHIP_SFX_CLICK);
     if (s_turn >  2 * STEP) s_turn =  2 * STEP;
     if (s_turn < -2 * STEP) s_turn = -2 * STEP;
 }
@@ -134,8 +159,10 @@ static void backdrop(int index)
             memset(fest_fb + (size_t)y * FB_W, UI_BLACK, FB_W);
 }
 
-/* One game, `at` places down the wheel (in STEPs; MIDDLE is the chosen one). */
-static void draw_game(const mqart_entry_t *e, int at)
+/* One game, `at` places down the wheel (in STEPs; MIDDLE is the chosen one).
+ * `grow` is a percentage added to its box, for the chosen game swelling under a
+ * held button and coming out of the screen at launch. */
+static void draw_game(const mqart_entry_t *e, int at, int grow)
 {
     if (!e || at < 0 || at > 4 * STEP) return;
     int i = at / STEP, f = at % STEP;
@@ -144,6 +171,8 @@ static void draw_game(const mqart_entry_t *e, int at)
     int cx = FB_W / 2 + PLACE[i].dx + (PLACE[i + 1].dx - PLACE[i].dx) * f / STEP;
     int bw = PLACE[i].bw + (PLACE[i + 1].bw - PLACE[i].bw) * f / STEP;
     int bh = PLACE[i].bh + (PLACE[i + 1].bh - PLACE[i].bh) * f / STEP;
+    bw += bw * grow / 100;
+    bh += bh * grow / 100;
 
     /* the copy that was made for the nearest resting place */
     int far = (abs(at - MIDDLE) + STEP / 2) / STEP;
@@ -164,7 +193,7 @@ static void draw_game(const mqart_entry_t *e, int at)
     int w, h;                                   /* fitted to the box, shape kept */
     if ((int)im->w * bh <= (int)im->h * bw) { h = bh; w = im->w * bh / im->h; }
     else                                    { w = bw; h = im->h * bw / im->w; }
-    if (f == 0 || (abs(w - im->w) <= 1 && abs(h - im->h) <= 1)) { w = im->w; h = im->h; }   /* at rest: as stored */
+    if (!grow && (f == 0 || (abs(w - im->w) <= 1 && abs(h - im->h) <= 1))) { w = im->w; h = im->h; }   /* at rest: as stored */
     if (w < 1 || h < 1) return;
 
     static uint8_t row[MQART_MAX_W];
@@ -188,14 +217,30 @@ static void draw_game(const mqart_entry_t *e, int at)
     }
 }
 
-static void wheel(void)
+/* `spread` pushes everything but the chosen game away from it, in STEPs */
+static void wheel(int spread, int grow)
 {
     /* far ones first, so the chosen game is drawn over its neighbours */
     int lo = -4, hi = 4;
     while (lo <= hi) {
-        int at_lo = MIDDLE + lo * STEP + s_turn, at_hi = MIDDLE + hi * STEP + s_turn;
-        if (abs(at_lo - MIDDLE) >= abs(at_hi - MIDDLE)) { draw_game(mqart_get(wrap(s_sel + lo)), at_lo); lo++; }
-        else                                            { draw_game(mqart_get(wrap(s_sel + hi)), at_hi); hi--; }
+        int k = abs(lo) >= abs(hi) ? lo++ : hi--;
+        int at = MIDDLE + k * STEP + s_turn + (k > 0 ? spread : k < 0 ? -spread : 0);
+        draw_game(mqart_get(wrap(s_sel + k)), at, k == 0 ? grow : 0);
+    }
+}
+
+/* where on the wheel this is: a pip a game down the right-hand edge */
+static void pips(void)
+{
+    int n = mqart_count();
+    if (n < 2) return;
+    int pitch = 150 / (n - 1);
+    if (pitch > 10) pitch = 10;
+    if (pitch < 3) return;                              /* too many to tell apart */
+    int y = CENTRE_Y - pitch * (n - 1) / 2;
+    for (int i = 0; i < n; i++, y += pitch) {
+        if (i == s_sel) fest_fill(FB_W - 4, y - 3, 3, 7, UI_YELLOW);
+        else            fest_fill(FB_W - 3, y - 1, 2, 2, CUBE(2,2,3));
     }
 }
 
@@ -206,44 +251,53 @@ static void pointers(void)
     int in = nudge[(s_frame / 3) % 8];
     for (int i = 0; i < 6; i++) {
         fest_fill(3 + in + i,          CENTRE_Y - 6 + i, 1, 12 - 2 * i, UI_YELLOW);
-        fest_fill(FB_W - 4 - in - i,   CENTRE_Y - 6 + i, 1, 12 - 2 * i, UI_YELLOW);
+        fest_fill(FB_W - 10 - in - i,  CENTRE_Y - 6 + i, 1, 12 - 2 * i, UI_YELLOW);
     }
 }
 
+/* name, charge, battery - as one group in the middle of the top edge */
 static void header(void)
 {
     fest_fill(0, 0, FB_W, HEADER_H, UI_BLACK);
-    if (sound_muted()) fest_text(8, 5, "MUTED", UI_RED);
-    else               fest_text(8, 5, "PELLETINO", CUBE(3,3,4));
 
+    bool muted = sound_muted(), quiet = sound_quiet();
+    const char *name = muted ? "MUTED" : quiet ? "QUIET" : "PELLETINO";
     int pct = battery_percent();
+    char charge[16];
+    snprintf(charge, sizeof charge, "%d", pct);
+
+    const int bw = 26, bh = 11, gap = 12;
+    int name_w = 8 * (int)strlen(name), charge_w = 8 * (int)strlen(charge);
+    int x = (FB_W - (name_w + gap + charge_w + 5 + bw + 2)) / 2;
+
+    fest_text(x, 5, name, muted ? UI_RED : quiet ? UI_YELLOW : CUBE(3,3,4));
+    x += name_w + gap;
+    fest_text(x, 5, charge, UI_GREY);
+    x += charge_w + 5;
+
     uint8_t c = pct <= BATT_CRIT_PCT ? UI_RED : pct <= BATT_LOW_PCT ? UI_YELLOW : UI_GREEN;
-    const int x = 204, y = 4, w = 26, h = 11;
-    fest_frame(x, y, w, h, CUBE(3,3,4));
-    fest_fill(x + w, y + 3, 2, h - 6, CUBE(3,3,4));          /* the nub */
-    int fill = (w - 4) * pct / 100;
-    if (fill > 0) fest_fill(x + 2, y + 2, fill, h - 4, c);
-    char s[16];
-    snprintf(s, sizeof s, "%d", pct);
-    fest_text(x - 8 * (int)strlen(s) - 5, 5, s, UI_GREY);
+    fest_frame(x, 4, bw, bh, CUBE(3,3,4));
+    fest_fill(x + bw, 7, 2, bh - 6, CUBE(3,3,4));            /* the nub */
+    int fill = (bw - 4) * pct / 100;
+    if (fill > 0) fest_fill(x + 2, 6, fill, bh - 4, c);
 }
 
+/* who made it, and under that what the button will do - both centred */
 static void footer(const mqart_entry_t *e, bool installed)
 {
     int top = FB_H - FOOTER_H;
     fest_fill(0, top, FB_W, FOOTER_H, UI_BLACK);
     if (s_mode == MENU_LAUNCHING) {
-        text_centred(FB_W / 2, top + 7, "LAUNCHING", UI_GREEN, 1);
+        text_centred(FB_W / 2, top + 12, "LAUNCHING", UI_GREEN, 1);
         return;
     }
-    const char *act = installed ? "HOLD TO PLAY" : "NOT INSTALLED";
-    int act_x = FB_W - 8 - 8 * (int)strlen(act);
-    fest_text(act_x, top + 7, act, installed ? UI_YELLOW : UI_RED);
-
-    char by[sizeof e->by];                      /* whatever of it fits beside that */
-    int room = (act_x - 8 - 8) / 8;
-    snprintf(by, sizeof by, "%.*s", room > 0 ? room : 0, e->by);
-    fest_text(8, top + 7, by, UI_WHITE);
+    text_centred(FB_W / 2, top + 7, e->by, UI_WHITE, 1);
+    if (s_mode == MENU_SHOWCASE) {
+        if ((s_frame / 12) & 1) text_centred(FB_W / 2, top + 19, "PRESS A BUTTON", UI_YELLOW, 1);
+        return;
+    }
+    text_centred(FB_W / 2, top + 19, installed ? "HOLD TO PLAY" : "NOT INSTALLED",
+                 installed ? UI_YELLOW : UI_RED, 1);
 
     /* Fill a bar while the button is held so the hold has a visible length -
      * otherwise nobody knows how long "a few seconds" is. */
@@ -278,7 +332,27 @@ void menu_render(void)
     if (s_turn >=  STEP / 2) behind = wrap(s_sel - 1);
     if (s_turn <= -STEP / 2) behind = wrap(s_sel + 1);
     backdrop(behind);
-    wheel();
+
+    int spread = 0, grow = 0;
+    if (s_mode == MENU_LAUNCHING && s_launch >= 0) {
+        /* the neighbours leave, the logo comes at you, and the panel goes white */
+        int t = s_launch < LAUNCH_FRAMES ? s_launch : LAUNCH_FRAMES;
+        spread = t * t * 3 * STEP / (LAUNCH_FRAMES * LAUNCH_FRAMES);
+        grow   = t * t * 70 / (LAUNCH_FRAMES * LAUNCH_FRAMES);
+        int w  = t - (LAUNCH_FRAMES - LAUNCH_WHITE);
+        fest_white = w <= 0 ? 0 : (uint8_t)(255 * w / LAUNCH_WHITE);
+        if (s_launch < LAUNCH_FRAMES) s_launch++;
+    } else if (s_mode == MENU_BROWSE) {
+        /* Held: the logo swells as the hold fills, with a tremor on it, and a tone
+         * climbs underneath. Letting go early takes both away. */
+        int held = installed ? input_hold_ms() : 0;
+        if (held > INPUT_SELECT_HOLD_MS) held = INPUT_SELECT_HOLD_MS;
+        if (held > 0) grow = held * 9 / INPUT_SELECT_HOLD_MS + ((s_frame & 2) ? 1 : 0);
+        chip_tone(held > 0 ? 330 + held * 660 / INPUT_SELECT_HOLD_MS : 0);
+    }
+
+    wheel(spread, grow);
+    if (s_mode != MENU_LAUNCHING) pips();
     if (s_turn == 0 && s_mode == MENU_BROWSE) pointers();
     header();
     footer(e, installed || s_mode == MENU_LAUNCHING);

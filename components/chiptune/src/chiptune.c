@@ -8,6 +8,7 @@
  */
 #include "chiptune.h"
 #include "player.h"
+#include "sfx.h"
 #include "audio_hal.h"
 #include "esp_log.h"
 #include <string.h>
@@ -100,6 +101,7 @@ void chip_free(void)
 /* audio_hal calls this to top up its DMA queue */
 void audio_render(int16_t *buf, int samples, int rate)
 {
-    if (!playing || !cur) { memset(buf, 0, (size_t)samples * sizeof(int16_t)); return; }
-    cur->render(buf, samples, rate);
+    if (!playing || !cur) memset(buf, 0, (size_t)samples * sizeof(int16_t));
+    else cur->render(buf, samples, rate);
+    sfx_mix(buf, samples, rate);
 }

@@ -22,7 +22,7 @@ makefile.
 | Launcher firmware | 313 KB in a 512 KB slot |
 | Artwork | 477 KB for 17 games — three logos and a screenshot each — in its own partition |
 | Cold boot to the splash | ~1.2 s |
-| Attract loop | ~12 s opening, ~52 s credits roll, until the button is pressed |
+| Attract loop | title, instructions, the games, credits — about two minutes, until a button is pressed |
 | Hardware | Waveshare ESP32-C6-LCD-1.69 — 240×280 ST7789V2, ES8311 codec, QMI8658 IMU, two buttons, LiPo |
 
 Numbers come from the device over serial, not from a spec sheet.
@@ -60,7 +60,7 @@ the occasion, but that is where it is from.
 - [Getting it running](#getting-it-running)
 - [Choosing a build — `pelletino pick`](#choosing-a-build--pelletino-pick)
 - [Controls](#controls)
-- [The splash](#the-splash)
+- [Attract mode](#attract-mode)
 - [The wheel](#the-wheel)
 - [Music](#music)
 - [Credits, on the device](#credits-on-the-device)
@@ -216,33 +216,45 @@ buttons do the rest.
 
 | Button | Short press | Hold |
 |---|---|---|
-| **BOOT** (top) | the game's action — fire / jump / hop / pump | 10 s: back to the menu |
-| **both together** | sound off/on | |
-| **PWR** (side) | insert a coin (then auto-start ½ s later) | 1 s: power off |
+| **BOOT** (middle) | the game's action — fire / jump / hop / pump | 10 s: back to the menu |
+| **both together** | sound: loud, quiet, off | |
+| **PWR** (top) | insert a coin (then auto-start ½ s later) | 1 s: power off |
 
 In attract mode and the menu the same two buttons drive the launcher. Tilt does
 nothing here:
 
 | Button | Short press | Hold |
 |---|---|---|
-| **BOOT** (top) | next game (or leave attract mode) | 2 s: pick this game |
-| **PWR** (side) | previous game (or leave attract mode) | 1 s: power off |
-| **both together** | sound off/on | |
+| **BOOT** (middle) | next game (or leave attract mode) | 2 s: pick this game |
+| **PWR** (top) | previous game (or leave attract mode) | 1 s: power off |
+| **both together** | sound: loud, quiet, off | |
 
 ### Muting
 
-**Press both buttons together.** It is the same gesture everywhere — attract mode,
-the menu, and every game.
+**Press both buttons together.** Each press steps the sound: loud, quiet, off,
+and round again. It is the same gesture everywhere — attract mode, the menu, and
+every game.
 
-It is **one setting for the whole device**. Mute it anywhere and it stays muted
-everywhere, including after it has been switched off and on again, until someone
-turns the sound back on. Every change shows a short `SOUND OFF` / `SOUND ON`
-message on the screen, and the menu shows `MUTED` in its header while the sound is
-off. Muting powers the audio codec down, so a muted device is not spending
-battery on the speaker.
+It is **one setting for the whole device**. Whatever it is left at anywhere is
+what it is everywhere, including after it has been switched off and on again.
+Every change shows `SOUND LOUD`, `SOUND QUIET` or `SOUND OFF` on the screen, and
+the menu's header says `QUIET` or `MUTED` while it is not loud. Off powers the
+audio codec down, so it is not spending battery on the speaker.
 
-While both buttons are down neither counts as itself, so muting never also
-inserts a coin, fires, or turns the wheel.
+While both buttons are down neither counts as itself, so changing the sound
+never also inserts a coin, fires, or turns the wheel.
+
+### The backlight
+
+Left alone for two minutes the screen dims, and after ten it goes dark. A button
+brings it back, and so does being moved — so a game being played, or a medal
+being worn, stays lit, and one left on a table does not run its battery down
+showing attract mode to nobody. In a game, a button pressed while the screen is
+dimmed only wakes it; it is not a coin or a shot. The times are at the top of
+`medal_input.cpp` (games) and in `main/input.cpp` (launcher).
+
+The launcher also warns before the battery runs out: `BATTERY LOW` and a falling
+pair of notes at 15%, `BATTERY DYING` at 5%.
 
 > A **coin** is always a coin and a **start** is always a start, on every game.
 > Mute and back-to-menu are the same gestures everywhere. Picking a
@@ -291,22 +303,27 @@ matches the rest of the games.
 
 ---
 
-## The splash
+## Attract mode
 
-Left alone, it runs an attract loop: a ~12 second opening, then the credits
-roll, then the opening again, for as long as nobody touches it. In the opening
-the wordmark flies in over a starfield, a perspective grid rises to a horizon
-and a cabinet arrives under it, with scanlines over the whole picture so it
-reads like a CRT rather than an LCD.
+Left alone, it runs a loop, for as long as nobody touches it:
+
+1. **The title.** The wordmark crosses a starfield and leaves, the screen
+   flashes white to the sound of a blade being drawn, and the title screen comes
+   up out of the flash: a perspective grid, a cabinet, the wordmark.
+2. **How to play.** Which button does what, in the menu, in a game and anywhere,
+   written out a row at a time.
+3. **The games.** The wheel turns by itself through every game on the device,
+   each with its logo and a screenshot.
+4. **The credits.**
 
 **Press a button and you are in the menu.** Leave the menu alone for 45 seconds
-and it goes back to the attract loop. One tune plays straight through all of it.
+and it goes back to the loop. One tune plays straight through all of it.
 
 None of this runs when a game is selected: that boots straight into the game.
 
-Every pixel of it is drawn from primitives in `components/fest`. There is no
-artwork, no sprite sheet and no bitmap in the repository, and no character from
-any game is reproduced.
+The title, the instructions and the credits are drawn from primitives in
+`components/fest`. There is no artwork, no sprite sheet and no bitmap in the
+repository, and no character from any game is reproduced.
 
 ## The wheel
 
@@ -318,6 +335,23 @@ says who made the game and when.
 
 It is redrawn from scratch thirty times a second into a 67 KB frame buffer. The
 logos are stored at the three sizes they rest at and scaled only while moving.
+
+Pips down the right-hand edge show where on the wheel you are. Holding the
+button to pick a game makes its logo swell while a tone climbs, so the hold can
+be felt without reading the bar; letting go early takes both away. When the hold
+completes a coin drops, the other games leave, the logo comes out of the screen
+and the panel goes white into the game.
+
+The panel's corners are rounded, so the header and the footer are centred and
+nothing that has to be read sits near a corner.
+
+### Sound effects
+
+The flash, each step of the wheel, the hold, the coin and the battery warning
+have sounds. They are synthesised — a few
+ringing partials and a burst of noise, in `components/chiptune/src/sfx.c` — so
+there is no sample to supply, and they are mixed over the music, or over
+silence if you supplied none.
 
 ## Music
 

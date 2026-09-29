@@ -35,6 +35,7 @@ extern "C" {
 extern uint8_t *fest_fb;          /* FB_W * FB_H, NULL until fest_init() */
 extern uint16_t fest_pal[256];
 extern bool     fest_crt;         /* present every other row a quarter darker, whatever is on it */
+extern uint8_t  fest_white;       /* present everything this far toward white: 0 as drawn, 255 blank white */
 
 bool fest_init(void);             /* false if the framebuffer will not fit */
 void fest_free(void);

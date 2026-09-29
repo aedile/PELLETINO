@@ -20,6 +20,7 @@
 #include "chiptune.h"
 #include "fest.h"
 #include "credits.h"
+#include "howto.h"
 #include "sound.h"
 #include "battery.h"
 #include "audio_hal.h"
@@ -47,28 +48,83 @@ static bool button_held_at_boot(void)
     return true;
 }
 
-static void launch(const char *rom)
+/* One frame of the menu, and then whatever is left of a thirtieth of a second. */
+static void menu_frame(void)
+{
+    int64_t due = esp_timer_get_time() + 1000000 / MENU_FPS;
+    audio_update();
+    menu_render();
+    while (esp_timer_get_time() < due) { audio_update(); vTaskDelay(1); }
+}
+
+/*
+ * `chosen` is somebody picking the game just now, as against the launcher starting
+ * the one picked last time: they get the send-off - the coin, the logo coming out
+ * of the screen, the flash. A medal that is only switching on gets its game.
+ */
+static void launch(const char *rom, bool chosen)
 {
     menu_init();                        /* may not have been needed until now */
     /* A shared slot (Pac-Man riding Ms. Pac-Man's image) records its own ROM as the
      * selection - so the image knows which variant to run - but chain-boots the slot
      * owner's partition. For every other game the boot label is the ROM itself. */
+    menu_select_rom(rom);
+    if (chosen) {
+        menu_begin_launch();
+        while (!menu_launch_done()) menu_frame();
+        for (int i = 0; i < 8; i++) menu_frame();       /* white, while the coin rings out */
+    } else {
+        menu_set_mode(MENU_LAUNCHING);
+        menu_render();
+    }
     chip_stop();
     audio_update();
-    menu_select_rom(rom);
-    menu_set_mode(MENU_LAUNCHING);
-    menu_render();
     medalboot_note_attempt();
     game_launch(mqart_boot_label(rom));   /* does not return */
 }
 
 /*
- * Attract mode: the opening, then the credits roll, then the opening again, for
- * as long as nobody touches it. The music is not its business - one tune is
- * started before the first of these and plays on through the menu and back.
+ * The games, shown off: the wheel turning by itself, a game at a time, each with
+ * its screenshot behind it. The menu draws it; this only turns the wheel.
+ */
+#define SHOWCASE_FRAMES 50              /* how long each game gets */
+
+static bool showcase_scene(void)
+{
+    char was[24] = "";
+    const char *rom = menu_current_rom();
+    if (rom) strlcpy(was, rom, sizeof was);
+
+    menu_init();                        /* the wheel draws with the panel's scanlines, not its own */
+    menu_select_rom(mqart_get(0)->rom);
+    menu_set_mode(MENU_SHOWCASE);
+
+    bool pressed = false;
+    for (int i = 0; i < mqart_count() && !pressed; i++) {
+        if (i) menu_nav(+1);
+        if (menu_current_is_builtin()) continue;        /* Credits is not a game */
+        for (int t = 0; t < SHOWCASE_FRAMES && !pressed; t++) {
+            input_poll();
+            battery_tick();
+            sound_poll();
+            pressed = input_take_wake();
+            menu_frame();
+        }
+    }
+    menu_set_mode(MENU_BROWSE);
+    menu_select_rom(was);
+    fest_crt = false;
+    return pressed;
+}
+
+/*
+ * Attract mode: the title, how to work it, the games, the credits, and round
+ * again, for as long as nobody touches it. The music is not its business - one
+ * tune is started before the first of these and plays on through the menu and
+ * back.
  *
  * A button ends it - either one, pressed and let go. Both buttons together is
- * mute, and does not end it.
+ * the sound, and does not end it.
  */
 static void attract(void)
 {
@@ -76,9 +132,13 @@ static void attract(void)
     fest_crt = false;                           /* these scenes draw their own scanlines */
 
     for (int pass = 1; ; pass++) {
-        ESP_LOGI(TAG, "attract: opening (pass %d)", pass);
+        ESP_LOGI(TAG, "attract: title (pass %d)", pass);
         if (splash_scene()) break;
-        ESP_LOGI(TAG, "attract: credits roll");
+        ESP_LOGI(TAG, "attract: instructions");
+        if (howto_scene()) break;
+        ESP_LOGI(TAG, "attract: the games");
+        if (showcase_scene()) break;
+        ESP_LOGI(TAG, "attract: credits");
         if (credits_scene()) break;
     }
     ESP_LOGI(TAG, "attract: button pressed, on to the menu");
@@ -117,7 +177,9 @@ static bool selftest_tick(void)             /* true while it is "pressing button
              (unsigned)esp_get_minimum_free_heap_size());
     selftest_frames = selftest_render_us = 0;
 
-    if (s == 6) audio_set_mute(false);
+    if (s == 6) { audio_set_mute(false); }
+    if (s == 10) menu_begin_launch();
+    if (s == 12) menu_set_mode(MENU_BROWSE);
     if (s & 1) menu_nav(s % 8 == 7 ? -1 : +1);
     return true;
 }
@@ -178,7 +240,7 @@ extern "C" void app_main(void)
             vTaskDelay(pdMS_TO_TICKS(2500));
             menu_set_mode(MENU_BROWSE);
         } else {
-            launch(sel);         /* does not return */
+            launch(sel, false);  /* does not return */
         }
 #endif
     }
@@ -204,7 +266,6 @@ extern "C" void app_main(void)
     ESP_LOGI(TAG, "%d entries on the wheel", mqart_count());
 
     int64_t touched = esp_timer_get_time();
-    int64_t due = touched;
     while (true) {
         audio_update();                         /* the music carries on in the menu */
         input_poll();
@@ -228,7 +289,7 @@ extern "C" void app_main(void)
                 menu_set_mode(MENU_BROWSE);
             } else if (rom && game_installed(mqart_boot_label(rom))) {
                 medalboot_set_selected(rom);   /* sticky from now on */
-                launch(rom);                   /* does not return */
+                launch(rom, true);             /* does not return */
             }
             busy = true;
         }
@@ -241,18 +302,14 @@ extern "C" void app_main(void)
         if (now - touched >= (int64_t)MENU_IDLE_MS * 1000) {
             ESP_LOGI(TAG, "nobody here - back to attract mode");
             attract();                          /* comes back when a button is pressed */
-            touched = due = esp_timer_get_time();
+            touched = esp_timer_get_time();
             continue;
         }
 
-        menu_render();
+        menu_frame();
 #ifdef PELLETINO_SELFTEST
         selftest_frames++;
         selftest_render_us += (uint32_t)(esp_timer_get_time() - now);
 #endif
-
-        due += 1000000 / MENU_FPS;
-        if (due < esp_timer_get_time()) due = esp_timer_get_time();     /* a slow frame: do not chase it */
-        while (esp_timer_get_time() < due) { audio_update(); vTaskDelay(1); }
     }
 }

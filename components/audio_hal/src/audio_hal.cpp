@@ -30,6 +30,9 @@ static int audio_peak = 0;                         // loudest sample rendered si
 // Mute state
 static bool audio_muted = false;
 
+// DAC volume, kept here because waking the codec sets it again
+static uint8_t audio_dac_vol = 0xBF;
+
 // Codec power state (for skipping audio processing when powered down)
 static bool codec_powered = true;
 
@@ -119,7 +122,7 @@ static void es8311_configure(void)
     es8311_write_reg(0x12, 0x00);
     es8311_write_reg(0x13, 0x10);  // ADC/DAC config
     es8311_write_reg(0x14, 0x10);
-    es8311_write_reg(ES8311_REG_DAC_VOL, 0xBF);  // DAC volume (fairly loud)
+    es8311_write_reg(ES8311_REG_DAC_VOL, audio_dac_vol);
 
     // ADC settings (not used but configure anyway)
     es8311_write_reg(ES8311_REG_ADC_VOL, 0xBF);
@@ -275,6 +278,7 @@ void audio_set_volume(uint8_t volume)
 {
     // Map 0-255 to ES8311 volume range
     uint8_t es_vol = volume;  // Direct mapping for now
+    audio_dac_vol = volume;
     es8311_write_reg(ES8311_REG_DAC_VOL, es_vol);
 }
 
@@ -303,17 +307,11 @@ bool audio_get_mute(void)
 void audio_set_power_state(bool enabled)
 {
     if (enabled) {
-        // Re-enable I2S channel (if deleted)
-        if (!i2s_tx_handle) {
-            i2s_init();
-        } else {
-             // Just in case it was disabled but not deleted (shouldn't happen with current logic)
-             i2s_channel_enable(i2s_tx_handle);
-        }
-        
-        // The codec was put to sleep: start it again exactly as at power-on, now
-        // that the I2S clocks it depends on are running
-        es8311_configure();
+        // Come back by the same road as a cold start: codec from reset, then the I2S
+        // channel. Waking it by writing the registers back left every register
+        // reading as it should and the DAC being fed, and the speaker silent.
+        es8311_init();
+        if (!i2s_tx_handle) i2s_init();
 
         codec_powered = true;
         vTaskDelay(pdMS_TO_TICKS(10));  // Small delay for codec to stabilize

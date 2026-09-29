@@ -47,11 +47,11 @@ static void read_accel_dbg(int16_t *x, int16_t *y, int16_t *z)
 
 static void on_mute(void)
 {
-    bool muted = !audio_get_mute();
-    audio_set_mute(muted);
-    medalboot_set_muted(muted);                 /* holds in the menu and every other game */
-    display_toast(muted ? "SOUND OFF" : "SOUND ON", 1500);
-    ESP_LOGI(TAG, "sound %s", muted ? "off" : "on");
+    medalboot_sound_t s = medalboot_sound_next();      /* loud, quiet, off - and it holds everywhere */
+    audio_set_volume(medalboot_sound_volume(s));
+    audio_set_mute(s == MEDALBOOT_SOUND_OFF);
+    display_toast(medalboot_sound_name(s), 1500);
+    ESP_LOGI(TAG, "%s", medalboot_sound_name(s));
 }
 
 void input_init(void)

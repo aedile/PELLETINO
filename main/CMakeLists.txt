@@ -6,7 +6,7 @@ if(EXISTS ${CREDITS_TXT})
 endif()
 
 idf_component_register(
-    SRCS "main.cpp" "menu.cpp" "input.cpp" "games.cpp" "splash.c" "credits.c" "battery.c" "sound.c"
+    SRCS "main.cpp" "menu.cpp" "input.cpp" "games.cpp" "splash.c" "credits.c" "howto.c" "battery.c" "sound.c"
     INCLUDE_DIRS "."
     REQUIRES driver esp_timer esp_partition app_update nvs_flash display imu mqart medalboot fest chiptune audio_hal esp_adc
     EMBED_TXTFILES ${TXT}

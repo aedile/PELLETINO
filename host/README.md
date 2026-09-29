@@ -34,3 +34,8 @@ without reading out of bounds.
 `music/run.sh <file> [track] [out.wav]` plays an NSF or MIDI file through the
 launcher's own player and checks that what comes out is music; `music/audition.sh`
 writes a file's tracks out as WAVs so you can choose one.
+
+`music/sfx.sh [dir]` does the same for the sound effects: that each starts at
+once, is as bright as it should be, dies away and ends, clips rather than wraps
+over loud music, and leaves the music untouched afterwards. Give it a directory
+and it writes each effect there as a WAV.

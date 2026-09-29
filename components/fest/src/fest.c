@@ -8,7 +8,9 @@
 uint8_t *fest_fb;
 uint16_t fest_pal[256];
 static uint16_t pal_dim[256];                     /* the same colours on a scanline */
+static uint8_t  pal_rgb[256][3];                  /* and as they were given, for fest_white */
 bool fest_crt;
+uint8_t fest_white;
 
 #define STRIP 20                                  /* rows converted per SPI push */
 static uint16_t *strip;                           /* FB_W * STRIP, DMA-capable */
@@ -21,6 +23,7 @@ static uint16_t rgb(uint8_t r, uint8_t g, uint8_t b)
 
 void fest_colour(uint8_t i, uint8_t r, uint8_t g, uint8_t b)
 {
+    pal_rgb[i][0] = r; pal_rgb[i][1] = g; pal_rgb[i][2] = b;
     fest_pal[i] = rgb(r, g, b);
     pal_dim[i]  = rgb((uint8_t)(r * 3 / 4), (uint8_t)(g * 3 / 4), (uint8_t)(b * 3 / 4));
 }
@@ -96,12 +99,23 @@ void fest_text_center(int y, const char *s, uint8_t colour)
 void fest_present(void)
 {
     if (!fest_fb) return;
+
+    /* a flash is the whole palette pulled toward white, scanlines and all */
+    static uint16_t flash[256];
+    if (fest_white)
+        for (int i = 0; i < 256; i++) {
+            const uint8_t *c = pal_rgb[i];
+            flash[i] = rgb((uint8_t)(c[0] + (255 - c[0]) * fest_white / 255),
+                           (uint8_t)(c[1] + (255 - c[1]) * fest_white / 255),
+                           (uint8_t)(c[2] + (255 - c[2]) * fest_white / 255));
+        }
+
     for (int y = 0; y < FB_H; y += STRIP) {
         int h = FB_H - y < STRIP ? FB_H - y : STRIP;
         const uint8_t *src = fest_fb + (size_t)y * FB_W;
         uint16_t *dst = strip;
         for (int r = 0; r < h; r++) {
-            const uint16_t *pal = (fest_crt && ((y + r) & 1)) ? pal_dim : fest_pal;
+            const uint16_t *pal = fest_white ? flash : (fest_crt && ((y + r) & 1)) ? pal_dim : fest_pal;
             for (int x = 0; x < FB_W; x++) *dst++ = pal[*src++];
         }
         display_set_window(0, (uint16_t)y, FB_W, (uint16_t)h);

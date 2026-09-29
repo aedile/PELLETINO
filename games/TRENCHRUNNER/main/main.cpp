@@ -69,7 +69,8 @@ extern "C" void app_main(void)
 #endif
     input_init();
     audio_init();
-    if (medalboot_muted()) audio_set_mute(true);   /* muted elsewhere: stay muted */
+    audio_set_volume(medalboot_sound_volume(medalboot_sound()));   /* as it was left, here or anywhere */
+    if (medalboot_muted()) audio_set_mute(true);
 
     /* far enough in to be sure this image works: stop the launcher counting attempts */
     medalboot_game_running();

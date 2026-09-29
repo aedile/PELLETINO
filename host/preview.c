@@ -18,6 +18,7 @@
 #include "games.h"
 #include "battery.h"
 #include "sound.h"
+#include "chiptune.h"
 
 /* --- the artwork blob, out of a file rather than a partition --- */
 static uint8_t *blob;
@@ -59,11 +60,14 @@ void display_write_preswapped(const uint16_t *px, uint32_t n)
 void display_wait_done(void) { }
 
 /* --- everything else the wheel asks about --- */
-static int hold_ms, all_installed = 1, muted, charge = 82;
+static int hold_ms, all_installed = 1, muted, quiet, charge = 82;
 int  input_hold_ms(void)            { return hold_ms; }
 bool game_installed(const char *r)  { (void)r; return all_installed; }
 int  battery_percent(void)          { return charge; }
 bool sound_muted(void)              { return muted; }
+bool sound_quiet(void)              { return quiet; }
+void chip_tone(int hz)              { (void)hz; }
+void chip_sfx(chip_sfx_t w)         { (void)w; }
 
 static const char *outdir;
 static int written;
@@ -142,7 +146,16 @@ int main(int argc, char **argv)
     all_installed = 0; menu_render(); shot("state_absent");   all_installed = 1;
     hold_ms = 900;     menu_render(); shot("state_hold");     hold_ms = 0;
     muted = 1; charge = 4; menu_render(); shot("state_muted_flat"); muted = 0; charge = 82;
+    quiet = 1; hold_ms = 1900; menu_render(); shot("state_quiet_hold_nearly_full"); quiet = 0; hold_ms = 0;
+    menu_set_mode(MENU_SHOWCASE); menu_nav(+1); settle(); shot("state_showcase");
     menu_set_mode(MENU_LAUNCHING); menu_render(); shot("state_launching");
+    menu_set_mode(MENU_BROWSE); menu_begin_launch();
+    for (int i = 0; !menu_launch_done(); i++) {
+        menu_render();
+        snprintf(name, sizeof name, "launch_%02d", i);
+        shot(name);
+    }
+    menu_set_mode(MENU_BROWSE);
     menu_show_message("COULD NOT START", "HOLD TO PICK ANOTHER"); menu_render(); shot("state_message");
 
     printf("wrote %d screens to %s%s\n", written, outdir, scramble ? " (scrambled artwork)" : "");

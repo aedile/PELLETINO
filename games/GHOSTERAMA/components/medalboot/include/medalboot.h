@@ -30,6 +30,7 @@
 #pragma once
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,6 +68,16 @@ bool medalboot_rom(char *out, size_t len);
  * startup and writes it whenever the player changes it. */
 bool medalboot_muted(void);
 void medalboot_set_muted(bool muted);
+
+/* Three settings, stepped through by pressing both buttons: loud, quiet, off.
+ * The numbers are what is stored, and 0 and 1 are what "not muted" and "muted"
+ * were before there was a quiet, so an older image reads a newer setting as
+ * sensibly as it can. */
+typedef enum { MEDALBOOT_SOUND_LOUD = 0, MEDALBOOT_SOUND_OFF = 1, MEDALBOOT_SOUND_QUIET = 2 } medalboot_sound_t;
+medalboot_sound_t medalboot_sound(void);
+medalboot_sound_t medalboot_sound_next(void);           /* step on, save it, and say what it is now */
+const char       *medalboot_sound_name(medalboot_sound_t s);    /* for the toast: "SOUND QUIET" */
+uint8_t           medalboot_sound_volume(medalboot_sound_t s);  /* for audio_set_volume() */
 
 #ifdef __cplusplus
 }

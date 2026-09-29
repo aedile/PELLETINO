@@ -3,7 +3,7 @@
  *
  * The repository ships no music. Drop a file in music/ and it is embedded at
  * build time; with none, the screen that wanted it runs silent and the build
- * still works. Same arrangement as the ROMs and the marquee art.
+ * still works. Same arrangement as the ROMs and the artwork.
  *
  *   music/splash.nsf   or  music/splash.mid     the opening
  *   music/credits.nsf  or  music/credits.mid    the credits roll
@@ -34,6 +34,17 @@ void chip_play(void);                   /* start, or restart, from the top */
 void chip_stop(void);                   /* silence */
 void chip_free(void);                   /* give the memory back */
 bool chip_playing(void);
+
+/* Sound effects. They are made in code, so there is nothing to supply, and
+ * they are mixed over the music - or over silence, if there is none. */
+typedef enum {
+    CHIP_SFX_SHING,     /* a blade drawn: the flash in the opening */
+    CHIP_SFX_CLICK,     /* one step of the wheel */
+    CHIP_SFX_COIN,      /* a game chosen */
+    CHIP_SFX_LOW,       /* the battery is running out */
+} chip_sfx_t;
+void chip_sfx(chip_sfx_t which);
+void chip_tone(int hz);                 /* a held tone at this pitch until told otherwise; 0 stops it */
 
 #ifdef __cplusplus
 }

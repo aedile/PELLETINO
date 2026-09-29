@@ -34,7 +34,7 @@ foreach(slot splash credits)
 endforeach()
 
 idf_component_register(
-    SRCS "src/chiptune.c" "src/nsf.c" "src/apu2a03.c" "src/midi_ay.c" "src/ay8910.c"
+    SRCS "src/chiptune.c" "src/sfx.c" "src/nsf.c" "src/apu2a03.c" "src/midi_ay.c" "src/ay8910.c"
     INCLUDE_DIRS "include"
     PRIV_INCLUDE_DIRS "src"
     REQUIRES audio_hal
