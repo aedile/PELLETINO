@@ -8,7 +8,7 @@
  * own medal can pack whatever clip they like with tools/pack_media.py.
  *
  *   BOOT + PWR       -> sound off and on
- *   BOOT hold 10 s  -> back to the MINIMAME menu
+ *   BOOT hold 5 s  -> back to the MINIMAME menu
  *   PWR hold 1 s    -> power off
  */
 #include "esp_log.h"

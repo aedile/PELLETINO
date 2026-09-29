@@ -24,7 +24,7 @@ Hold the medal upright; Mr. Do!'s monitor was vertical.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **Both buttons together** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the PELLETINO menu |
+| **BOOT, hold 5 s** | Back to the PELLETINO menu |
 
 Digging is four-way, so the **dominant axis wins**: tilt mostly sideways and you
 dig sideways, mostly forward and you dig forward. A diagonal does not dig

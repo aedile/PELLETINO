@@ -23,7 +23,7 @@ Hold the medal upright; Galaxian's monitor was vertical.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **Both buttons together** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the PELLETINO menu |
+| **BOOT, hold 5 s** | Back to the PELLETINO menu |
 
 Tilt is measured against however you are holding the medal *right now*. Coin up
 to re-centre.

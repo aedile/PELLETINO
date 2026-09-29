@@ -6,7 +6,7 @@
  * own, and there is little of it: he only runs left and right, and jumps.
  *
  *   twist left / right  -> run
- *   BOOT button         -> jump; hold 10 s to leave for the menu
+ *   BOOT button         -> jump; hold 5 s to leave for the menu
  *   PWR short press     -> coin, then start half a second later; long press (1 s) -> power off
  */
 #include "input.h"

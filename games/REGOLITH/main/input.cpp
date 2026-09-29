@@ -10,7 +10,7 @@
  *   twist left / right  -> rotate the lander
  *   tip away from you   -> the throttle, from nothing to full burn
  *   BOOT button         -> ABORT (every thruster at once, to save a bad approach); hold 3 s
- *                          for sound off and on, 10 s for the menu. The coin starts the flight
+ *                          for sound off and on, 5 s for the menu. The coin starts the flight
  *                          half a second later, so the mission is the cabinet's default.
  *   PWR short press     -> coin, then start half a second later; long press (1 s) -> power off
  */

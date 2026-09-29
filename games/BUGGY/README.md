@@ -21,7 +21,7 @@ A San Antonio Fiesta medal is a collectible pin. This one plays Moon Patrol.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **Both buttons together** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the PELLETINO menu |
+| **BOOT, hold 5 s** | Back to the PELLETINO menu |
 
 **The guns fire themselves.** Moon Patrol's cabinet had separate fire buttons,
 but on a two-button medal the shooting is automatic and the buttons go to the

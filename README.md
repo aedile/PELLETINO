@@ -174,7 +174,7 @@ It starts in attract mode. Press either button to reach the wheel. Tap the
 middle button (**BOOT**) for the next game and the top button (**PWR**) for the
 previous one, and hold the middle button for two seconds on a game to pick it.
 From then on it boots straight into that game. To come back, hold the middle
-button for ten seconds in the game, or hold it while powering on.
+button for five seconds in the game, or hold it while powering on.
 
 ### Troubleshooting
 
@@ -219,7 +219,7 @@ tilt sensor is the joystick, spinner, wheel or yoke. Two buttons do the rest.
 
 | Button | Short press | Hold |
 |---|---|---|
-| **BOOT** (middle) | the game's action: fire, jump, hop, pump | 10 s: back to the menu |
+| **BOOT** (middle) | the game's action: fire, jump, hop, pump | 5 s: back to the menu |
 | **both together** | sound: loud, quiet, off | |
 | **PWR** (top) | insert a coin (then auto-start ½ s later) | 1 s: power off |
 

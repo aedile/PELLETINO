@@ -71,7 +71,7 @@ typedef struct {
      * Leaving the game. On a medal that boots straight into one game, this is the way back to
      * the menu.
      */
-    uint32_t exit_hold_us;            /* 0 disables; the launcher's contract says 10 s */
+    uint32_t exit_hold_us;            /* 0 disables; the launcher's contract says 5 s */
     void (*on_exit)(void);
     uint32_t coin_us, gap_us, start_us;  /* 0 -> 100000 / 400000 / 100000 */
 

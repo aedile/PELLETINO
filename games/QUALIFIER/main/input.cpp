@@ -13,7 +13,7 @@
  *   accelerator                   -> automatic (held down for you)
  *   BOOT tap                      -> shift gear (low <-> high)
  *   BOOT + PWR                     -> sound off and on   (standard)
- *   BOOT hold 10 s                -> back to the menu    (standard)
+ *   BOOT hold 5 s                -> back to the menu    (standard)
  *   PWR short press               -> coin, then start    (standard)
  *   PWR hold 1 s                  -> power off            (standard)
  */
@@ -87,7 +87,7 @@ void input_update(pp_input_t *in)
     in->accel = (now > PEDAL_FROM_US) ? 0x90 : 0;
     in->brake = 0;
 
-    /* a short tap of BOOT shifts gear; longer holds are mute (3 s) and exit (10 s), which
+    /* a short tap of BOOT shifts gear; longer holds are mute (3 s) and exit (5 s), which
      * medal_input handles, so only a genuine tap counts here */
     if (st.boot_released && st.boot_release_held_us < 400000) {
         in->gear = !in->gear;

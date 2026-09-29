@@ -6,7 +6,7 @@
  * Galaxian's own, and there is very little of it: the fighter only moves left and right.
  *
  *   twist left / right  -> the fighter
- *   BOOT button         -> fire; hold 10 s to leave for the menu
+ *   BOOT button         -> fire; hold 5 s to leave for the menu
  *   PWR short press     -> coin, then start half a second later; long press (1 s) -> power off
  */
 #include "input.h"

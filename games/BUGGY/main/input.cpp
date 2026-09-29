@@ -8,7 +8,7 @@
  * the button is held on the cabinet anyway, and nothing in the game is lost by never letting go.
  *
  *   twist left / right  -> slow down / speed up
- *   BOOT button         -> jump; hold 10 s to leave for the menu
+ *   BOOT button         -> jump; hold 5 s to leave for the menu
  *   fire                -> automatic
  *   PWR short press     -> coin, then start half a second later; long press (1 s) -> power off
  */

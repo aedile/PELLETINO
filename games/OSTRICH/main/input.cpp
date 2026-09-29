@@ -6,7 +6,7 @@
  * own, and there is little of it: the knight runs left or right, and flaps.
  *
  *   twist left / right  -> run (and turn) left or right
- *   BOOT button         -> flap; hold 10 s to leave for the menu
+ *   BOOT button         -> flap; hold 5 s to leave for the menu
  *   PWR short press     -> coin, then start half a second later; long press (1 s) -> power off
  */
 #include "input.h"

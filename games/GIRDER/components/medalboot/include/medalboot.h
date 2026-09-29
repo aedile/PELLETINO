@@ -9,7 +9,7 @@
  * every time, skipping the menu, until you deliberately come back.
  *
  *   launcher   hold the button on a game  -> medalboot_set_selected(rom), reboot
- *   game       hold the button for 10 s   -> medalboot_exit_to_menu()
+ *   game       hold the button for 5 s   -> medalboot_exit_to_menu()
  *   either     hold the button at power-on -> selection cleared, menu shown
  *
  * WHAT A GAME MUST DO
@@ -36,7 +36,7 @@
 extern "C" {
 #endif
 
-#define MEDALBOOT_EXIT_HOLD_MS  10000   /* hold this long in a game to leave it */
+#define MEDALBOOT_EXIT_HOLD_MS  5000   /* hold this long in a game to leave it */
 #define MEDALBOOT_MAX_ATTEMPTS  3       /* give up auto-booting after this many */
 
 /* --- launcher side --- */

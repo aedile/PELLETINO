@@ -8,7 +8,7 @@
  *
  *   twist left / right  -> turn toward the left or right of the screen
  *   tip away / toward   -> turn toward the top or bottom
- *   BOOT button         -> fire; hold 10 s to leave for the menu
+ *   BOOT button         -> fire; hold 5 s to leave for the menu
  *   PWR short press     -> coin, then start half a second later; long press (1 s) -> power off
  */
 #include "input.h"

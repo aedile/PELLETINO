@@ -23,7 +23,7 @@ A San Antonio Fiesta medal is a collectible pin. This one plays Lunar Lander.
 | **Power button, short press** | Insert a coin, then start |
 | **Power button, hold 1 s** | Power off |
 | **Both buttons together** | Sound off / on |
-| **BOOT, hold 10 s** | Back to the PELLETINO menu |
+| **BOOT, hold 5 s** | Back to the PELLETINO menu |
 
 The throttle is the one genuinely analogue control on the medal, and it is the
 reason this game plays well on a tilt sensor at all: the cabinet had a physical

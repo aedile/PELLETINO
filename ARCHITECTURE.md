@@ -36,7 +36,7 @@ someone. The selection lives in NVS and survives power cycles.
 | | |
 |---|---|
 | In the menu, **hold the button 2 s** on a game | selects it and boots it, permanently |
-| In a game, **hold the button 10 s** | forgets the selection, returns to the menu |
+| In a game, **hold the button 5 s** | forgets the selection, returns to the menu |
 | **Hold the button while powering on** | forgets the selection, shows the menu |
 
 Taps do nothing at all, so it cannot be started by a knock in a pocket. The
