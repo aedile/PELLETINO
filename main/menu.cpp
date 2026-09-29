@@ -21,6 +21,7 @@
 #include "battery.h"
 #include "sound.h"
 #include "chiptune.h"
+#include "medalboot.h"
 #include "esp_log.h"
 #include <string.h>
 #include <stdlib.h>
@@ -291,7 +292,14 @@ static void footer(const mqart_entry_t *e, bool installed)
         text_centred(FB_W / 2, top + 12, "LAUNCHING", UI_GREEN, 1);
         return;
     }
-    text_centred(FB_W / 2, top + 7, e->by, UI_WHITE, 1);
+    uint32_t hs = (installed && e->rom) ? medalboot_get_highscore(e->rom) : 0;
+    if (hs > 0 && ((s_frame / 64) & 1)) {
+        char hsb[32];
+        snprintf(hsb, sizeof hsb, "HI %lu", (unsigned long)hs);
+        text_centred(FB_W / 2, top + 7, hsb, UI_YELLOW, 1);
+    } else {
+        text_centred(FB_W / 2, top + 7, e->by, UI_WHITE, 1);
+    }
     if (s_mode == MENU_SHOWCASE) {
         if ((s_frame / 12) & 1) text_centred(FB_W / 2, top + 19, "PRESS A BUTTON", UI_YELLOW, 1);
         return;

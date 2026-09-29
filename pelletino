@@ -99,7 +99,7 @@ cmd_clean() { rm -rf "$BUILD" build/manifest.json; ok "cleaned"; }
 cmd_help() {
     cat <<'EOF'
 
-  MINIMAME - a multi-game arcade medal for the Waveshare ESP32-C6-LCD-1.69
+  PELLETINO - an arcade in your pocket for the Waveshare ESP32-C6-LCD-1.69
 
     ./install.sh             everything: ROMs in roms/ to a flashed medal, in one step
 

@@ -30,6 +30,39 @@ static const char *TAG = "battery";
 #define CUTOFF_STRIKES 3                 /* consecutive low reads before acting */
 #define SAMPLE_US      5000000
 
+/* Standard 3.7V nominal LiPo discharge curve */
+static const struct { int mv; int pct; } lipo_lut[] = {
+    { 4200, 100 },
+    { 4060,  90 },
+    { 3980,  80 },
+    { 3920,  70 },
+    { 3870,  60 },
+    { 3820,  50 },
+    { 3790,  40 },
+    { 3770,  30 },
+    { 3740,  20 },
+    { 3680,  10 },
+    { 3450,   5 },
+    { 3300,   0 }
+};
+
+static int mv_to_percent(int mv)
+{
+    if (mv >= lipo_lut[0].mv) return 100;
+    int n = (int)(sizeof(lipo_lut) / sizeof(lipo_lut[0]));
+    if (mv <= lipo_lut[n - 1].mv) return 0;
+    for (int i = 0; i < n - 1; i++) {
+        if (mv >= lipo_lut[i + 1].mv) {
+            int v_high = lipo_lut[i].mv;
+            int v_low  = lipo_lut[i + 1].mv;
+            int p_high = lipo_lut[i].pct;
+            int p_low  = lipo_lut[i + 1].pct;
+            return p_low + (mv - v_low) * (p_high - p_low) / (v_high - v_low);
+        }
+    }
+    return 0;
+}
+
 static void sample(void);
 
 static adc_oneshot_unit_handle_t adc;
@@ -77,8 +110,7 @@ static void sample(void)
     if (!cali || adc_cali_raw_to_voltage(cali, raw, &mv) != ESP_OK) mv = raw * 3300 / 4095;
     last_mv = mv * DIVIDER;
 
-    int p = (last_mv - EMPTY_MV) * 100 / (FULL_MV - EMPTY_MV);
-    pct = p < 0 ? 0 : p > 100 ? 100 : p;
+    pct = mv_to_percent(last_mv);
 }
 
 int battery_percent(void)

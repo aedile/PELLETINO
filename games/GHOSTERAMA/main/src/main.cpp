@@ -321,7 +321,37 @@ extern "C" void app_main(void) {
       static bool first_attract_entry = true;
 
       if (first_attract_entry) {
-         first_attract_entry = false;
+        first_attract_entry = false;
+        uint32_t saved_hs = medalboot_get_highscore(is_ms ? "mspacman" : "pacman");
+        if (saved_hs > 0) {
+          uint8_t *rw = pacman_get_memory_rw();
+          if (rw) {
+            uint8_t *p = rw + (PACMAN_ADDR_HIGHSCORE - 0x4000);
+            auto bin_to_bcd = [](uint32_t val) -> uint8_t {
+              return (uint8_t)(((val / 10 % 10) << 4) | (val % 10));
+            };
+            p[0] = bin_to_bcd(saved_hs);
+            p[1] = bin_to_bcd(saved_hs / 100);
+            p[2] = bin_to_bcd(saved_hs / 10000);
+            p[3] = bin_to_bcd(saved_hs / 1000000);
+            ESP_LOGI(TAG, "Restored high score from NVS: %lu", (unsigned long)saved_hs);
+          }
+        }
+      } else {
+        const uint8_t *mem = pacman_get_memory();
+        if (mem) {
+          const uint8_t *p = mem + (PACMAN_ADDR_HIGHSCORE - 0x4000);
+          auto bcd_to_bin = [](uint8_t b) {
+            uint8_t hi = (b >> 4) & 0x0F, lo = b & 0x0F;
+            return (hi <= 9 && lo <= 9) ? (hi * 10 + lo) : 0;
+          };
+          uint32_t hs = bcd_to_bin(p[0]) + bcd_to_bin(p[1]) * 100 +
+                        bcd_to_bin(p[2]) * 10000 + bcd_to_bin(p[3]) * 1000000;
+          if (hs > 0) {
+            medalboot_set_highscore(is_ms ? "mspacman" : "pacman", hs);
+            ESP_LOGI(TAG, "Saved high score to NVS: %lu", (unsigned long)hs);
+          }
+        }
       }
       
 #if PLAY_FIESTA_VIDEO

@@ -1,4 +1,4 @@
-# MINIMAME
+# PELLETINO
 
 A menu. It turns a wheel of game logos and chain-boots the games;
 it runs no emulation itself.

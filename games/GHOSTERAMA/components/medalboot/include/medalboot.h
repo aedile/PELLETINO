@@ -58,9 +58,15 @@ void medalboot_exit_to_menu(void);   /* clears the selection and reboots */
  * Keeps the exit gesture identical across every medal. */
 bool medalboot_exit_hold(bool button_down);
 
-/* Which ROM set to run - a single image can serve several (GHOSTERAMA carries both
+/* Which ROM set to run - a single image can serve several (PELLETINO carries both
  * Pac-Man and Ms. Pac-Man). Returns false if the game was not started by the menu. */
 bool medalboot_rom(char *out, size_t len);
+
+/* --- high scores, per ROM ---
+ * Saved in NVS under the game's ROM name. Both the game and the launcher can read
+ * and write it; writes only commit if the new score exceeds the existing one. */
+uint32_t medalboot_get_highscore(const char *rom);
+void     medalboot_set_highscore(const char *rom, uint32_t score);
 
 /* --- sound, everywhere ---
  * Muting is one setting for the whole medal: set in the menu or in any game, it

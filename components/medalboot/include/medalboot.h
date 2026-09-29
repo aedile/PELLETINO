@@ -62,6 +62,12 @@ bool medalboot_exit_hold(bool button_down);
  * Pac-Man and Ms. Pac-Man). Returns false if the game was not started by the menu. */
 bool medalboot_rom(char *out, size_t len);
 
+/* --- high scores, per ROM ---
+ * Saved in NVS under the game's ROM name. Both the game and the launcher can read
+ * and write it; writes only commit if the new score exceeds the existing one. */
+uint32_t medalboot_get_highscore(const char *rom);
+void     medalboot_set_highscore(const char *rom, uint32_t score);
+
 /* --- sound, everywhere ---
  * Muting is one setting for the whole medal: set in the menu or in any game, it
  * holds in every other and across power cycles. Each image reads it once at

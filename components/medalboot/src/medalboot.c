@@ -185,3 +185,36 @@ void medalboot_set_muted(bool muted)
 {
     set_u8(K_MUTED, muted ? MEDALBOOT_SOUND_OFF : MEDALBOOT_SOUND_LOUD);
 }
+
+/* ---- high scores: saved in NVS per ROM name ------------------------------- */
+
+uint32_t medalboot_get_highscore(const char *rom)
+{
+    if (!rom || !rom[0] || !ensure_nvs()) return 0;
+    char key[16];
+    snprintf(key, sizeof key, "hs_%s", rom);
+    key[15] = '\0';
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return 0;
+    uint32_t score = 0;
+    nvs_get_u32(h, key, &score);
+    nvs_close(h);
+    return score;
+}
+
+void medalboot_set_highscore(const char *rom, uint32_t score)
+{
+    if (!rom || !rom[0] || score == 0 || !ensure_nvs()) return;
+    char key[16];
+    snprintf(key, sizeof key, "hs_%s", rom);
+    key[15] = '\0';
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READWRITE, &h) != ESP_OK) return;
+    uint32_t prev = 0;
+    nvs_get_u32(h, key, &prev);
+    if (score > prev) {
+        nvs_set_u32(h, key, score);
+        nvs_commit(h);
+    }
+    nvs_close(h);
+}

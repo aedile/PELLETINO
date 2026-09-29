@@ -112,8 +112,14 @@ source under the GPL, which this repository provides (`games/<game>/` plus the
 `LICENSES/GPL-3.0.txt` each ships). GPL-3.0 is compatible with the 0BSD code
 around it.
 
-> Star Wars (TRENCHRUNNER), Gyruss (TOCCATA — also non-commercial, above),
+> Star Wars (TRENCHRUNNER), Gyruss (TOCCATA — also non-commercial, see below),
 > Joust (OSTRICH), Empire Strikes Back (WALKERRUN).
+
+> **A note on Gyruss (TOCCATA):** Gyruss links *both* the vecx MC6809 (GPL-3.0)
+> and the Fayzullin Z80 (non-commercial freeware). Because GPL-3.0 Section 7 forbids
+> imposing further restrictions on downstream users (such as a "non-commercial only"
+> clause), compiled binaries of Gyruss cannot legally be redistributed. They must be
+> built locally for personal use only.
 
 ## RealNetworks RPSL (the Street Fighter II video and the easter-egg clips)
 

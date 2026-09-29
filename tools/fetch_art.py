@@ -31,7 +31,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ART  = os.path.join(ROOT, 'art')
 
 BASE = os.environ.get('PELLETINO_ART_BASE',
-    'http://adb.arcadeitalia.net/media/mame.current/{kind}/{name}.png')
+    'https://adb.arcadeitalia.net/media/mame.current/{kind}/{name}.png')
 KINDS = {'logo': 'decals', 'snap': 'ingames'}      # ours -> the archive's
 
 # The archive files a regional set under its parent. Anything not listed is
