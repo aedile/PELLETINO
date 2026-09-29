@@ -520,21 +520,92 @@ that is what `tools/flash_all.sh` (behind `./pelletino flash`) does.
 
 ## Credits and license
 
-The emulator cores under `games/*/core/` were written for this project with MAME's
-drivers used as hardware documentation — memory maps, interrupt timing, palette
-decoding and measured sound levels. `LICENSING.md` records the line-by-line
-comparison against the MAME source that backs that claim.
+PELLETINO stands on a great deal of other people's work. This is who, and where
+to find them. The credits roll on the device names the same people.
 
-Third-party code, each keeping its own terms: **Marat Fayzullin's Z80** (the
-non-commercial core most games are built on), the **vecx MC6809** (GPL-3.0, the
-four 6809 titles), **MAME** (BSD-3-Clause, as reference), **TinyMidiLoader** by
-Bernhard Schelling (zlib, MIDI parsing), **font8x8** by Daniel Hepper
-(public domain), and **ESP-IDF** by Espressif.
+### The games
+
+Every game belongs to its maker. None of them ships with this project, and
+nothing here is affiliated with or endorsed by any of them.
+
+| Game | Made by | Year |
+|---|---|---|
+| Arkanoid | Taito | 1986 |
+| Asteroids | Atari | 1979 |
+| Burger Time | Data East | 1982 |
+| Centipede | Atari | 1980 |
+| Dig Dug | Namco | 1982 |
+| Donkey Kong | Nintendo | 1981 |
+| Empire Strikes Back | Atari | 1985 |
+| Frogger | Konami | 1981 |
+| Galaga | Namco | 1981 |
+| Galaxian | Namco | 1979 |
+| Gyruss | Konami | 1983 |
+| Joust | Williams | 1982 |
+| Lunar Lander | Atari | 1979 |
+| Mario Bros. | Nintendo | 1983 |
+| Missile Command | Atari | 1980 |
+| Moon Patrol | Irem | 1982 |
+| Mr. Do! | Universal | 1982 |
+| Ms. Pac-Man | Midway | 1982 |
+| Pac-Man | Namco | 1980 |
+| Pole Position | Namco | 1982 |
+| Rally-X | Namco | 1980 |
+| Root Beer Tapper | Bally Midway | 1984 |
+| Space Invaders | Taito | 1978 |
+| Star Wars | Atari | 1983 |
+| Street Fighter II | Capcom | 1991 |
+| Tempest | Atari | 1981 |
+| Time Pilot | Konami | 1982 |
+
+### Emulation
+
+| What | Who | Used for | Licence |
+|---|---|---|---|
+| [Z80 emulator](https://fms.komkon.org/EMUL8/) | Marat Fayzullin | the CPU in most of the games | free for non-commercial use |
+| [vecx](https://github.com/jhawthorn/vecx) MC6809 | Valavan Manohararajah | Star Wars, Empire Strikes Back, Joust, Gyruss | GPL-3.0 |
+| [chips](https://github.com/floooh/chips) 6502 | Andre Weissflog | Centipede | zlib |
+| [MAME](https://www.mamedev.org/) ([source](https://github.com/mamedev/mame)) | Nicola Salmoria, Aaron Giles and every contributor since | the reference for how each machine behaves: memory maps, interrupt timing, palettes, sound levels | BSD-3-Clause |
+
+The cores under `games/*/core/` were written for this project with MAME's
+drivers used as hardware documentation. `LICENSING.md` records the line-by-line
+comparison against the MAME source that backs that claim. None of this would
+exist without the decades of work the MAME team has put into documenting these
+machines.
+
+### Software
+
+| What | Who | Used for | Licence |
+|---|---|---|---|
+| [TinyMidiLoader](https://github.com/schellingb/TinySoundFont) | Bernhard Schelling | reading MIDI files | zlib |
+| Helix MP3 decoder ([a widely used mirror](https://github.com/ultraembedded/libhelix-mp3)) | RealNetworks | the sound on the Street Fighter II video | RPSL |
+| [font8x8](https://github.com/dhepper/font8x8) | Daniel Hepper | every letter on the screen | public domain |
+| [ESP-IDF](https://github.com/espressif/esp-idf) | Espressif Systems | everything underneath | Apache-2.0 |
+
+### Inspiration, and where things come from
+
+- [**Galagino**](https://github.com/harbaum/galagino) by Till Harbaum showed that
+  arcade machines fit on an ESP32, and how to be straight with people about ROMs.
+  PELLETINO's manifest and its whole approach to "you supply the ROMs" follow it.
+- [**Arcade Database**](http://adb.arcadeitalia.net/) is where `./pelletino art`
+  downloads logos and screenshots from. They host them; this project does not.
+- The board is Waveshare's
+  [ESP32-C6-LCD-1.69](https://www.waveshare.com/wiki/ESP32-C6-LCD-1.69).
+- Sister projects on the same board:
+  [DIABLITO](https://github.com/aedile/DIABLITO) (shareware Doom) and
+  [FIESTA-ENTERTAINMENT-SYSTEM](https://github.com/aedile/FIESTA-ENTERTAINMENT-SYSTEM)
+  (an NES).
+
+### Music
+
+No music ships. Whatever you install is credited on the device from
+`music/credits.txt`, so the composer is named on the thing playing their work.
+
+### Licence
 
 PELLETINO's own code is Zero-Clause BSD (`LICENSE`) — free for everyone, no
 conditions. The assembled bundle is **not for sale**; see
 [LICENSING.md](LICENSING.md) for the full picture, and each game's own `LICENSE`
 and `THIRD_PARTY_NOTICES.md` for the authoritative per-game terms.
 
-No game ROMs, artwork or music are distributed here. The credits roll on the
-device names the same people this section does.
+No game ROMs, artwork or music are distributed here.
