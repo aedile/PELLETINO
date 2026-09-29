@@ -98,7 +98,7 @@ slot_kb = 448
 [[game]]
 rom = "centiped"
 title = "Centipede"
-by = "Atari 1980"
+by = "Atari 1981"
 project = "CHILOPODA"
 slot_kb = 448
 

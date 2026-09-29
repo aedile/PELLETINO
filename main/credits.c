@@ -60,7 +60,7 @@ static const char *const before_music[] = {
     "Lunar Lander\tAtari 1979",
     "Asteroids\tAtari 1979",
     "Missile Command\tAtari 1980",
-    "Centipede\tAtari 1980",
+    "Centipede\tAtari 1981",
     "Tempest\tAtari 1981",
     "Star Wars\tAtari 1983",
     "Frogger\tKonami 1981",

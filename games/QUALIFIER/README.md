@@ -72,10 +72,13 @@ pixel with black bars above and below (`ORIENTATION_PORTRAIT` in
   is captured when you insert a coin and on the first press of the
   accelerator, so hold it the way you want it first. About 30 degrees is
   full lock.
-* **BOOT button** (middle) is the accelerator.
-* **PWR button** (top), tap: insert a coin (the race starts by itself). Hold
-  for half a second and release: shift between low and high gear. Hold for
-  two seconds: power off.
+* **The accelerator is automatic.** It is held down for you from the moment
+  the attract screen appears.
+* **BOOT button** (middle), tap: shift between low and high gear. Hold for ten
+  seconds: back to the menu.
+* **PWR button** (top), tap: insert a coin (the race starts by itself). Hold for
+  one second: power off.
+* **Both buttons together:** sound loud, quiet, off.
 
 DIP switches are set in `main/main.cpp` (`pp_set_dips`).
 
