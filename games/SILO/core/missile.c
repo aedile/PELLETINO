@@ -261,3 +261,10 @@ uint32_t mc_frame_count(void) { return frame_count; }
 uint32_t mc_irq_count(void) { return irq_count; }
 uint32_t mc_idle_cycles(void) { uint32_t v = idle_cycles; idle_cycles = 0; return v; }
 const uint8_t *mc_ram(void) { return ram; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *mc_mem(uint16_t a)
+{
+    if (a < 0x4000) return &ram[a];
+    return 0;
+}

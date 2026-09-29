@@ -63,6 +63,7 @@ void fr_render_audio(int16_t *buf, int samples, int rate);
 /* diagnostics */
 uint16_t fr_pc(void);
 uint32_t fr_frame_count(void);
+uint8_t *fr_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 const uint8_t *fr_ram(void);
 
 #ifdef __cplusplus

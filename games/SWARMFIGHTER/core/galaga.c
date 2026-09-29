@@ -366,3 +366,13 @@ uint32_t ga_frame_count(void) { return frame_count; }
 uint32_t ga_halt_cycles(int i) { uint32_t v = halt_cycles[i]; halt_cycles[i] = 0; return v; }
 int ga_credits(void) { return n51.credits; }
 uint8_t ga_starfield_ctl(void) { return ga_videolatch; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *ga_mem(uint16_t a)
+{
+    if (a >= 0x8000 && a < 0x8800) return &ga_videoram[a - 0x8000];
+    if (a >= 0x8800 && a < 0x8c00) return &ga_ram1[a - 0x8800];
+    if (a >= 0x9000 && a < 0x9400) return &ga_ram2[a - 0x9000];
+    if (a >= 0x9800 && a < 0x9c00) return &ga_ram3[a - 0x9800];
+    return 0;
+}

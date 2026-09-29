@@ -62,6 +62,7 @@ void dd_render_audio(int16_t *buf, int samples, int rate);
 
 uint16_t dd_pc(int cpu);
 uint32_t dd_frame_count(void);
+uint8_t *dd_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 uint32_t dd_halt_cycles(int cpu);
 int dd_credits(void);
 

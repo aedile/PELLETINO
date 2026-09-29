@@ -55,6 +55,7 @@ void tap_render_audio(int16_t *buf, int samples, int rate);
 uint16_t tap_pc(void);
 uint16_t tap_snd_pc(void);
 uint32_t tap_frame_count(void);
+uint8_t *tap_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 
 #ifdef __cplusplus
 }

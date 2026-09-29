@@ -411,3 +411,14 @@ uint16_t dd_pc(int i) { return cpu[i].PC.W; }
 uint32_t dd_frame_count(void) { return frame_count; }
 uint32_t dd_halt_cycles(int i) { uint32_t v = halt_cycles[i]; halt_cycles[i] = 0; return v; }
 int dd_credits(void) { return n51.credits; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *dd_mem(uint16_t a)
+{
+    if (a >= 0x8000 && a < 0x8400) return &dd_videoram[a - 0x8000];
+    if (a >= 0x8400 && a < 0x8800) return &work[a - 0x8400];
+    if (a >= 0x8800 && a < 0x8c00) return &dd_objram[a - 0x8800];
+    if (a >= 0x9000 && a < 0x9400) return &dd_posram[a - 0x9000];
+    if (a >= 0x9800 && a < 0x9c00) return &dd_flpram[a - 0x9800];
+    return 0;
+}

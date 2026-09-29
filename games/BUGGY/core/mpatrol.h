@@ -58,6 +58,7 @@ void mp_render_audio(int16_t *buf, int samples, int rate);
 uint16_t mp_pc(void);
 uint16_t mp_snd_pc(void);
 uint32_t mp_frame_count(void);
+uint8_t *mp_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 
 #ifdef __cplusplus
 }

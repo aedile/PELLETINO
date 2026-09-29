@@ -143,9 +143,14 @@ void medal_input_insert_coin(void)
 bool medal_input_have_neutral(void) { return have_neutral; }
 bool medal_input_imu_ok(void) { return imu_ok; }
 
+/* Something that has to happen before the power goes - the score keeper saving what it has.
+ * Whoever wants it defines it; nobody has to. */
+extern "C" __attribute__((weak)) void medal_before_power_off(void) { }
+
 void medal_input_power_off(void)
 {
     ESP_LOGI(TAG, "power off");
+    medal_before_power_off();
     gpio_set_level(PIN_BAT_EN, 0);
     vTaskDelay(pdMS_TO_TICKS(1000));
 }

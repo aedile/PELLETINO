@@ -70,6 +70,7 @@ uint16_t gy_mcu_pc(void);
 uint8_t  gy_soundlatch(void);
 uint8_t  gy_audio_iff(void);
 uint32_t gy_frame_count(void);
+uint8_t *gy_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 
 #ifdef __cplusplus
 }

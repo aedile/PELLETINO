@@ -148,3 +148,10 @@ void mp_run_frame(void)
 
 uint16_t mp_pc(void) { return cpu.PC.W; }
 uint32_t mp_frame_count(void) { return frame_count; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *mp_mem(uint16_t a)
+{
+    if (a >= 0xe000 && a < 0xe800) return &ram[a & 0x7ff];
+    return 0;
+}

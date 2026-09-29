@@ -310,3 +310,10 @@ void tap_render_audio(int16_t *buf, int samples, int rate)
 uint16_t tap_pc(void) { return cpu[0].PC.W; }
 uint16_t tap_snd_pc(void) { return cpu[1].PC.W; }
 uint32_t tap_frame_count(void) { return frame_count; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *tap_mem(uint16_t a)
+{
+    if (a >= 0xe000 && a < 0xe800) return &ram[a & 0x7ff];
+    return 0;
+}

@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include "missile.h"
 #include "missile_roms.h"
+#include "scores.h"
+#include "host_scores.h"
 
 typedef struct { double t; char key[8]; int val; } event_t;
 
@@ -50,6 +52,7 @@ int main(int argc, char **argv)
     }
     mc_roms_t roms = { mc_rom, mc_writeprom };
     mc_init(&roms);
+    hiscore_begin(&game_scores);
     mc_set_dips((uint8_t)r10, (uint8_t)r8);
     mc_input_t *in = mc_input();
 
@@ -73,6 +76,8 @@ int main(int argc, char **argv)
             }
         }
         mc_run_frame();
+        hiscore_frame();
+        host_scores_frame(&game_scores, now);
         if (wav) {
             audio_acc += rate / fps; int n = (int)audio_acc; audio_acc -= n;
             mc_render_audio(abuf, n, rate); fwrite(abuf, 2, n, wav); wav_samples += n;
@@ -90,6 +95,8 @@ int main(int argc, char **argv)
         *(uint32_t *)(h + 28) = rate * 2; *(uint16_t *)(h + 32) = 2; *(uint16_t *)(h + 34) = 16; memcpy(h + 36, "data", 4); *(uint32_t *)(h + 40) = data;
         fseek(wav, 0, SEEK_SET); fwrite(h, 1, 44, wav); fclose(wav);
     }
+    hiscore_flush();
+    host_scores_dump(&game_scores);
     printf("done: %.1fs, %u frames, %u irqs, %d images saved\n", seconds, mc_frame_count(), mc_irq_count(), saved);
     return 0;
 }

@@ -67,6 +67,7 @@ void pp_set_time_source(uint64_t (*now_us)(void));   /* enables per-CPU host tim
 pp_stats_t *pp_stats(void);
 uint16_t pp_pc(int cpu);          /* 0 = Z80, 1 = sub1, 2 = sub2 */
 uint32_t pp_frame_count(void);
+uint8_t *pp_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 uint32_t pp_idle_cycles(int cpu); /* skipped cycles since last call */
 uint8_t pp_latch(void);
 const uint8_t *pp_nvram(void);    /* 0x800 bytes, for persistence */

@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include "galaxian.h"
 #include "galaxian_roms.h"
+#include "scores.h"
+#include "host_scores.h"
 
 typedef struct { double t; char key[8]; int val; } event_t;
 
@@ -49,6 +51,7 @@ int main(int argc, char **argv)
     }
     gx_roms_t roms = { gx_rom, gx_gfx, gx_prom };
     gx_init(&roms);
+    hiscore_begin(&game_scores);
     gx_set_dips(0x00, (uint8_t)dip);
     gx_input_t *in = gx_input();
 
@@ -71,6 +74,8 @@ int main(int argc, char **argv)
             }
         }
         gx_run_frame();
+        hiscore_frame();
+        host_scores_frame(&game_scores, now);
         if (wav) {
             audio_acc += rate / fps; int n = (int)audio_acc; audio_acc -= n;
             gx_render_audio(abuf, n, rate); fwrite(abuf, 2, n, wav); wav_samples += n;
@@ -91,6 +96,8 @@ int main(int argc, char **argv)
     extern uint32_t gx_snd_writes[0x21][2], gx_snd_pitch_hist[256];
     for (int r = 0; r <= 0x20; r++) if (gx_snd_writes[r][0] || gx_snd_writes[r][1]) printf("snd reg %02X: %u x0, %u x1\n", r, gx_snd_writes[r][0], gx_snd_writes[r][1]);
     for (int v = 0; v < 256; v++) if (gx_snd_pitch_hist[v]) printf("pitch %02X: %u\n", v, gx_snd_pitch_hist[v]);
+    hiscore_flush();
+    host_scores_dump(&game_scores);
     printf("done: %.1fs, %u frames, %d images saved\n", seconds, gx_frame_count(), saved);
     return 0;
 }

@@ -20,7 +20,7 @@ any game in the set.
 | **Twist left / right** | The claw, around the rim of the web |
 | **Middle button** | Fire |
 | **Middle button, double tap** | Superzapper |
-| **Both buttons together** | Sound off and on |
+| **Both buttons together** | Sound: loud, quiet, off |
 | **Power button, short press** | Insert a coin and start |
 | **Power button, hold 1 second** | Power off |
 

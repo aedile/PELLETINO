@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include "mario.h"
 #include "mario_roms.h"
+#include "scores.h"
+#include "host_scores.h"
 
 typedef struct { double t; char key[8]; int val; } event_t;
 
@@ -49,6 +51,7 @@ int main(int argc, char **argv)
     }
     mb_roms_t roms = { mb_rom, mb_snd, mb_chr, mb_spr, mb_prom };
     mb_init(&roms);
+    hiscore_begin(&game_scores);
     mb_set_dips((uint8_t)dip);
     mb_input_t *in = mb_input();
 
@@ -71,6 +74,8 @@ int main(int argc, char **argv)
             }
         }
         mb_run_frame();
+        hiscore_frame();
+        host_scores_frame(&game_scores, now);
         if (wav) {
             audio_acc += rate / fps; int n = (int)audio_acc; audio_acc -= n;
             mb_render_audio(abuf, n, rate); fwrite(abuf, 2, n, wav); wav_samples += n;
@@ -89,6 +94,8 @@ int main(int argc, char **argv)
         fseek(wav, 0, SEEK_SET); fwrite(h, 1, 44, wav); fclose(wav);
     }
     for (int i = 0; i < 16; i++) if (mb_dbg_writes[i]) printf("latch %d (%s): %u\n", i, i==0?"7C00 run1":i==1?"7C80 run2":i==2?"7E00 tune":"7F00+", mb_dbg_writes[i]);
+    hiscore_flush();
+    host_scores_dump(&game_scores);
     printf("done: %.1fs, %u frames, %d images saved\n", seconds, mb_frame_count(), saved);
     return 0;
 }

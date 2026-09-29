@@ -162,3 +162,11 @@ void rx_render_audio(int16_t *buf, int samples, int rate)
 uint16_t rx_pc(void) { return cpu.PC.W; }
 uint32_t rx_frame_count(void) { return frame_count; }
 const uint8_t *rx_ram(void) { return ram; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *rx_mem(uint16_t a)
+{
+    if (a >= 0x8000 && a < 0x9000) return &rx_vram[a & 0xfff];
+    if (a >= 0x9800 && a < 0xa000) return &ram[a & 0x7ff];
+    return 0;
+}

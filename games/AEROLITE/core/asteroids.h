@@ -65,6 +65,7 @@ void ast_render_audio(int16_t *buf, int samples, int rate);
 /* diagnostics */
 uint16_t ast_pc(void);
 uint32_t ast_frame_count(void);
+uint8_t *ast_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 uint32_t ast_idle_cycles(void);
 const uint8_t *ast_ram(void);
 

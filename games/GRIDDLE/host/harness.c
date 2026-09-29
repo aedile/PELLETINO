@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include "btime.h"
 #include "btime_roms.h"
+#include "scores.h"
+#include "host_scores.h"
 
 typedef struct { double t; char key[8]; int val; } event_t;
 
@@ -50,6 +52,7 @@ int main(int argc, char **argv)
     }
     bt_roms_t roms = { bt_rom, bt_snd, bt_gfx1, bt_gfx2, bt_bgmap };
     bt_init(&roms);
+    hiscore_begin(&game_scores);
     bt_set_dips((uint8_t)r10, (uint8_t)r8);
     bt_input_t *in = bt_input();
 
@@ -72,6 +75,8 @@ int main(int argc, char **argv)
             }
         }
         bt_run_frame();
+        hiscore_frame();
+        host_scores_frame(&game_scores, now);
         if (wav) {
             audio_acc += rate / fps; int n = (int)audio_acc; audio_acc -= n;
             bt_render_audio(abuf, n, rate); fwrite(abuf, 2, n, wav); wav_samples += n;
@@ -92,6 +97,8 @@ int main(int argc, char **argv)
 #ifdef BT_DEBUG
     { extern uint32_t bt_dbg_hist[0x10000]; printf("hot pcs:"); for (int k = 0; k < 16; k++) { uint32_t best = 0; int bi = -1; for (int i = 0; i < 0x10000; i++) if (bt_dbg_hist[i] > best) { best = bt_dbg_hist[i]; bi = i; } if (bi < 0) break; printf(" %04X:%u", bi, best); bt_dbg_hist[bi] = 0; } printf("\n"); }
 #endif
+    hiscore_flush();
+    host_scores_dump(&game_scores);
     printf("done: %.1fs, %u frames, %d images saved\n", seconds, bt_frame_count(), saved);
     return 0;
 }

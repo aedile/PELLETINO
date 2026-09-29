@@ -52,7 +52,7 @@ code, running on a pin on my shirt.
 
 **The three buttons**, top to bottom as you hold the medal:
 
-- **TOP button (side of the board):** power. Press to turn the medal on; hold
+- **TOP button:** power. Press to turn the medal on; hold
   for a second to turn it off. A short press during a game also inserts a
   coin and re-centers the yoke.
 - **MIDDLE button:** fire. It also starts a game and picks your Death Star on
@@ -94,9 +94,10 @@ is lives in three numbers at the top of `core/autoplay.c` (`SHOT_REFILL_US`,
 
 ### Sound off
 
-Hold the MIDDLE button for three seconds and let go: the sound toggles off, or
-back on. That's for wearing the medal somewhere it needs to be quiet. The game
-keeps running silently underneath.
+Press both buttons together. Each press steps the sound: loud, quiet, off, then
+back to loud. That's for wearing the medal somewhere it needs to be quiet. The
+game keeps running silently underneath, and the setting holds in the menu and
+every other game.
 
 ### The easter egg
 
@@ -130,8 +131,7 @@ long hold.
   *Configuration* below for the two sign flips.
 
 **No sound**
-- Hold the MIDDLE button for three seconds and release: the sound may simply
-  have been switched off.
+- Press both buttons together: the sound may simply have been switched off.
 - The first second after power-on is silent while the game boots; that's
   normal.
 

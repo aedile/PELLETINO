@@ -19,7 +19,7 @@ vertical, so the picture stands up the same way you do.
 |---|---|
 | **Twist left / right** | Move the Vaus |
 | **Middle button** | Fire (once you have the laser) |
-| **Both buttons together** | Sound off and on |
+| **Both buttons together** | Sound: loud, quiet, off |
 | **Power button, short press** | Insert a coin and start |
 | **Power button, hold 1 second** | Power off |
 

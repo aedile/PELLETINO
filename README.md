@@ -248,6 +248,25 @@ battery.
 While both buttons are down neither one counts on its own, so changing the
 sound never inserts a coin, fires or turns the wheel.
 
+### High scores
+
+High scores survive a power cycle. Each game's score table is saved to flash,
+initials included, and put back the next time the game starts.
+
+- **When it saves:** when you leave for the menu, when you power off, and about
+  five seconds after a table stops changing. A score that is still climbing is
+  not written to flash on every point.
+- **In the menu:** a game with a saved score alternates its footer between the
+  maker and `HI` with the best score.
+- **Which games:** every game that keeps a high score. Lunar Lander does not
+  keep one, and Street Fighter II is a video.
+
+Where each game keeps its scores comes from MAME's `hiscore.dat`, which lists
+the addresses for thousands of games. Games whose cabinets kept scores on a
+battery-backed chip (Joust, Pole Position, Star Wars) have that chip's contents
+saved instead. The shared code is `hiscore.c` in the `medalboot` component, and
+each game's table is in its `main/scores.h`.
+
 ### Backlight
 
 After two minutes with no input the screen dims to about 10%. It never turns
@@ -486,6 +505,10 @@ and the menu, how memory is used, and why chain-booting beat one big image.
 - **A game that crashes before its first line runs** (the one that points the
   boot partition back at the launcher) can boot-loop, because control never
   reaches the menu. `ARCHITECTURE.md` covers the handshake.
+- **Three games save their scores but show no number in the menu:** Moon
+  Patrol, Rally-X and Star Wars. Their score formats have not been decoded yet.
+- **Dig Dug shows 10000 at the top of the screen after a restore** until a game
+  has been played. The table itself is restored.
 - **Empire Strikes Back (`esb`) is approved but not playable.** It runs on the
   same vector core as Star Wars, but the scene is heavier and it does not hold
   frame rate. That is why it has no row in the controls table.
@@ -507,8 +530,9 @@ and the menu, how memory is used, and why chain-booting beat one big image.
   chain-boot.
 - `tools/`: the build tooling behind `./pelletino` and `./install.sh`.
 - `host/`: test harnesses that run on your computer instead of the device. One
-  renders the wheel to image files, the others render music and sound effects
-  to WAV and check them.
+  renders the wheel to image files, others render music and sound effects to
+  WAV and check them, and one tests the high score keeper. Each game also has
+  its own harness in `games/<game>/host/`.
 - `games.toml`: the one file that decides what a build *can* contain.
 
 ---

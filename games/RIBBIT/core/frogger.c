@@ -294,3 +294,10 @@ void fr_render_audio(int16_t *buf, int samples, int rate)
 uint16_t fr_pc(void) { return cpu[0].PC.W; }
 uint32_t fr_frame_count(void) { return frame_count; }
 const uint8_t *fr_ram(void) { return ram; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *fr_mem(uint16_t a)
+{
+    if (a >= 0x8000 && a < 0x8800) return &ram[a & 0x7ff];
+    return 0;
+}

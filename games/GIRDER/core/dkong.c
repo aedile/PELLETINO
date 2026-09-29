@@ -180,3 +180,11 @@ void dk_run_frame(void)
 uint16_t dk_pc(void) { return cpu.PC.W; }
 uint16_t dk_snd_pc(void) { return dk_sound_pc(); }
 uint32_t dk_frame_count(void) { return frame_count; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *dk_mem(uint16_t a)
+{
+    if (a >= 0x6000 && a < 0x6c00) return &ram[a - 0x6000];
+    if (a >= 0x7400 && a < 0x7800) return &dk_vram[a & 0x3ff];
+    return 0;
+}

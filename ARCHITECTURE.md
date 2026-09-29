@@ -98,7 +98,7 @@ to the panel directly.
 
 The launcher is driven by the two buttons; tilt does nothing in it. BOOT steps
 forward and PWR back, a two second hold on BOOT picks, a one second hold on PWR
-cuts the battery rail, and both together is mute. `BAT_EN` (GPIO15) must stay
+cuts the battery rail, and both together steps the sound (loud, quiet, off). `BAT_EN` (GPIO15) must stay
 HIGH or the board powers itself off.
 
 ## Artwork pipeline
@@ -156,12 +156,15 @@ Rules that were learned the hard way and are easy to violate without noticing:
 - **Do not skip the hardware step.** A host harness that stubs the panel is only
   as honest as the stub: one verified pixels perfectly for two days while the
   real DMA path was throwing most of them away. Prove a change on the hardware.
-- **Do not power the codec down without a path back up.** The shared
-  `audio_hal` copied into every game deletes the I2S channel and sleeps the
-  ES8311 on mute; for months nothing re-powered them, so the 3 s mute hold was
-  one-way in every game. `audio_set_mute(false)` now calls
-  `audio_set_power_state(true)`; keep that when the HAL is copied or rewritten,
-  and test the hold twice, not once.
+- **Do not power the codec down without a path back up, and make the path back
+  a cold start.** The shared `audio_hal` copied into every game deletes the I2S
+  channel and sleeps the ES8311 when the sound is turned off. Twice this went
+  wrong. First nothing re-powered them, so turning the sound off was one-way.
+  Then they were re-powered by writing the codec's registers back, which left
+  every register reading correctly and the speaker silent. Turning the sound on
+  now runs the same code as power-on: codec from reset, then the I2S channel.
+  Keep that when the HAL is copied or rewritten, and test off-then-on from a
+  boot with the sound already off.
 
 ## Build
 

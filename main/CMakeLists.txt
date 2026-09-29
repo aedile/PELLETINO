@@ -20,3 +20,8 @@ endif()
 if(DEFINED ENV{PELLETINO_SELFTEST})
     target_compile_definitions(${COMPONENT_LIB} PRIVATE PELLETINO_SELFTEST=1)
 endif()
+
+# a launcher that boots the next game each time it starts; see tour() in main.cpp
+if(DEFINED ENV{PELLETINO_TOUR})
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE PELLETINO_TOUR=1)
+endif()

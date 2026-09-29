@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include "mrdo.h"
 #include "mrdo_roms.h"
+#include "scores.h"
+#include "host_scores.h"
 
 typedef struct { double t; char key[8]; int val; } event_t;
 
@@ -51,6 +53,7 @@ int main(int argc, char **argv)
     { extern int md_dbg_layers; if (getenv("LAYERS")) md_dbg_layers = atoi(getenv("LAYERS")); }
     md_roms_t roms = { md_rom, md_fg, md_bg, md_spr, md_prom };
     md_init(&roms);
+    hiscore_begin(&game_scores);
     md_set_dips((uint8_t)r10, (uint8_t)r8);
     md_input_t *in = md_input();
 
@@ -73,6 +76,8 @@ int main(int argc, char **argv)
             }
         }
         md_run_frame();
+        hiscore_frame();
+        host_scores_frame(&game_scores, now);
         if (wav) {
             audio_acc += rate / fps; int n = (int)audio_acc; audio_acc -= n;
             md_render_audio(abuf, n, rate); fwrite(abuf, 2, n, wav); wav_samples += n;
@@ -91,6 +96,8 @@ int main(int argc, char **argv)
         fseek(wav, 0, SEEK_SET); fwrite(h, 1, 44, wav); fclose(wav);
     }
     { extern uint8_t md_flip, md_scrollx, md_scrolly; printf("flip %d scrollx %d scrolly %d\n", md_flip, md_scrollx, md_scrolly); }
+    hiscore_flush();
+    host_scores_dump(&game_scores);
     printf("done: %.1fs, %u frames, %d images saved\n", seconds, md_frame_count(), saved);
     return 0;
 }

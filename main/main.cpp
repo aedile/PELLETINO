@@ -26,6 +26,7 @@
 #include "audio_hal.h"
 #include "display.h"
 #include "nvs_flash.h"
+#include "nvs.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_timer.h"
@@ -185,6 +186,41 @@ static bool selftest_tick(void)             /* true while it is "pressing button
 }
 #endif
 
+#ifdef PELLETINO_TOUR
+/*
+ * A launcher for checking every game on a medal without touching it: each time it
+ * starts it boots the next game on the wheel, and says which. Reset the board and it
+ * moves on. Build it with PELLETINO_TOUR set in the environment idf.py runs in.
+ */
+static void tour(void)
+{
+    uint8_t next = 0;
+    nvs_handle_t h;
+    if (nvs_open("tour", NVS_READWRITE, &h) == ESP_OK) {
+        nvs_get_u8(h, "next", &next);
+        nvs_set_u8(h, "next", (uint8_t)(next + 1));
+        nvs_commit(h);
+        nvs_close(h);
+    }
+    int games = 0;
+    for (int i = 0; i < mqart_count(); i++) {
+        const mqart_entry_t *e = mqart_get(i);
+        if (e->boot[0] != '@' && game_installed(e->boot)) games++;
+    }
+    if (!games) { ESP_LOGE(TAG, "tour: no games installed"); return; }
+    int want = next % games;
+    for (int i = 0; i < mqart_count(); i++) {
+        const mqart_entry_t *e = mqart_get(i);
+        if (e->boot[0] == '@' || !game_installed(e->boot)) continue;
+        if (want-- == 0) {
+            ESP_LOGI(TAG, "tour: %d of %d: %s (%s)", next % games + 1, games, e->title, e->rom);
+            medalboot_set_selected(e->rom);
+            launch(e->rom, false);
+        }
+    }
+}
+#endif
+
 extern "C" void app_main(void)
 {
     esp_err_t nv = nvs_flash_init();
@@ -206,6 +242,9 @@ extern "C" void app_main(void)
     }
 
     input_init();
+#ifdef PELLETINO_TOUR
+    tour();                     /* does not return unless there is nothing to boot */
+#endif
 
     /*
      * How we got here decides whether to auto-boot. A power-on or brownout with a game selected

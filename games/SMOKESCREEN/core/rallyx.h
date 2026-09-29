@@ -54,6 +54,7 @@ void rx_render_audio(int16_t *buf, int samples, int rate);
 
 uint16_t rx_pc(void);
 uint32_t rx_frame_count(void);
+uint8_t *rx_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 const uint8_t *rx_ram(void);
 
 #ifdef __cplusplus

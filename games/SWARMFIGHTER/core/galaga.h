@@ -69,6 +69,7 @@ void ga_render_audio(int16_t *buf, int samples, int sample_rate);
 /* diagnostics */
 uint16_t ga_pc(int cpu);
 uint32_t ga_frame_count(void);
+uint8_t *ga_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 uint32_t ga_halt_cycles(int cpu);      /* cycles skipped while halted, since last call */
 int ga_credits(void);
 uint8_t ga_starfield_ctl(void);

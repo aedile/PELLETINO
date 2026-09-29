@@ -471,3 +471,10 @@ uint32_t pp_idle_cycles(int c) { uint32_t v = idle_cycles[c]; idle_cycles[c] = 0
 uint8_t pp_latch(void) { return latch; }
 const uint8_t *pp_nvram(void) { return nvram; }
 void pp_nvram_load(const uint8_t *d) { memcpy(nvram, d, sizeof(nvram)); }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *pp_mem(uint16_t a)
+{
+    if (a >= 0x3000 && a < 0x3800) return &nvram[a & 0x7ff];
+    return 0;
+}

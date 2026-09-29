@@ -19,8 +19,10 @@ lands once instead of eleven times.
   half a second later, which is the whole of "put a quarter in" on a pin with no
   coin slot.
 - **Power off** on a long press of PWR.
-- **Sound off and on** by holding BOOT. These get worn places, and some of those
-  places need to be quiet.
+- **Sound** by pressing both buttons together. These get worn places, and some
+  of those places need to be quiet.
+- **The backlight**: it dims after two minutes with no button and no movement,
+  and comes back with either.
 - **The tilt zero** — see below, because this is the part that is easy to get
   wrong and it took a while to notice.
 
@@ -85,7 +87,6 @@ void input_init(void)
     cfg.init_i2c     = true;              /* I2C0 on GPIO 8/7 */
     cfg.imu_init     = qmi8658_init;      /* called after I2C is up */
     cfg.read_accel   = qmi8658_read_accel;
-    cfg.mute_hold_us = 3000000;
     cfg.on_mute      = on_mute;
     cfg.on_recentre  = on_recentre;
     medal_input_init(&cfg);
@@ -115,15 +116,14 @@ go back to centre with it, or the control jumps.
 |---|---|---|
 | `imu_period_us` | 16000 | How often the IMU is read. A paddle wants nearer 5000. |
 | `power_off_hold_us` | 1000000 | PWR hold that cuts the battery rail. |
-| `mute_hold_us` | 0 (off) | BOOT hold that calls `on_mute`. |
+| `mute_hold_us` | | Retired. The sound is both buttons together, and `on_mute` is called for that. |
 | `coin_us` / `gap_us` / `start_us` | 100000 / 400000 / 100000 | The coin-then-start sequence. |
 
 ### Gestures of your own
 
 `medal_input_state_t` reports `boot_held_us`, `pwr_held_us`, `boot_released` and
 `boot_release_held_us`, so a game can add gestures the others do not have
-without forking the component. Set `mute_hold_us` to 0 if you want BOOT entirely
-to yourself.
+without forking the component.
 
 ---
 

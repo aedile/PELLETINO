@@ -63,6 +63,7 @@ void gx_render_audio(int16_t *buf, int samples, int rate);
 /* diagnostics */
 uint16_t gx_pc(void);
 uint32_t gx_frame_count(void);
+uint8_t *gx_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 const uint8_t *gx_ram(void);
 
 /* the sound board (galaxian_sound.c). reg 0-7 are the latches at 0x6800-0x6807, 0x10-0x13

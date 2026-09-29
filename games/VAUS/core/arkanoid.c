@@ -327,3 +327,11 @@ void ak_render_audio(int16_t *buf, int samples, int rate)
 uint16_t ak_pc(void) { return cpu.PC.W; }
 uint16_t ak_mcu_pc(void) { return mcu.pc; }
 uint32_t ak_frame_count(void) { return frame_count; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *ak_mem(uint16_t a)
+{
+    if (a >= 0xc000 && a < 0xc800) return &ram[a & 0x7ff];
+    if (a >= 0xe840 && a < 0xf000) return &extra[a - 0xe840];
+    return 0;
+}

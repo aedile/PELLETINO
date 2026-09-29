@@ -141,3 +141,10 @@ void gx_run_frame(void)
 uint16_t gx_pc(void) { return cpu.PC.W; }
 uint32_t gx_frame_count(void) { return gx_frame_no; }
 const uint8_t *gx_ram(void) { return ram; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *gx_mem(uint16_t a)
+{
+    if (a >= 0x4000 && a < 0x5000) return &ram[a & 0x3ff];
+    return 0;
+}

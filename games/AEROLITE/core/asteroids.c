@@ -321,3 +321,11 @@ void ast_render_audio(int16_t *buf, int samples, int rate)
         buf[i] = (int16_t)(v > 32767 ? 32767 : (v < -32768 ? -32768 : v));
     }
 }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *ast_mem(uint16_t a)
+{
+    if (a < 0x400) return &ram[a];
+    if (a >= 0x4000 && a < 0x4800) return &vecram[a - 0x4000];
+    return 0;
+}

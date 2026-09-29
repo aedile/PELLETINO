@@ -160,3 +160,10 @@ void md_render_audio(int16_t *buf, int samples, int rate)
 
 uint16_t md_pc(void) { return cpu.PC.W; }
 uint32_t md_frame_count(void) { return frame_count; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *md_mem(uint16_t a)
+{
+    if (a >= 0xe000 && a < 0xf000) return &ram[a & 0xfff];
+    return 0;
+}

@@ -55,6 +55,7 @@ void tp_render_audio(int16_t *buf, int samples, int rate);
 uint16_t tp_pc(void);
 uint16_t tp_snd_pc(void);
 uint32_t tp_frame_count(void);
+uint8_t *tp_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 
 #ifdef __cplusplus
 }

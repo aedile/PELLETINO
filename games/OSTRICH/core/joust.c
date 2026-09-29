@@ -283,3 +283,10 @@ void jo_run_frame(void)
 
 uint16_t jo_pc(void) { return (uint16_t)e6809_get_pc(); }
 uint32_t jo_frame_count(void) { return frame_count; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *jo_mem(uint16_t a)
+{
+    if (a >= 0xcc00 && a < 0xd000) return &cmos[a & 0x3ff];
+    return 0;
+}

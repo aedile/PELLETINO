@@ -9,7 +9,7 @@
  * every time, skipping the menu, until you deliberately come back.
  *
  *   launcher   hold the button on a game  -> medalboot_set_selected(rom), reboot
- *   game       hold the button for 5 s   -> medalboot_exit_to_menu()
+ *   game       hold the button for 5 s    -> medalboot_exit_to_menu()
  *   either     hold the button at power-on -> selection cleared, menu shown
  *
  * WHAT A GAME MUST DO
@@ -36,7 +36,7 @@
 extern "C" {
 #endif
 
-#define MEDALBOOT_EXIT_HOLD_MS  5000   /* hold this long in a game to leave it */
+#define MEDALBOOT_EXIT_HOLD_MS  5000    /* hold this long in a game to leave it */
 #define MEDALBOOT_MAX_ATTEMPTS  3       /* give up auto-booting after this many */
 
 /* --- launcher side --- */
@@ -67,6 +67,11 @@ bool medalboot_rom(char *out, size_t len);
  * and write it; writes only commit if the new score exceeds the existing one. */
 uint32_t medalboot_get_highscore(const char *rom);
 void     medalboot_set_highscore(const char *rom, uint32_t score);
+
+/* The score table itself, as the bytes the game keeps it in - see hiscore.h,
+ * which is what decides when it is worth writing. */
+bool medalboot_load_blob(const char *rom, void *buf, size_t len);   /* false unless exactly len bytes were kept */
+void medalboot_save_blob(const char *rom, const void *buf, size_t len);
 
 /* --- sound, everywhere ---
  * Muting is one setting for the whole medal: set in the menu or in any game, it

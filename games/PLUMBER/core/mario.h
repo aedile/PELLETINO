@@ -53,6 +53,7 @@ void mb_render_audio(int16_t *buf, int samples, int rate);
 uint16_t mb_pc(void);
 uint16_t mb_snd_pc(void);
 uint32_t mb_frame_count(void);
+uint8_t *mb_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 extern uint32_t mb_dbg_writes[16];               /* diagnostics: writes to the latches at 0x7C00.. */
 
 #ifdef __cplusplus

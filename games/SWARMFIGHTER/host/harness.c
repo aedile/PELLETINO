@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include "galaga.h"
 #include "galaga_roms.h"
+#include "scores.h"
+#include "host_scores.h"
 
 static uint8_t fb[GA_FB_W * GA_FB_H];
 static char outdir[512];
@@ -58,6 +60,7 @@ int main(int argc, char **argv)
     ga_roms_t roms = { ga_rom_cpu1, ga_rom_cpu2, ga_rom_cpu3, ga_tiles, ga_sprites,
                        ga_prom_palette, ga_prom_charlut, ga_prom_spritelut, ga_prom_wave };
     ga_init(&roms);
+    hiscore_begin(&game_scores);
     ga_set_dips((uint8_t)dswa, (uint8_t)dswb);
 
     FILE *wav = NULL; const int rate = 20050; uint32_t wav_samples = 0;
@@ -79,6 +82,8 @@ int main(int argc, char **argv)
             }
         }
         ga_run_frame();
+        hiscore_frame();
+        host_scores_frame(&game_scores, now);
         audio_acc += rate / fps;
         int n = (int)audio_acc; audio_acc -= n;
         ga_render_audio(abuf, n, rate);
@@ -105,6 +110,8 @@ int main(int argc, char **argv)
         w = 2; memcpy(h + 32, &w, 2); w = 16; memcpy(h + 34, &w, 2); memcpy(h + 36, "data", 4); memcpy(h + 40, &data_bytes, 4);
         fseek(wav, 0, SEEK_SET); fwrite(h, 1, 44, wav); fclose(wav);
     }
+    hiscore_flush();
+    host_scores_dump(&game_scores);
     printf("done: %.1fs, %u frames, %d images\n", seconds, ga_frame_count(), frames_saved);
     return 0;
 }

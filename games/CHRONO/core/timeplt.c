@@ -222,3 +222,10 @@ void tp_render_audio(int16_t *buf, int samples, int rate)
 uint16_t tp_pc(void) { return cpu[0].PC.W; }
 uint16_t tp_snd_pc(void) { return cpu[1].PC.W; }
 uint32_t tp_frame_count(void) { return frame_count; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *tp_mem(uint16_t a)
+{
+    if (a >= 0xa800 && a < 0xb000) return &ram[a & 0x7ff];
+    return 0;
+}

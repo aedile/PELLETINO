@@ -201,3 +201,11 @@ void mb_run_frame(void)
 uint16_t mb_pc(void) { return cpu.PC.W; }
 uint16_t mb_snd_pc(void) { return mb_sound_pc(); }
 uint32_t mb_frame_count(void) { return frame_count; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *mb_mem(uint16_t a)
+{
+    if (a >= 0x6000 && a < 0x7000) return &ram[a - 0x6000];
+    if (a >= 0x7400 && a < 0x7800) return &mb_vram[a & 0x3ff];
+    return 0;
+}

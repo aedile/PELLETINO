@@ -23,6 +23,7 @@
 #include "qmi8658.h"
 #include "z80_cpu.h"
 #include "medalboot.h"
+#include "hiscore.h"
 #include "nvs_flash.h"
 #include "esp_wifi.h"
 #ifdef CONFIG_BT_ENABLED
@@ -135,6 +136,23 @@ extern "C" void app_main(void) {
   if (medalboot_rom(which, sizeof which) && strcmp(which, "pacman") == 0) is_ms = false;
   ESP_LOGI(TAG, "Loading ROM data (%s)...", is_ms ? "Ms. Pac-Man" : "Pac-Man");
 
+  /* Where both games keep their high score. Addresses from MAME's hiscore.dat. */
+  static const hiscore_range_t score_ranges[] = {
+    { 0x4e88, 0x04, 0x00, 0x00 },       /* the best score, BCD, low byte first */
+    { 0x43ed, 0x06, 0x40, 0x40 },       /* and as it is drawn at the top of the screen */
+    { 0x43d1, 0x01, 0x48, 0x48 },
+  };
+  static hiscore_t game_scores = {
+    .rom = "mspacman", .ranges = score_ranges, .nranges = 3, .whole = false,
+    .mem = [](uint16_t a) -> uint8_t * {
+      uint8_t *rw = pacman_get_memory_rw();
+      return (rw && a >= 0x4000 && a < 0x5000) ? rw + (a - 0x4000) : nullptr;
+    },
+    .format = HISCORE_BCD, .top_addr = 0x4e88, .top_len = 3, .top_msb_first = false,
+  };
+  if (!is_ms) game_scores.rom = "pacman";
+  hiscore_begin(&game_scores);
+
   if (is_ms) {
     pacman_set_rom(mspacman_rom, sizeof(mspacman_rom));
     pacman_set_mspacman_aux(mspacman_rom_plain);
@@ -166,9 +184,6 @@ extern "C" void app_main(void) {
   bool audio_powered = true;
 
   // Battery optimization: Adaptive backlight dimming
-  uint32_t idle_frames = 0;
-  const uint32_t IDLE_DIM_THRESHOLD = 1800; // 30 seconds @ 60fps
-  uint8_t current_brightness = DISPLAY_BRIGHTNESS_ACTIVE;
 
   // Battery optimization: CPU frequency scaling
   bool cpu_low_power = false;
@@ -207,6 +222,7 @@ extern "C" void app_main(void) {
     for (int i = 0; i < frames_to_run; i++) {
       pacman_run_frame();
       pacman_vblank_interrupt();
+      hiscore_frame();
     }
 #if GHOSTERAMA_DEBUG
     emu_frames_period += frames_to_run;
@@ -297,61 +313,15 @@ extern "C" void app_main(void) {
       // ESP_LOGI(TAG, "CPU frequency: 80MHz (attract mode)");
     }
 
-    // 7. Battery optimization: Adaptive backlight dimming
-    // Reset idle counter when actively playing (game mode >= 0x02)
-    if (is_playing) {
-      idle_frames = 0;
-    } else {
-      idle_frames++;
-    }
-    if (idle_frames >= IDLE_DIM_THRESHOLD) {
-      if (current_brightness != DISPLAY_BRIGHTNESS_IDLE) {
-        display_set_backlight(DISPLAY_BRIGHTNESS_IDLE);
-        current_brightness = DISPLAY_BRIGHTNESS_IDLE;
-        ESP_LOGI(TAG, "Backlight dimmed to 25%% (idle)");
-      }
-    } else if (current_brightness != DISPLAY_BRIGHTNESS_ACTIVE) {
-      display_set_backlight(DISPLAY_BRIGHTNESS_ACTIVE);
-      current_brightness = DISPLAY_BRIGHTNESS_ACTIVE;
-      ESP_LOGI(TAG, "Backlight restored to 50%% (active)");
-    }
+    // 7. The backlight is medal_input's business, as it is in every other game: it dims
+    // after two minutes with no button and no movement, and comes back with either.
 
     // 9. Check for attract mode start (after arcade boot or after game over) and play video
     if (check_attract_mode_start(pacman_get_memory())) {
       static bool first_attract_entry = true;
 
       if (first_attract_entry) {
-        first_attract_entry = false;
-        uint32_t saved_hs = medalboot_get_highscore(is_ms ? "mspacman" : "pacman");
-        if (saved_hs > 0) {
-          uint8_t *rw = pacman_get_memory_rw();
-          if (rw) {
-            uint8_t *p = rw + (PACMAN_ADDR_HIGHSCORE - 0x4000);
-            auto bin_to_bcd = [](uint32_t val) -> uint8_t {
-              return (uint8_t)(((val / 10 % 10) << 4) | (val % 10));
-            };
-            p[0] = bin_to_bcd(saved_hs);
-            p[1] = bin_to_bcd(saved_hs / 100);
-            p[2] = bin_to_bcd(saved_hs / 10000);
-            p[3] = bin_to_bcd(saved_hs / 1000000);
-            ESP_LOGI(TAG, "Restored high score from NVS: %lu", (unsigned long)saved_hs);
-          }
-        }
-      } else {
-        const uint8_t *mem = pacman_get_memory();
-        if (mem) {
-          const uint8_t *p = mem + (PACMAN_ADDR_HIGHSCORE - 0x4000);
-          auto bcd_to_bin = [](uint8_t b) {
-            uint8_t hi = (b >> 4) & 0x0F, lo = b & 0x0F;
-            return (hi <= 9 && lo <= 9) ? (hi * 10 + lo) : 0;
-          };
-          uint32_t hs = bcd_to_bin(p[0]) + bcd_to_bin(p[1]) * 100 +
-                        bcd_to_bin(p[2]) * 10000 + bcd_to_bin(p[3]) * 1000000;
-          if (hs > 0) {
-            medalboot_set_highscore(is_ms ? "mspacman" : "pacman", hs);
-            ESP_LOGI(TAG, "Saved high score to NVS: %lu", (unsigned long)hs);
-          }
-        }
+         first_attract_entry = false;
       }
       
 #if PLAY_FIESTA_VIDEO

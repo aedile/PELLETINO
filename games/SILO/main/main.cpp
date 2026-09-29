@@ -14,6 +14,7 @@
 #include "input.h"
 #include "audio_hal.h"
 #include "medalboot.h"
+#include "scores.h"
 
 static const char *TAG = "SILO";
 /* the monitor runs at 5 MHz / (320 x 256) = 61.035 Hz */
@@ -48,6 +49,7 @@ extern "C" void app_main(void)
     if (medalboot_muted()) audio_set_mute(true);
     /* far enough in to be sure this image works: stop the launcher counting attempts */
     medalboot_game_running();
+    hiscore_begin(&game_scores);
     ESP_LOGI(TAG, "ready, free heap %lu", (unsigned long)esp_get_free_heap_size());
 
     int64_t last_us = esp_timer_get_time(), last_report = last_us, owed_us = 0;
@@ -62,6 +64,7 @@ extern "C" void app_main(void)
         while (owed_us >= FRAME_US) {
             int64_t t0 = esp_timer_get_time();
             mc_run_frame();
+            hiscore_frame();
             int64_t t1 = esp_timer_get_time();
             t_emu += t1 - t0;
             frames++;

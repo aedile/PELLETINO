@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include "digdug.h"
 #include "digdug_roms.h"
+#include "scores.h"
+#include "host_scores.h"
 
 typedef struct { double t; char key[8]; int val; } event_t;
 
@@ -51,6 +53,7 @@ int main(int argc, char **argv)
     dd_roms_t roms = { dd_cpu1, dd_cpu2, dd_cpu3, dd_chr, dd_spr, dd_bgt,
                        dd_play, dd_pal, dd_lut_spr, dd_lut_bg, dd_wave };
     dd_init(&roms);
+    hiscore_begin(&game_scores);
     dd_set_dips((uint8_t)r10, (uint8_t)r8);
     dd_input_t *in = dd_input();
 
@@ -74,6 +77,8 @@ int main(int argc, char **argv)
             }
         }
         dd_run_frame();
+        hiscore_frame();
+        host_scores_frame(&game_scores, now);
         if (wav) {
             audio_acc += rate / fps; int n = (int)audio_acc; audio_acc -= n;
             dd_render_audio(abuf, n, rate); fwrite(abuf, 2, n, wav); wav_samples += n;
@@ -91,6 +96,8 @@ int main(int argc, char **argv)
         *(uint32_t *)(h + 28) = rate * 2; *(uint16_t *)(h + 32) = 2; *(uint16_t *)(h + 34) = 16; memcpy(h + 36, "data", 4); *(uint32_t *)(h + 40) = data;
         fseek(wav, 0, SEEK_SET); fwrite(h, 1, 44, wav); fclose(wav);
     }
+    hiscore_flush();
+    host_scores_dump(&game_scores);
     printf("done: %.1fs, %u frames, %d images saved\n", seconds, dd_frame_count(), saved);
     return 0;
 }

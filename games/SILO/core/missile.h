@@ -57,6 +57,7 @@ void mc_render_audio(int16_t *buf, int samples, int rate);
 /* diagnostics */
 uint16_t mc_pc(void);
 uint32_t mc_frame_count(void);
+uint8_t *mc_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 uint32_t mc_irq_count(void);
 /* CPU cycles skipped since the last call because the game was waiting for the frame tick */
 uint32_t mc_idle_cycles(void);

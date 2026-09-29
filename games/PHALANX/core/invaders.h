@@ -58,6 +58,7 @@ void si_render_audio(int16_t *buf, int samples, int rate);
 /* diagnostics */
 uint16_t si_pc(void);
 uint32_t si_frame_count(void);
+uint8_t *si_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 const uint8_t *si_ram(void);
 
 /* the sound board, fed from OUT 3 and OUT 5 (invaders_sound.c) */

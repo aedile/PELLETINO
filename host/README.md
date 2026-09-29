@@ -39,3 +39,26 @@ writes a file's tracks out as WAVs so you can choose one.
 once, is as bright as it should be, dies away and ends, clips rather than wraps
 over loud music, and leaves the music untouched afterwards. Give it a directory
 and it writes each effect there as a WAV.
+
+## High scores
+
+`hiscore/run.sh` tests the score keeper against a machine that is forty bytes of
+memory: that nothing is restored or saved before a game has set its table up,
+that what was saved comes back, that a score being run up is not written to
+flash on every point, and that leaving for the menu saves at once.
+
+Each game's own harness (`games/<game>/host/harness`) keeps scores too, in a
+file instead of flash, so a game can be checked from one run to the next:
+
+```sh
+cd games/GIRDER/host && make
+PELLETINO_SCORES=/tmp/dk.bin PELLETINO_POKE="20:60b9=45,60ba=12" ./harness /tmp/dk 40
+PELLETINO_SCORES=/tmp/dk.bin ./harness /tmp/dk 40      # "restored", and reads 124550
+```
+
+| Variable | Does |
+|---|---|
+| `PELLETINO_SCORES=<file>` | keep scores in this file between runs |
+| `PELLETINO_POKE="20:60b9=45,..."` | at 20 seconds, write these bytes (hex), to stand in for a score |
+| `PELLETINO_FIND=12000` | at the end, list everywhere in memory that could be that number |
+| `PELLETINO_WATCH=4030` | print that byte whenever it changes |

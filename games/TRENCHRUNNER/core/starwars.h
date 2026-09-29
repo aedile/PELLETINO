@@ -75,6 +75,7 @@ uint32_t sw_irq_count(void);
 uint32_t sw_frame_count(void);
 uint16_t sw_pc(void);
 uint8_t  sw_nvram_read(int idx);
+uint8_t *sw_mem(uint16_t addr);      /* a byte of the non-volatile RAM by its CPU address, or NULL */
 const uint8_t *sw_ram(void);          /* 0x0000-0x2FFF vector RAM */
 
 #ifdef __cplusplus

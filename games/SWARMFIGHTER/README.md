@@ -40,7 +40,7 @@ and one-upping each other's medals is half the point.
 
 **The three buttons**, top to bottom as you hold the medal:
 
-- **TOP button (side of the board):** power. Press to turn the medal on; hold
+- **TOP button:** power. Press to turn the medal on; hold
   for a second to turn it off. A short press during the attract screen
   inserts a coin and presses start for you half a second later.
 - **MIDDLE button:** fire.

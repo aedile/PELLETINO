@@ -59,6 +59,7 @@ void bt_render_audio(int16_t *buf, int samples, int rate);
 uint16_t bt_pc(void);
 uint16_t bt_snd_pc(void);
 uint32_t bt_frame_count(void);
+uint8_t *bt_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 
 #ifdef __cplusplus
 }

@@ -68,6 +68,11 @@ bool medalboot_rom(char *out, size_t len);
 uint32_t medalboot_get_highscore(const char *rom);
 void     medalboot_set_highscore(const char *rom, uint32_t score);
 
+/* The score table itself, as the bytes the game keeps it in - see hiscore.h,
+ * which is what decides when it is worth writing. */
+bool medalboot_load_blob(const char *rom, void *buf, size_t len);   /* false unless exactly len bytes were kept */
+void medalboot_save_blob(const char *rom, const void *buf, size_t len);
+
 /* --- sound, everywhere ---
  * Muting is one setting for the whole medal: set in the menu or in any game, it
  * holds in every other and across power cycles. Each image reads it once at

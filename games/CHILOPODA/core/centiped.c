@@ -244,3 +244,10 @@ uint32_t ce_irq_count(void) { return irq_count; }
 uint32_t ce_idle_cycles(void) { uint32_t v = idle_cycles; idle_cycles = 0; return v; }
 const uint8_t *ce_earom(void) { return earom; }
 const uint8_t *ce_ram(void) { return ce_ram_bytes; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *ce_mem(uint16_t a)
+{
+    if (a < 0x0800) return &ce_ram_bytes[a];
+    return 0;
+}

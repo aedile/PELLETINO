@@ -55,6 +55,7 @@ void ce_render_audio(int16_t *buf, int samples, int rate);
 /* diagnostics */
 uint16_t ce_pc(void);
 uint32_t ce_frame_count(void);
+uint8_t *ce_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 uint32_t ce_irq_count(void);
 uint32_t ce_idle_cycles(void);       /* CPU cycles skipped in the idle loop since the last call */
 const uint8_t *ce_earom(void);       /* 64 bytes */

@@ -65,6 +65,7 @@ void tp_render_audio(int16_t *buf, int samples, int rate);
 /* diagnostics */
 uint16_t tp_pc(void);
 uint32_t tp_frame_count(void);
+uint8_t *tp_mem(uint16_t addr);      /* a byte of RAM by its CPU address, or NULL */
 int      tp_vector_count(void);
 
 #ifdef __cplusplus

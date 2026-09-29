@@ -10,6 +10,8 @@
 #include <math.h>
 #include "tempest.h"
 #include "tempest_roms.h"
+#include "scores.h"
+#include "host_scores.h"
 
 #define W 280
 #define H 280
@@ -92,6 +94,7 @@ int main(int argc, char **argv)
     }
     tp_roms_t r = { tp_rom, tp_vectorrom, tp_avgprom };
     tp_init(&r);
+    hiscore_begin(&game_scores);
     tp_input_t *in = tp_input();
 
     FILE *wav = NULL; const int rate = 22050; uint32_t wav_samples = 0;
@@ -111,6 +114,8 @@ int main(int argc, char **argv)
             }
         }
         tp_run_frame();
+        hiscore_frame();
+        host_scores_frame(&game_scores, now);
         if (wav) {
             audio_acc += rate / fps; int n = (int)audio_acc; audio_acc -= n;
             tp_render_audio(abuf, n, rate); fwrite(abuf, 2, n, wav); wav_samples += n;
@@ -129,6 +134,8 @@ int main(int argc, char **argv)
         *(uint16_t *)(h + 34) = 16; memcpy(h + 36, "data", 4); *(uint32_t *)(h + 40) = data;
         fseek(wav, 0, SEEK_SET); fwrite(h, 1, 44, wav); fclose(wav);
     }
+    hiscore_flush();
+    host_scores_dump(&game_scores);
     printf("done: %.1fs, %u frames, %d images\n", seconds, tp_frame_count(), saved);
     return 0;
 }

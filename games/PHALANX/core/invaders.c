@@ -157,3 +157,10 @@ void si_palette(uint16_t out[SI_PALETTE_SIZE])
 uint16_t si_pc(void) { return cpu.PC.W; }
 uint32_t si_frame_count(void) { return frame_count; }
 const uint8_t *si_ram(void) { return ram; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *si_mem(uint16_t a)
+{
+    if (a >= 0x2000 && a < 0x4000) return &ram[a - 0x2000];
+    return 0;
+}

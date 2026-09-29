@@ -166,3 +166,10 @@ void bt_run_frame(void)
 
 uint16_t bt_pc(void) { return cpu.pc; }
 uint32_t bt_frame_count(void) { return frame_count; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *bt_mem(uint16_t a)
+{
+    if (a < 0x0800) return &ram[a];
+    return 0;
+}

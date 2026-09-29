@@ -480,3 +480,11 @@ uint32_t sw_frame_count(void) { return frame_count; }
 uint8_t sw_nvram_read(int idx) { return nvram[idx & 0xff]; }
 const uint8_t *sw_ram(void) { return ram_vec; }
 uint16_t sw_pc(void) { return (uint16_t)e6809_get_pc(); }
+
+/* the byte at a CPU address, where that is memory worth keeping - the X2212, which held the
+ * high scores and the settings with the power off */
+uint8_t *sw_mem(uint16_t a)
+{
+    if (a >= 0x4500 && a < 0x4600) return &nvram[a & 0xff];
+    return 0;
+}

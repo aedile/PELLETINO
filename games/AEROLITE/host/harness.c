@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include "asteroids.h"
 #include "asteroids_roms.h"
+#include "scores.h"
+#include "host_scores.h"
 
 #define W 512
 #define H 384
@@ -58,6 +60,7 @@ int main(int argc, char **argv)
     }
     ast_roms_t roms = { ast_rom, ast_vecrom };
     ast_init(&roms);
+    hiscore_begin(&game_scores);
     ast_set_dips((uint8_t)dsw);
     ast_input_t *in = ast_input();
 
@@ -81,6 +84,8 @@ int main(int argc, char **argv)
             }
         }
         ast_run_frame();
+        hiscore_frame();
+        host_scores_frame(&game_scores, now);
         if (wav) {
             audio_acc += rate / fps; int n = (int)audio_acc; audio_acc -= n;
             ast_render_audio(abuf, n, rate); fwrite(abuf, 2, n, wav); wav_samples += n;
@@ -117,6 +122,8 @@ int main(int argc, char **argv)
         *(uint32_t *)(h + 28) = rate * 2; *(uint16_t *)(h + 32) = 2; *(uint16_t *)(h + 34) = 16; memcpy(h + 36, "data", 4); *(uint32_t *)(h + 40) = data;
         fseek(wav, 0, SEEK_SET); fwrite(h, 1, 44, wav); fclose(wav);
     }
+    hiscore_flush();
+    host_scores_dump(&game_scores);
     printf("done: %u frames, %d images; vector bounding box x %d..%d  y %d..%d\n",
            ast_frame_count(), saved, gx0, gx1, gy0, gy1);
     return 0;

@@ -22,7 +22,8 @@
 
 **Controls:**
 - **TOP Button:** Long press to turn off/on.  
-- **MIDDLE Button:** Insert coin / Start game.  Long press to mute/unmute audio.
+- **MIDDLE Button:** Insert coin / Start game. Hold 5 seconds to go back to the menu.
+- **Both buttons together:** Sound: loud, quiet, off.
 - **BOTTOM Button:** Reset
 - **Tilt the medal:** Move Pac-Man up, down, left, right
 
@@ -58,7 +59,7 @@
 - Ensure you're tilting with enough angle (±20-30°)
 
 **No sound:**
-- Check that mute isn't enabled (long press MIDDLE to toggle)
+- Check the sound isn't off (press both buttons together to step it: loud, quiet, off)
 - Verify speaker connections if self-assembled
 
 ---

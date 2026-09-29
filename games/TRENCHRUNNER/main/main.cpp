@@ -18,6 +18,7 @@
 #include "audio_hal.h"
 #include "sound.h"
 #include "medalboot.h"
+#include "scores.h"
 
 static const char *TAG = "TRENCH";
 
@@ -30,6 +31,7 @@ static volatile bool emu_behind;       /* set while the emulator owes more than 
 static void on_frame(const avg_t *avg, void *user)
 {
     ap_frame(avg);                       /* the autopilot looks at every frame, cheaply */
+    hiscore_frame();
     (void)user;
     static bool skip_toggle;
     frames_emulated++;
@@ -93,6 +95,7 @@ extern "C" void app_main(void)
     sw_init(&roms);
     sw_attach_sound(sw_rom_sound);      /* the sound CPU is mostly idle: flash is fine for its ROM */
     sw_set_dips(0x90, 0x00);     /* 6 shields, easy, 1 bonus shield, demo sounds; free play */
+    hiscore_begin(&game_scores);         /* after sw_init(), which clears the chip */
     sw_set_frame_callback(on_frame, nullptr);
     /*
      * The attract mode is eighty-five seconds of text. Left alone for about one run of it,

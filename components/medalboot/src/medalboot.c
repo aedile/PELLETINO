@@ -1,4 +1,5 @@
 #include "medalboot.h"
+#include "hiscore.h"
 #include "esp_partition.h"
 #include "esp_ota_ops.h"
 #include "esp_system.h"
@@ -139,6 +140,7 @@ bool medalboot_exit_hold(bool down)
 void medalboot_exit_to_menu(void)
 {
     ESP_LOGI(TAG, "returning to the menu");
+    hiscore_flush();                    /* whatever was scored goes with us */
     medalboot_clear_selected();
     esp_restart();
 }
@@ -217,4 +219,38 @@ void medalboot_set_highscore(const char *rom, uint32_t score)
         nvs_commit(h);
     }
     nvs_close(h);
+}
+
+/* ---- the score table, as bytes -------------------------------------------- */
+
+static void blob_key(char key[16], const char *rom)
+{
+    snprintf(key, 16, "hb_%s", rom);        /* NVS keys run to 15 characters; ROM names to 12 */
+}
+
+bool medalboot_load_blob(const char *rom, void *buf, size_t len)
+{
+    if (!rom || !rom[0] || !buf || !len || !ensure_nvs()) return false;
+    char key[16];
+    blob_key(key, rom);
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return false;
+    size_t have = 0;
+    bool ok = nvs_get_blob(h, key, NULL, &have) == ESP_OK && have == len &&
+              nvs_get_blob(h, key, buf, &have) == ESP_OK;
+    nvs_close(h);
+    return ok;
+}
+
+void medalboot_save_blob(const char *rom, const void *buf, size_t len)
+{
+    if (!rom || !rom[0] || !buf || !len || !ensure_nvs()) return;
+    char key[16];
+    blob_key(key, rom);
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READWRITE, &h) != ESP_OK) return;
+    if (nvs_set_blob(h, key, buf, len) == ESP_OK) nvs_commit(h);
+    nvs_close(h);
+    ESP_LOGI(TAG, "%s: %u bytes of scores saved", rom, (unsigned)len);
+    ESP_LOG_BUFFER_HEX_LEVEL(TAG, buf, len < 64 ? len : 64, ESP_LOG_INFO);     /* enough to see a table by */
 }

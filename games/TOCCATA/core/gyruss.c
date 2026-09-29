@@ -412,3 +412,10 @@ uint16_t gy_mcu_pc(void) { return mcu.pc; }
 uint8_t  gy_soundlatch(void) { return soundlatch; }
 uint8_t  gy_audio_iff(void) { return cpu[1].IFF; }
 uint32_t gy_frame_count(void) { return frame_count; }
+
+/* the byte at a CPU address, where that is memory - for keeping the high scores */
+uint8_t *gy_mem(uint16_t a)
+{
+    if (a >= 0x9000 && a < 0xa000) return &main_ram[a - 0x9000];
+    return 0;
+}
