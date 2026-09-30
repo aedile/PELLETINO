@@ -15,17 +15,61 @@ at 3.58 MHz, a YM2151, an OKI MSM6295, three tile layers and 256 sprites.
 
 No ROMs are included. See `LICENSE` and `THIRD_PARTY_NOTICES.md`.
 
+> **Status, 30 September 2026: unfinished.** The sweep stopped at row 35 of 56 (the
+> rows measured so far are below). Still to do: the rest of the sweep, the knob-by-knob
+> comparison (`tools/knobsweep.sh`), the sections of this README marked "not written
+> yet", and the launcher handshake test on the board.
+
 ---
 
 ## The answer
 
-@@SUMMARY@@
+*Not written yet: see the status note at the top.*
 
 ---
 
 ## Results
 
-@@TABLE@@
+Rows 0 to 35 of 56, first attract fight, 25 seconds each, `FRAME_SKIP_AUTO=0`. All times are ms per second.
+
+| # | video | skip | sound | rate | drawn fps | machine fps | speed | 68000 | Z80 | sound out | video | strips | idle | needs | free heap |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | SCALE | 0 | OFF | - | 40.1 | 40.1 | 67% | 209 | 0 | 0 | 582 | 187 | 9 | 1474 | 77 KB |
+| 1 | SCALE | 0 | FM | 11025 | 30.7 | 30.7 | 51% | 168 | 83 | 118 | 469 | 148 | 1 | 1941 | 44 KB |
+| 2 | SCALE | 0 | FM | 22050 | 28.7 | 28.7 | 48% | 157 | 77 | 179 | 436 | 138 | 1 | 2076 | 43 KB |
+| 3 | SCALE | 0 | FM | 44100 | 24.9 | 24.9 | 42% | 135 | 67 | 294 | 374 | 118 | 1 | 2393 | 37 KB |
+| 4 | SCALE | 0 | FM_ADPCM | 11025 | 30.5 | 30.5 | 51% | 166 | 82 | 130 | 462 | 147 | 1 | 1954 | 42 KB |
+| 5 | SCALE | 0 | FM_ADPCM | 22050 | 28.4 | 28.4 | 48% | 154 | 76 | 193 | 427 | 136 | 1 | 2098 | 41 KB |
+| 6 | SCALE | 0 | FM_ADPCM | 44100 | 24.6 | 24.6 | 41% | 132 | 65 | 310 | 364 | 116 | 1 | 2422 | 35 KB |
+| 7 | SCALE | 1 | OFF | - | 29.8 | 59.6 | 100% | 302 | 0 | 0 | 461 | 146 | 77 | 924 | 77 KB |
+| 8 | SCALE | 1 | FM | 11025 | 23.1 | 46.2 | 77% | 242 | 123 | 143 | 362 | 114 | 2 | 1288 | 44 KB |
+| 9 | SCALE | 1 | FM | 22050 | 21.4 | 42.8 | 72% | 225 | 114 | 205 | 336 | 106 | 1 | 1392 | 43 KB |
+| 10 | SCALE | 1 | FM | 44100 | 18.1 | 36.2 | 61% | 194 | 96 | 318 | 287 | 90 | 1 | 1646 | 37 KB |
+| 11 | SCALE | 1 | FM_ADPCM | 11025 | 22.9 | 45.7 | 77% | 238 | 121 | 156 | 355 | 113 | 2 | 1302 | 42 KB |
+| 12 | SCALE | 1 | FM_ADPCM | 22050 | 21.2 | 42.3 | 71% | 220 | 111 | 222 | 328 | 104 | 1 | 1408 | 41 KB |
+| 13 | SCALE | 1 | FM_ADPCM | 44100 | 17.8 | 35.5 | 60% | 189 | 93 | 337 | 279 | 88 | 1 | 1679 | 35 KB |
+| 14 | SCALE | 2 | OFF | - | 19.9 | 59.6 | 100% | 299 | 0 | 0 | 324 | 102 | 262 | 739 | 77 KB |
+| 15 | SCALE | 2 | FM | 11025 | 18.2 | 54.4 | 91% | 285 | 145 | 157 | 297 | 93 | 8 | 1087 | 44 KB |
+| 16 | SCALE | 2 | FM | 22050 | 17.0 | 50.8 | 85% | 264 | 135 | 220 | 276 | 86 | 4 | 1169 | 43 KB |
+| 17 | SCALE | 2 | FM | 44100 | 14.5 | 43.3 | 73% | 226 | 115 | 334 | 236 | 74 | 1 | 1376 | 37 KB |
+| 18 | SCALE | 2 | FM_ADPCM | 11025 | 18.0 | 53.9 | 90% | 280 | 142 | 172 | 291 | 92 | 7 | 1098 | 42 KB |
+| 19 | SCALE | 2 | FM_ADPCM | 22050 | 16.7 | 50.1 | 84% | 258 | 132 | 238 | 270 | 85 | 3 | 1187 | 41 KB |
+| 20 | SCALE | 2 | FM_ADPCM | 44100 | 14.1 | 42.3 | 71% | 218 | 111 | 356 | 228 | 72 | 1 | 1408 | 35 KB |
+| 21 | SCALE | 3 | OFF | - | 14.9 | 59.6 | 100% | 296 | 0 | 0 | 248 | 78 | 365 | 636 | 77 KB |
+| 22 | SCALE | 3 | FM | 11025 | 14.7 | 58.6 | 98% | 307 | 156 | 160 | 246 | 77 | 40 | 977 | 44 KB |
+| 23 | SCALE | 3 | FM | 22050 | 13.9 | 55.7 | 93% | 291 | 148 | 227 | 233 | 72 | 14 | 1056 | 43 KB |
+| 24 | SCALE | 3 | FM | 44100 | 12.1 | 48.3 | 81% | 250 | 128 | 343 | 201 | 63 | 2 | 1232 | 37 KB |
+| 25 | SCALE | 3 | FM_ADPCM | 11025 | 14.6 | 58.3 | 98% | 302 | 154 | 177 | 242 | 76 | 34 | 988 | 42 KB |
+| 26 | SCALE | 3 | FM_ADPCM | 22050 | 13.8 | 55.1 | 92% | 285 | 145 | 245 | 228 | 72 | 10 | 1071 | 41 KB |
+| 27 | SCALE | 3 | FM_ADPCM | 44100 | 11.8 | 47.2 | 79% | 241 | 124 | 364 | 194 | 61 | 2 | 1261 | 35 KB |
+| 28 | CROP | 0 | OFF | - | 27.8 | 27.8 | 47% | 149 | 0 | 0 | 635 | 204 | 1 | 2144 | 77 KB |
+| 29 | CROP | 0 | FM | 11025 | 23.2 | 23.2 | 39% | 126 | 62 | 106 | 528 | 166 | 1 | 2569 | 44 KB |
+| 30 | CROP | 0 | FM | 22050 | 21.8 | 21.8 | 37% | 118 | 58 | 166 | 492 | 154 | 1 | 2734 | 43 KB |
+| 31 | CROP | 0 | FM | 44100 | 19.0 | 19.0 | 32% | 103 | 51 | 276 | 426 | 133 | 1 | 3137 | 37 KB |
+| 32 | CROP | 0 | FM_ADPCM | 11025 | 23.2 | 23.2 | 39% | 124 | 61 | 117 | 520 | 166 | 1 | 2569 | 42 KB |
+| 33 | CROP | 0 | FM_ADPCM | 22050 | 21.8 | 21.8 | 37% | 116 | 57 | 178 | 483 | 153 | 1 | 2734 | 40 KB |
+| 34 | CROP | 0 | FM_ADPCM | 44100 | 18.9 | 18.9 | 32% | 101 | 50 | 292 | 415 | 131 | 1 | 3153 | 34 KB |
+| 35 | CROP | 1 | OFF | - | 23.6 | 47.3 | 79% | 236 | 0 | 0 | 564 | 180 | 7 | 1251 | 77 KB |
 
 ---
 
@@ -107,7 +151,7 @@ which `knobs.cmake` turns into a header in the build directory. The host harness
 takes them as `make -C host KNOBS="-DFRAME_SKIP=1 -DKNOB_SOUND=FM"`: the knobs
 that take a word are `KNOB_<name>` there.
 
-@@KNOBS@@
+*Not written yet: see the status note at the top.*
 
 ---
 
@@ -116,7 +160,7 @@ that take a word are `KNOB_<name>` there.
 Everything here was measured on the board, in the first attract fight, SCALE
 video, sound off unless it says otherwise.
 
-@@TRIED@@
+*Not written yet: see the status note at the top.*
 
 ---
 
@@ -126,7 +170,7 @@ The machine's own 64 KB of work RAM and 192 KB of graphics RAM are ordinary
 heap, allocated first, graphics RAM before work RAM because it wants the larger
 block. The boot log lists every allocation and the heap after each step:
 
-@@MEMORY@@
+*Not written yet: see the status note at the top.*
 
 The program ROM, the graphics and the Z80's program are read in place from the
 data partition, memory-mapped. The ESP32-C6 can map 8 MB of flash at once,
@@ -194,7 +238,7 @@ build a medal with this instead:
 The data partition is 7616 KB, 2 MB more than the video's, so a build with it
 has room for fewer games. `./pelletino` says how many.
 
-@@LAUNCHER@@
+*Not written yet: see the status note at the top.*
 
 ---
 
