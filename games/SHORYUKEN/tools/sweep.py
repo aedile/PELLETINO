@@ -58,7 +58,25 @@ def wait_for_board(port):
         time.sleep(10)
     print('board: answering again', flush=True)
 
-def run(port, knobs, tries=3):
+def wait_for_program(port):
+    """Sometimes every reset over USB brings the chip up in download mode until someone presses
+    its reset button. The program is already written; wait for a start that runs it."""
+    capture = HERE / 'capture.py'
+    py = subprocess.run(['sh', '-c', 'head -1 "$(command -v esptool.py)" | sed "s/^#!//"'], capture_output=True, text=True).stdout.strip()
+    asked = False
+    while True:
+        p = subprocess.run([py, str(capture), port, '4'], capture_output=True, text=True)
+        if 'did not start' not in p.stdout:
+            if asked:
+                print('board: running again', flush=True)
+            return
+        if not asked:
+            print('board: every USB reset lands in download mode. Press the reset button once; '
+                  'the sweep carries on when the program starts.', flush=True)
+            asked = True
+        time.sleep(15)
+
+def run(port, knobs, tries=6):
     args = [f'{k}={v}' for k, v in knobs.items()]
     tail = ''
     for attempt in range(tries):
@@ -69,7 +87,8 @@ def run(port, knobs, tries=3):
             return parse(lines[-1]), None
         tail = '\n'.join((p.stdout + p.stderr).splitlines()[-15:])
         if p.returncode in (2, 3):
-            print(f'  attempt {attempt + 1}: the board did not start (bench.sh exit {p.returncode}); trying again', flush=True)
+            print(f'  attempt {attempt + 1}: the board did not start (bench.sh exit {p.returncode})', flush=True)
+            wait_for_program(port)
             continue
         break                          # a build error, or a bench that ran but printed no result
     return None, tail
@@ -86,7 +105,7 @@ COLS = ['vmode', 'skip', 'sound', 'rate', 'fps', 'emu', 'speed', 'm68k', 'z80', 
 
 def markdown(path):
     """results.csv as the README's table"""
-    rows = list(csv.DictReader(open(path)))
+    rows = sorted(csv.DictReader(open(path)), key=lambda r: int(r['n']))
     head = ('| # | video | skip | sound | rate | drawn fps | machine fps | speed | 68000 | Z80 | sound out | '
             'video | strips | idle | needs | free heap |')
     print(head)

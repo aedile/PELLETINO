@@ -198,7 +198,11 @@ extern "C" void app_main(void)
         int64_t now = esp_timer_get_time();
         owed_us += now - last_us;
         last_us = now;
-        if (owed_us > 4 * CPS1_FRAME_US) owed_us = 4 * CPS1_FRAME_US;   /* never owe more than this: slow down instead */
+        /* Never owe more than this: past it, the machine slows down rather than racing to catch up.
+         * A frame drawn with the sound on can take three or four frames' time, so this has to be
+         * well beyond that, or the time is thrown away even when there is idle time later to make
+         * it up (at 4 frames, full sound ran at 58.3 fps with 34 ms of every second idle). */
+        if (owed_us > 12 * CPS1_FRAME_US) owed_us = 12 * CPS1_FRAME_US;
 
         if (owed_us < CPS1_FRAME_US) {
             /* ahead of the clock: the only place this task sleeps */

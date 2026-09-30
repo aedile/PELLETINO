@@ -15,22 +15,53 @@ at 3.58 MHz, a YM2151, an OKI MSM6295, three tile layers and 256 sprites.
 
 No ROMs are included. See `LICENSE` and `THIRD_PARTY_NOTICES.md`.
 
-> **Status, 30 September 2026: unfinished.** The sweep stopped at row 35 of 56 (the
-> rows measured so far are below). Still to do: the rest of the sweep, the knob-by-knob
-> comparison (`tools/knobsweep.sh`), the sections of this README marked "not written
-> yet", and the launcher handshake test on the board.
-
 ---
 
 ## The answer
 
-*Not written yet: see the status note at the top.*
+**The 68000 holds real time, with room to spare.** Emulating the 10 MHz 68000 takes
+296 ms of every second (30% of the core) in the first attract fight, against an
+estimate of 50 to 60%. What gets it there is skipping the game's idle loop exactly
+(without that it is 671 ms) and running the 147 instruction handlers the game uses
+from RAM.
+
+**With the sound off, it holds real time** in five of the eight video
+configurations: SCALE drawing 1 frame in 2 (29.8 fps on the panel), 1 in 3 or 1 in 4,
+and CROP drawing 1 in 3 or 1 in 4. Drawing every frame it runs at 67% of real time
+(40 fps): at 60 fps the video alone would need about 115% of the core, against an
+estimate of 50 to 65%.
+
+**With the sound on, it does not quite hold real time.** The Z80 and the sound chips
+take 300 to 550 ms a second depending on the rate. The best configuration is SCALE,
+1 frame in 4, all the sound at 11 kHz, with `FRAME_SKIP_AUTO=1`: 59.0 of 59.6 frames a
+second (99%), 14.7 drawn. The same at 22 kHz with `YM_QUALITY=0` does 59.1. At 22 kHz
+with the full YM2151 it is 55.5 (93%).
+
+Against the brief's budget, per second, in the fight:
+
+| Stage | Estimate | Measured |
+|---|---|---|
+| 68000 at 10 MHz | 50 to 60% | 30% |
+| Z80 at 3.58 MHz | about 20% | 13 to 15% |
+| YM2151 | 15 to 35% at 44.1 kHz | 40% at 44.1 kHz, 24% at 22 kHz, 17% at 11 kHz (with the MSM6295 and the mix) |
+| Video, four layers, 60 fps, SCALE | 50 to 65% | about 115% (video and strips) |
+| Flash traffic for tiles | about 5 ms a frame | not measurable: reading every tile from RAM instead was slower |
+
+For the smoothest picture: sound off, SCALE, `FRAME_SKIP=1`. For the game with its
+sound: SCALE, `FRAME_SKIP=3`, `SOUND=FM_ADPCM`, `SOUND_RATE=11025`.
 
 ---
 
 ## Results
 
-Rows 0 to 35 of 56, first attract fight, 25 seconds each, `FRAME_SKIP_AUTO=0`. All times are ms per second.
+All 56 combinations of `VIDEO_MODE`, `FRAME_SKIP`, `SOUND` and `SOUND_RATE`, each 25
+seconds of the first attract fight, measured on the board with `FRAME_SKIP_AUTO=0`.
+The rows were measured before the main loop was allowed to catch up by twelve frames
+rather than four, which moves only the full-sound rows, by about 1%.
+Times are milliseconds per second. "Machine fps" is how many frames of the arcade board
+were emulated; 59.6 is real time, and "speed" is that as a percentage. "Needs" is what
+the work would take if the machine ran at full speed: under 1000 it holds real time.
+The rate is left out where the sound is off.
 
 | # | video | skip | sound | rate | drawn fps | machine fps | speed | 68000 | Z80 | sound out | video | strips | idle | needs | free heap |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -70,6 +101,26 @@ Rows 0 to 35 of 56, first attract fight, 25 seconds each, `FRAME_SKIP_AUTO=0`. A
 | 33 | CROP | 0 | FM_ADPCM | 22050 | 21.8 | 21.8 | 37% | 116 | 57 | 178 | 483 | 153 | 1 | 2734 | 40 KB |
 | 34 | CROP | 0 | FM_ADPCM | 44100 | 18.9 | 18.9 | 32% | 101 | 50 | 292 | 415 | 131 | 1 | 3153 | 34 KB |
 | 35 | CROP | 1 | OFF | - | 23.6 | 47.3 | 79% | 236 | 0 | 0 | 564 | 180 | 7 | 1251 | 77 KB |
+| 36 | CROP | 1 | FM | 11025 | 17.8 | 35.6 | 60% | 190 | 94 | 126 | 437 | 137 | 1 | 1674 | 44 KB |
+| 37 | CROP | 1 | FM | 22050 | 16.5 | 33.0 | 55% | 177 | 88 | 185 | 408 | 128 | 1 | 1806 | 43 KB |
+| 38 | CROP | 1 | FM | 44100 | 14.2 | 28.4 | 48% | 153 | 75 | 299 | 350 | 109 | 1 | 2098 | 37 KB |
+| 39 | CROP | 1 | FM_ADPCM | 11025 | 17.8 | 35.5 | 60% | 188 | 93 | 139 | 430 | 137 | 1 | 1679 | 42 KB |
+| 40 | CROP | 1 | FM_ADPCM | 22050 | 16.4 | 32.7 | 55% | 174 | 86 | 200 | 400 | 127 | 1 | 1822 | 40 KB |
+| 41 | CROP | 1 | FM_ADPCM | 44100 | 14.0 | 27.9 | 47% | 149 | 73 | 318 | 339 | 107 | 1 | 2136 | 34 KB |
+| 42 | CROP | 2 | OFF | - | 19.6 | 58.9 | 99% | 294 | 0 | 0 | 494 | 156 | 42 | 970 | 77 KB |
+| 43 | CROP | 2 | FM | 11025 | 14.8 | 44.2 | 74% | 232 | 117 | 142 | 375 | 118 | 2 | 1347 | 44 KB |
+| 44 | CROP | 2 | FM | 22050 | 13.8 | 41.2 | 69% | 214 | 110 | 204 | 348 | 109 | 2 | 1445 | 43 KB |
+| 45 | CROP | 2 | FM | 44100 | 11.6 | 34.8 | 58% | 186 | 92 | 317 | 298 | 93 | 1 | 1713 | 37 KB |
+| 46 | CROP | 2 | FM_ADPCM | 11025 | 14.7 | 44.0 | 74% | 228 | 116 | 156 | 367 | 117 | 2 | 1352 | 42 KB |
+| 47 | CROP | 2 | FM_ADPCM | 22050 | 13.7 | 40.9 | 69% | 210 | 108 | 219 | 340 | 108 | 1 | 1456 | 40 KB |
+| 48 | CROP | 2 | FM_ADPCM | 44100 | 11.4 | 34.2 | 57% | 181 | 90 | 335 | 288 | 91 | 1 | 1743 | 34 KB |
+| 49 | CROP | 3 | OFF | - | 14.9 | 59.6 | 100% | 295 | 0 | 0 | 384 | 122 | 185 | 816 | 77 KB |
+| 50 | CROP | 3 | FM | 11025 | 12.7 | 50.8 | 85% | 264 | 134 | 149 | 331 | 103 | 4 | 1169 | 44 KB |
+| 51 | CROP | 3 | FM | 22050 | 11.8 | 47.3 | 79% | 244 | 125 | 212 | 307 | 96 | 2 | 1258 | 43 KB |
+| 52 | CROP | 3 | FM | 44100 | 10.1 | 40.4 | 68% | 209 | 107 | 327 | 261 | 82 | 1 | 1474 | 37 KB |
+| 53 | CROP | 3 | FM_ADPCM | 11025 | 12.6 | 50.5 | 85% | 259 | 132 | 164 | 324 | 103 | 4 | 1176 | 42 KB |
+| 54 | CROP | 3 | FM_ADPCM | 22050 | 11.7 | 46.8 | 78% | 239 | 122 | 230 | 299 | 94 | 2 | 1272 | 40 KB |
+| 55 | CROP | 3 | FM_ADPCM | 44100 | 9.9 | 39.6 | 66% | 203 | 104 | 346 | 252 | 80 | 1 | 1504 | 34 KB |
 
 ---
 
@@ -96,7 +147,13 @@ tools/bench.sh /dev/cu.usbmodem1101 VIDEO_MODE=SCALE FRAME_SKIP=3 SOUND=FM_ADPCM
 ```
 
 Every knob that is not named goes back to its default, so one run inherits
-nothing from the last. `tools/sweep.py /dev/cu.usbmodem1101` runs all 56 rows
+nothing from the last.
+
+On the ESP32-C6's USB serial, opening the port resets the chip, and every so often
+the board gets into a state where every reset over USB brings it up in download
+mode ("waiting for download"), which only its reset button clears. `bench.sh`
+exits with status 3 when that happens; `tools/sweep.py` says so and waits for the
+button, then carries on with the row. `tools/sweep.py /dev/cu.usbmodem1101` runs all 56 rows
 into `results.csv` (about ninety minutes), and `tools/sweep.py --markdown
 results.csv` prints the table above. Each row's command is in the last column
 of `results.csv`.
@@ -151,7 +208,26 @@ which `knobs.cmake` turns into a header in the build directory. The host harness
 takes them as `make -C host KNOBS="-DFRAME_SKIP=1 -DKNOB_SOUND=FM"`: the knobs
 that take a word are `KNOB_<name>` there.
 
-*Not written yet: see the status note at the top.*
+| Knob | Values (default first) | What it costs and buys, measured |
+|---|---|---|
+| `VIDEO_MODE` | `SCALE`, `CROP` | SCALE draws 240×140 of the 384×224 picture; CROP draws the middle 240×224 at 1:1. CROP costs 55% more video (384 against 248 ms/s at `FRAME_SKIP=3`) and 55% more strips. |
+| `FRAME_SKIP` | 3, 0, 1, 2 | Draw one frame in N+1. The machine runs every frame regardless. See the table. |
+| `FRAME_SKIP_AUTO` | 1, 0 | Drop the next drawn frame whenever the last one overran. Free when the machine keeps up. The results table is taken with it off, so that `FRAME_SKIP` means what it says. |
+| `LAYERS` | 15 (bitmask) | Scroll1 (8×8, the text) 1, scroll2 (16×16, the stage) 2, scroll3 (32×32, the sky) 4, sprites 8. Alone at `FRAME_SKIP=3`: scroll1 49 ms/s of video, scroll3 40, sprites 39; none at all, 0.1. For profiling. |
+| `ROWSCROLL` | 1, 0 | Scroll2 scrolled line by line: the floor of a fight. Off saves 15 ms/s of video and flattens the floor. |
+| `SOUND` | `OFF`, `FM`, `FM_ADPCM` | OFF never runs the Z80. FM adds the Z80 (about 145 ms/s) and the YM2151; FM_ADPCM adds the MSM6295, about 10 ms/s more. |
+| `SOUND_RATE` | 22050, 11025, 44100 | The YM2151's operators are computed at this rate, so their cost follows it; its envelopes and timers run at the chip's own rate whatever this is. |
+| `YM_QUALITY` | 1, 0 | 0: no LFO, no noise, operators at half the rate with a straight line between. Sound output 245 → 169 ms/s at 22 kHz. It sounds it: the vibrato goes. |
+| `CPU_CORE` | `MUSASHI`, `OWN` | `OWN` was to be a 68000 of this project's own if Musashi could not hold 10 MHz. Musashi holds it with room to spare (296 ms/s), so it has not been written, and asking for it stops the build with the reason. |
+| `TILE_CACHE_KB` | 0 | Not built, because its best case was measured first: drawing every tile out of RAM instead of flash (`EXPERIMENT=EXPERIMENT_RAM_TILES`, which draws the wrong picture) made the video slower, 248 → 297 ms/s. The flash cache already holds what a frame reads. Only 0 is accepted. |
+| `STATS` | 1, 0 | The stats line; printing it costs about 3 ms/s. |
+| `BENCH_SECONDS` | 0, N | 0 runs for ever. N: go to the first fight, measure N seconds, print the `bench` line, leave for the launcher. `BENCH_FROM_FRAME` (3400) is where the measuring starts. |
+| `IDLE_SKIP` | 1, 0 | The game's scheduler and the sound program both spin waiting for an interrupt. With this on, once a pass of the loop is proved to change nothing, the rest of the time slice is taken off the clock in whole passes, so the interrupt still arrives at the instruction and the cycle it would have. 68000: 671 → 296 ms/s; with the sound on, the machine goes from 62% of real time to 92%. The host harness gets identical RAM, pictures and sound either way. |
+| `HOT_HANDLERS` | 1, 0 | The 147 of Musashi's 1700 instruction handlers that attract mode uses 99% of the time, in RAM instead of flash. 68000: 375 → 296 ms/s, for 19 KB. The list is `components/emu/linker.lf`, made by `tools/hot.py` from a host profile. |
+| `OPCODE_TABLE_RAM` | 0, 1 | The 21 KB table from opcode to handler in RAM. 346 → 282 ms/s without `HOT_HANDLERS`, but only 296 → 282 with it, and the sound needs the RAM. Off. |
+| `PROG_CACHE_KB` | 0, 4 to 64 | Copies of the program pages the 68000 is busiest in, chosen as it runs. Worthless: 375 → 379 ms/s at 32 KB. Off. |
+| `OCCLUSION` | 0, 1 | Skip painting pixels an opaque tile above will cover (the converter marks such tiles). On the host it removes 20% of the painting in a fight; on the board, working out what is covered costs more than it saves (258 → 331 ms/s). Off. |
+| `STRIP_REUSE` | 1, 0 | A 16-row strip whose inputs have not changed since it was sent is neither drawn nor sent. About 3 ms/s in a fight; on the title screen most strips are spared. |
 
 ---
 
@@ -160,7 +236,20 @@ that take a word are `KNOB_<name>` there.
 Everything here was measured on the board, in the first attract fight, SCALE
 video, sound off unless it says otherwise.
 
-*Not written yet: see the status note at the top.*
+| Change | What moved | Kept |
+|---|---|---|
+| Musashi's opcode tables worked out at build time and packed | 576 KB of RAM at start-up to 30 KB, most of it in flash | yes |
+| The idle loops skipped by proof (`IDLE_SKIP`) | 68000 671 → 296 ms/s; with sound, 62% → 92% of real time | yes |
+| The 147 hot instruction handlers in RAM (`HOT_HANDLERS`) | 68000 375 → 296 ms/s | yes |
+| The accelerometer not read | input 84 → 2 ms/s | yes |
+| The YM2151's envelopes visited only when due; silent channels skipped exactly | 1,748 → 1,522 CPU cycles a sample | yes |
+| Unrolled pixel loops for the two views | video about 3% | yes |
+| Strips not redrawn when nothing in them changed (`STRIP_REUSE`) | about 3 ms/s in a fight | yes |
+| Opcode table in RAM (`OPCODE_TABLE_RAM`) | 14 ms/s on top of the hot handlers, for 21 KB | no, off |
+| Program pages in RAM (`PROG_CACHE_KB`) | nothing | no, off |
+| Occlusion (`OCCLUSION`) | slower | no, off |
+| Tiles from RAM, the ceiling of any tile cache | slower | not built |
+| The Z80 core in RAM | would take 65 KB, and then the machine's graphics RAM does not fit (short by 4 KB) | no |
 
 ---
 
@@ -170,7 +259,20 @@ The machine's own 64 KB of work RAM and 192 KB of graphics RAM are ordinary
 heap, allocated first, graphics RAM before work RAM because it wants the larger
 block. The boot log lists every allocation and the heap after each step:
 
-*Not written yet: see the status note at the top.*
+```
+heap at start:          free 370072
+heap after the panel:   free 353112
+graphics RAM            196608 bytes
+work RAM                 65536 bytes
+heap with the machine:  free  90880
+heap ready, sound off:  free  81524
+heap ready, sound on:   free  45904   (largest block 20480)
+```
+
+Musashi's handlers that run from RAM take 19 KB, and the sound (the YM2151, the
+MSM6295, the Z80's RAM, the I2S buffers) about 35 KB. The lowest free heap over
+a whole bench is the `minheap` field and the last column of the table: never
+below 37 KB.
 
 The program ROM, the graphics and the Z80's program are read in place from the
 data partition, memory-mapped. The ESP32-C6 can map 8 MB of flash at once,
@@ -238,16 +340,24 @@ build a medal with this instead:
 The data partition is 7616 KB, 2 MB more than the video's, so a build with it
 has room for fewer games. `./pelletino` says how many.
 
-*Not written yet: see the status note at the top.*
+Tested on the board with a launcher built that way: the launcher boots into
+SHORYUKEN when it is the selection, a bench returns to the menu when it ends
+(`medalboot: returning to the menu`, then the launcher's `software restart - a game
+asked for the menu`), it can be picked from the wheel with the usual two-second hold,
+both buttons together step the sound as in every other game, and holding BOOT for
+five seconds goes back to the menu. The brief said ten seconds; every game here now
+uses five, and so does this.
+
+SHORYUKEN's slot is 768 KB: the largest build (CROP, all the sound) is 686 KB.
 
 ---
 
 ## The watchdog is off
 
 `CONFIG_ESP_TASK_WDT_EN=n`, as in every game here. The main loop only sleeps
-when the emulation is ahead of the clock, and with the sound on it never is, so
-the idle task never runs and the task watchdog would reset a program that is
-working as designed.
+when the emulation is ahead of the clock, and with the sound on it is rarely ahead,
+so the idle task can go long stretches without running and the task watchdog would
+reset a program that is working as designed.
 
 ---
 
