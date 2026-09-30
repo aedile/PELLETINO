@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS
+        "src/display.cpp"
+        "src/display_toast.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        driver
+        esp_timer
+        esp_lcd
+)

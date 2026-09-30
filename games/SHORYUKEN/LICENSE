@@ -1,0 +1,38 @@
+SHORYUKEN is released under the Zero-Clause BSD license (0BSD): no attribution, no
+notice preservation, no conditions.
+
+That covers the code written for this project: everything under main/, host/,
+tools/, components/audio_hal, components/display, components/imu,
+components/medal_input and components/medalboot, knobs.cmake, and the files
+core/cps1.c, core/cps1.h, core/cps1_internal.h, core/cps1_mem.h,
+core/cps1_view.h, core/cps1_video.c, core/cps1_sound.c, core/cps1_idle.c,
+core/ym2151.c, core/ym2151.h, core/okim6295.c, core/okim6295.h and
+core/m68kown.c.
+
+It does not cover:
+
+- core/z80/, which is Marat Fayzullin's emulator and is non-commercial only;
+- core/m68k/, which is Karl Stenerud's Musashi, under the MIT license;
+- core/ym2151_tables.h, which is copied from Aaron Giles' ymfm, under the
+  BSD-3-Clause license.
+
+Because of the first of those, a built SHORYUKEN image may be shared but not
+sold.
+
+It does not cover the game ROMs, which are not distributed here and never will
+be. See THIRD_PARTY_NOTICES.md for the code this project is derived from.
+
+---
+
+Copyright (C) 2026 Jesse Castro
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.

@@ -1,0 +1,22 @@
+build/
+build_*/
+sdkconfig
+sdkconfig.old
+dependencies.lock
+managed_components/
+# ROMs are not distributable, and neither is anything made from them
+sf2/
+sf2*.zip
+roms/
+roms.bin
+main/roms/
+host/harness
+host/harness_*
+host/out*/
+*.ppm
+*.png
+*.wav
+*.o
+.DS_Store
+__pycache__/
+build_docker.log

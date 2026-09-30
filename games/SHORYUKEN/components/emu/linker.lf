@@ -1,0 +1,15 @@
+# What runs from RAM rather than through the flash cache. RAM is the scarce thing on this
+# board, so this is the inner loops only: the machine, the video, the 68000's dispatch loop
+# and the sound chips. The 68000's 1700 instruction handlers stay in flash, and so does the
+# Z80: in RAM it is 65 KB, and with that gone the machine's graphics RAM does not fit.
+[mapping:emu]
+archive: libemu.a
+entries:
+    cps1 (noflash)
+    cps1_video (noflash)
+    cps1_sound (noflash)
+    cps1_idle (noflash)
+    ym2151 (noflash)
+    okim6295 (noflash)
+    m68kcpu (noflash)
+    m68kown (noflash)

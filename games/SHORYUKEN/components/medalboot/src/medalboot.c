@@ -1,0 +1,256 @@
+#include "medalboot.h"
+#include "hiscore.h"
+#include "esp_partition.h"
+#include "esp_ota_ops.h"
+#include "esp_system.h"
+#include "esp_log.h"
+#include "esp_timer.h"
+#include "nvs.h"
+#include "nvs_flash.h"
+#include <string.h>
+
+
+static const char *TAG = "medalboot";
+
+/*
+ * NVS has to be initialised before nvs_open() will succeed, and thirteen of the fourteen game
+ * images never did it - only the launcher and PELLETINO. In those games every call here failed
+ * at nvs_open(), returned without a word, and the two things that matter most never happened:
+ * medalboot_exit_to_menu() could not clear the selection, so the restart auto-booted the same
+ * game again, and medalboot_game_running() could not clear the attempts counter, so the
+ * launcher would have given up on each game after three boots. Initialising lazily here makes
+ * the contract self-contained: an image only has to make the three calls, nothing else.
+ */
+static bool ensure_nvs(void)
+{
+    static bool ready;
+    if (ready) return true;
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        nvs_flash_erase();
+        err = nvs_flash_init();
+    }
+    ready = (err == ESP_OK || err == ESP_ERR_INVALID_STATE);   /* INVALID_STATE: already done */
+    if (!ready) ESP_LOGE(TAG, "nvs_flash_init: %s - selection and attempts cannot be saved", esp_err_to_name(err));
+    return ready;
+}
+
+#define NS          "minimame"
+#define K_SELECTED  "selected"   /* rom to auto-boot; absent = show the menu */
+#define K_LAST      "last"       /* rom the menu should open on */
+#define K_ATTEMPTS  "attempts"   /* consecutive unconfirmed boots of K_SELECTED */
+
+static bool get_str(const char *key, char *out, size_t len)
+{
+    if (!ensure_nvs()) return false;
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return false;
+    size_t n = len;
+    esp_err_t err = nvs_get_str(h, key, out, &n);
+    nvs_close(h);
+    return err == ESP_OK && out[0] != '\0';
+}
+
+static void set_str(const char *key, const char *val)
+{
+    if (!ensure_nvs()) return;
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READWRITE, &h) != ESP_OK) return;
+    if (val) nvs_set_str(h, key, val);
+    else     nvs_erase_key(h, key);
+    nvs_commit(h);
+    nvs_close(h);
+}
+
+static void set_u8(const char *key, uint8_t v)
+{
+    if (!ensure_nvs()) return;
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READWRITE, &h) != ESP_OK) return;
+    nvs_set_u8(h, key, v);
+    nvs_commit(h);
+    nvs_close(h);
+}
+
+bool medalboot_get_selected(char *out, size_t len) { return get_str(K_SELECTED, out, len); }
+bool medalboot_get_last(char *out, size_t len)     { return get_str(K_LAST, out, len); }
+bool medalboot_rom(char *out, size_t len)          { return get_str(K_SELECTED, out, len); }
+
+void medalboot_set_selected(const char *rom)
+{
+    set_str(K_SELECTED, rom);
+    set_str(K_LAST, rom);
+    set_u8(K_ATTEMPTS, 0);
+}
+
+void medalboot_clear_selected(void)
+{
+    set_str(K_SELECTED, NULL);
+    set_u8(K_ATTEMPTS, 0);
+}
+
+int medalboot_attempts(void)
+{
+    if (!ensure_nvs()) return 0;
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return 0;
+    uint8_t v = 0;
+    nvs_get_u8(h, K_ATTEMPTS, &v);
+    nvs_close(h);
+    return v;
+}
+
+void medalboot_note_attempt(void)
+{
+    int v = medalboot_attempts();
+    if (v < 255) set_u8(K_ATTEMPTS, (uint8_t)(v + 1));
+}
+
+void medalboot_game_startup(void)
+{
+    const esp_partition_t *l = esp_partition_find_first(
+        ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, "launcher");
+    if (l) {
+        esp_err_t err = esp_ota_set_boot_partition(l);
+        if (err != ESP_OK) ESP_LOGW(TAG, "could not arm the menu: %s", esp_err_to_name(err));
+    } else {
+        ESP_LOGW(TAG, "no 'launcher' partition - this image cannot return to the menu");
+    }
+}
+
+void medalboot_game_running(void) { set_u8(K_ATTEMPTS, 0); }
+
+bool medalboot_exit_hold(bool down)
+{
+    static int64_t since;
+    static bool was_down, fired;
+    int64_t now = esp_timer_get_time();
+
+    if (down && !was_down) { since = now; fired = false; }
+    was_down = down;
+    if (!down) return false;
+
+    if (!fired && now - since >= (int64_t)MEDALBOOT_EXIT_HOLD_MS * 1000) {
+        fired = true;
+        return true;
+    }
+    return false;
+}
+
+void medalboot_exit_to_menu(void)
+{
+    ESP_LOGI(TAG, "returning to the menu");
+    hiscore_flush();                    /* whatever was scored goes with us */
+    medalboot_clear_selected();
+    esp_restart();
+}
+
+/* ---- sound: one setting for the whole medal ------------------------------- */
+
+#define K_MUTED     "muted"
+
+medalboot_sound_t medalboot_sound(void)
+{
+    if (!ensure_nvs()) return MEDALBOOT_SOUND_LOUD;
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return MEDALBOOT_SOUND_LOUD;
+    uint8_t v = 0;
+    nvs_get_u8(h, K_MUTED, &v);
+    nvs_close(h);
+    return v <= MEDALBOOT_SOUND_QUIET ? (medalboot_sound_t)v : MEDALBOOT_SOUND_OFF;
+}
+
+medalboot_sound_t medalboot_sound_next(void)
+{
+    medalboot_sound_t s = medalboot_sound();
+    s = s == MEDALBOOT_SOUND_LOUD  ? MEDALBOOT_SOUND_QUIET
+      : s == MEDALBOOT_SOUND_QUIET ? MEDALBOOT_SOUND_OFF
+      :                              MEDALBOOT_SOUND_LOUD;
+    set_u8(K_MUTED, (uint8_t)s);
+    return s;
+}
+
+const char *medalboot_sound_name(medalboot_sound_t s)
+{
+    return s == MEDALBOOT_SOUND_OFF ? "SOUND OFF" : s == MEDALBOOT_SOUND_QUIET ? "SOUND QUIET" : "SOUND LOUD";
+}
+
+/* The ES8311's DAC volume, half a decibel a step, 0xBF being 0 dB. Quiet is 14 dB down. */
+uint8_t medalboot_sound_volume(medalboot_sound_t s)
+{
+    return s == MEDALBOOT_SOUND_QUIET ? 0xBF - 28 : 0xBF;
+}
+
+bool medalboot_muted(void) { return medalboot_sound() == MEDALBOOT_SOUND_OFF; }
+
+void medalboot_set_muted(bool muted)
+{
+    set_u8(K_MUTED, muted ? MEDALBOOT_SOUND_OFF : MEDALBOOT_SOUND_LOUD);
+}
+
+/* ---- high scores: saved in NVS per ROM name ------------------------------- */
+
+uint32_t medalboot_get_highscore(const char *rom)
+{
+    if (!rom || !rom[0] || !ensure_nvs()) return 0;
+    char key[16];
+    snprintf(key, sizeof key, "hs_%s", rom);
+    key[15] = '\0';
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return 0;
+    uint32_t score = 0;
+    nvs_get_u32(h, key, &score);
+    nvs_close(h);
+    return score;
+}
+
+void medalboot_set_highscore(const char *rom, uint32_t score)
+{
+    if (!rom || !rom[0] || score == 0 || !ensure_nvs()) return;
+    char key[16];
+    snprintf(key, sizeof key, "hs_%s", rom);
+    key[15] = '\0';
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READWRITE, &h) != ESP_OK) return;
+    uint32_t prev = 0;
+    nvs_get_u32(h, key, &prev);
+    if (score > prev) {
+        nvs_set_u32(h, key, score);
+        nvs_commit(h);
+    }
+    nvs_close(h);
+}
+
+/* ---- the score table, as bytes -------------------------------------------- */
+
+static void blob_key(char key[16], const char *rom)
+{
+    snprintf(key, 16, "hb_%s", rom);        /* NVS keys run to 15 characters; ROM names to 12 */
+}
+
+bool medalboot_load_blob(const char *rom, void *buf, size_t len)
+{
+    if (!rom || !rom[0] || !buf || !len || !ensure_nvs()) return false;
+    char key[16];
+    blob_key(key, rom);
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return false;
+    size_t have = 0;
+    bool ok = nvs_get_blob(h, key, NULL, &have) == ESP_OK && have == len &&
+              nvs_get_blob(h, key, buf, &have) == ESP_OK;
+    nvs_close(h);
+    return ok;
+}
+
+void medalboot_save_blob(const char *rom, const void *buf, size_t len)
+{
+    if (!rom || !rom[0] || !buf || !len || !ensure_nvs()) return;
+    char key[16];
+    blob_key(key, rom);
+    nvs_handle_t h;
+    if (nvs_open(NS, NVS_READWRITE, &h) != ESP_OK) return;
+    if (nvs_set_blob(h, key, buf, len) == ESP_OK) nvs_commit(h);
+    nvs_close(h);
+    ESP_LOGI(TAG, "%s: %u bytes of scores saved", rom, (unsigned)len);
+    ESP_LOG_BUFFER_HEX_LEVEL(TAG, buf, len < 64 ? len : 64, ESP_LOG_INFO);     /* enough to see a table by */
+}

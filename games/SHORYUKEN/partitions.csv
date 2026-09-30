@@ -1,0 +1,9 @@
+# Name,   Type, SubType, Offset,    Size,     Flags
+# Only used when SHORYUKEN is built and flashed on its own. Under PELLETINO the launcher's
+# table is the one on the device: this image goes in a game slot and roms.bin in the data
+# partition the launcher lays out next to it (see games.toml, `data_kb`). It is labelled
+# "media" there, so it is here too.
+nvs,      data, nvs,     0x9000,    0x6000,
+phy_init, data, phy,     0xf000,    0x1000,
+factory,  app,  factory, 0x10000,   0x100000,
+media,    data, 0x40,    0x110000,  0x760000,
