@@ -31,7 +31,8 @@ Games that embed the Fayzullin Z80 (non-commercial):
 > (SWARMFIGHTER), Dig Dug (STRATUM), Donkey Kong (GIRDER), Frogger (RIBBIT),
 > Rally-X (SMOKESCREEN), Arkanoid (VAUS), Mario Bros (PLUMBER), Mr. Do! (BIGTOP),
 > Time Pilot (CHRONO), Root Beer Tapper (KEG), Moon Patrol (BUGGY), Space
-> Invaders (PHALANX), Galaxian (ARMADA), Gyruss (TOCCATA).
+> Invaders (PHALANX), Galaxian (ARMADA), Gyruss (TOCCATA), and the emulated
+> Street Fighter II (SHORYUKEN, whose other cores are MIT and BSD-3-Clause).
 
 Pac-Man / Ms. Pac-Man (GHOSTERAMA) also **builds against** the Fayzullin Z80, so
 a flashed GHOSTERAMA image is non-commercial too — but this repository does not
