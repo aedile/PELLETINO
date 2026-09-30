@@ -151,11 +151,17 @@
 #endif
 
 /*
- * BENCH_SECONDS: 0 runs until told to stop. Anything else: boot, sit in attract mode,
- * print the stats line for this many seconds, print "bench done", and leave for the menu.
+ * BENCH_SECONDS: 0 runs until told to stop. Anything else is a bench: run the machine as
+ * fast as it will go, undrawn, to BENCH_FROM_FRAME (the start of the first attract fight,
+ * which takes 10 to 20 seconds rather than 57), then run it properly for this many
+ * seconds with the stats line printing, then print one "bench" line with the same fields
+ * averaged over the whole measurement, print "bench done", and leave for the menu.
  */
 #ifndef BENCH_SECONDS
 #define BENCH_SECONDS 0
+#endif
+#ifndef BENCH_FROM_FRAME
+#define BENCH_FROM_FRAME 3400
 #endif
 
 #endif

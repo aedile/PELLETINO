@@ -8,7 +8,7 @@
 # directory is deleted, so a sweep names every knob on every build.
 set(SHORYUKEN_KNOB_DEFS "")
 foreach(knob FRAME_SKIP FRAME_SKIP_AUTO LAYERS ROWSCROLL SOUND_RATE YM_QUALITY TILE_CACHE_KB
-             STATS BENCH_SECONDS IDLE_SKIP)
+             STATS BENCH_SECONDS BENCH_FROM_FRAME IDLE_SKIP)
     if(DEFINED ${knob})
         list(APPEND SHORYUKEN_KNOB_DEFS "${knob}=${${knob}}")
     endif()

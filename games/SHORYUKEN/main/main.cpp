@@ -79,6 +79,15 @@ static void pump_audio(void)
 #define pump_audio NULL
 #endif
 
+static uint32_t underruns(void)
+{
+#if SOUND != SOUND_OFF
+    return audio_get_underrun_count();
+#else
+    return 0;
+#endif
+}
+
 extern "C" void app_main(void)
 {
     /*
@@ -157,11 +166,33 @@ extern "C" void app_main(void)
     medalboot_game_running();
     heap_report("ready");
 
+    /*
+     * A bench measures the first fight of the attract mode, which begins 57 seconds in. It
+     * gets there as fast as the 68000 will go, drawing nothing and synthesising nothing, and
+     * only then starts the clock. The sound CPU is run all the way, so the music is where it
+     * should be when the measuring starts.
+     */
+#if BENCH_SECONDS > 0
+    {
+        int64_t t0 = esp_timer_get_time();
+        while (cps1_frame_count() < BENCH_FROM_FRAME) {
+            cps1_run_frame();
+            if ((cps1_frame_count() & 63) == 0) { medal_input_state_t st; medal_input_poll(&st); vTaskDelay(1); }
+        }
+        cps1_z80_us();
+        printf("bench: at frame %d after %.1f s, measuring for %d s\n", BENCH_FROM_FRAME,
+               (esp_timer_get_time() - t0) / 1e6, BENCH_SECONDS);
+    }
+#endif
+
+    struct stages { uint64_t m68k, z80, ym, video, strips, idle, input; uint32_t emulated, drawn, skipped; };
+    stages sec = {}, all = {};
     const int64_t start_us = esp_timer_get_time();
     int64_t last_us = start_us, report_us = start_us, owed_us = 0;
-    uint64_t t_m68k = 0, t_z80 = 0, t_video = 0, t_strips = 0, t_idle = 0, t_input = 0;
-    uint32_t emulated = 0, drawn = 0, skipped = 0, frame_no = 0;
+    uint32_t frame_no = 0;
     bool overran = false;
+    t_audio = 0;
+    const uint32_t underruns_before = underruns();      /* nothing fed the codec on the way here */
 
     for (;;) {
         int64_t now = esp_timer_get_time();
@@ -172,23 +203,23 @@ extern "C" void app_main(void)
         if (owed_us < CPS1_FRAME_US) {
             /* ahead of the clock: the only place this task sleeps */
             vTaskDelay(1);
-            t_idle += esp_timer_get_time() - now;
+            sec.idle += esp_timer_get_time() - now;
         } else {
             owed_us -= CPS1_FRAME_US;
             input_update(cps1_input());
 
             int64_t t0 = esp_timer_get_time();
-            t_input += t0 - now;
+            sec.input += t0 - now;
             cps1_run_frame();
             uint64_t z = cps1_z80_us();
-            t_z80 += z;
-            t_m68k += (uint64_t)(esp_timer_get_time() - t0) - z;
-            emulated++;
+            sec.z80 += z;
+            sec.m68k += (uint64_t)(esp_timer_get_time() - t0) - z;
+            sec.emulated++;
 
             bool draw = (frame_no++ % (FRAME_SKIP + 1)) == 0;
             if (FRAME_SKIP_AUTO && overran) draw = false;
-            if (draw) { render_frame(pump_audio, &t_video, &t_strips); drawn++; }
-            else skipped++;
+            if (draw) { render_frame(pump_audio, &sec.video, &sec.strips); sec.drawn++; }
+            else sec.skipped++;
 #if SOUND != SOUND_OFF
             pump_audio();
 #endif
@@ -196,38 +227,52 @@ extern "C" void app_main(void)
             overran = draw && (esp_timer_get_time() - now) > CPS1_FRAME_US;
         }
 
-#if STATS
         if (now - report_us >= 1000000) {
             double s = (now - report_us) / 1e6;
-            uint64_t sum = t_m68k + t_z80 + t_audio + t_video + t_strips + t_idle + t_input;
+            sec.ym = t_audio; t_audio = 0;
+            uint64_t sum = sec.m68k + sec.z80 + sec.ym + sec.video + sec.strips + sec.idle + sec.input;
+#if STATS
             printf("stats fps=%.1f m68k=%.1fms z80=%.1fms ym=%.1fms video=%.1fms strips=%.1fms idle=%.1fms "
                    "skipped=%lu/%lu heap=%lu minheap=%lu vmode=%s skip=%d sound=%s "
-                   "emu=%.1f input=%.1fms other=%.1fms rate=%d core=%s under=%lu pc=%06lX\n",
-                   drawn / s, t_m68k / 1e3 / s, t_z80 / 1e3 / s, t_audio / 1e3 / s, t_video / 1e3 / s,
-                   t_strips / 1e3 / s, t_idle / 1e3 / s,
-                   (unsigned long)skipped, (unsigned long)emulated,
+                   "emu=%.1f input=%.1fms other=%.1fms rate=%d core=%s under=%lu frame=%lu pc=%06lX\n",
+                   sec.drawn / s, sec.m68k / 1e3 / s, sec.z80 / 1e3 / s, sec.ym / 1e3 / s, sec.video / 1e3 / s,
+                   sec.strips / 1e3 / s, sec.idle / 1e3 / s,
+                   (unsigned long)sec.skipped, (unsigned long)sec.emulated,
                    (unsigned long)esp_get_free_heap_size(), (unsigned long)esp_get_minimum_free_heap_size(),
                    VIDEO_MODE_NAME, FRAME_SKIP, SOUND_NAME,
-                   emulated / s, t_input / 1e3 / s, ((now - report_us) - (int64_t)sum) / 1e3 / s, SOUND_RATE, CPU_CORE_NAME,
-#if SOUND != SOUND_OFF
-                   (unsigned long)audio_get_underrun_count(),
-#else
-                   0ul,
+                   sec.emulated / s, sec.input / 1e3 / s, ((now - report_us) - (int64_t)sum) / 1e3 / s, SOUND_RATE, CPU_CORE_NAME,
+                   (unsigned long)(underruns() - underruns_before), (unsigned long)cps1_frame_count(), (unsigned long)cps1_pc());
 #endif
-                   (unsigned long)cps1_pc());
-            t_m68k = t_z80 = t_audio = t_video = t_strips = t_idle = t_input = 0;
-            emulated = drawn = skipped = 0;
+            all.m68k += sec.m68k; all.z80 += sec.z80; all.ym += sec.ym; all.video += sec.video; all.strips += sec.strips;
+            all.idle += sec.idle; all.input += sec.input;
+            all.emulated += sec.emulated; all.drawn += sec.drawn; all.skipped += sec.skipped;
+            sec = {};
             report_us = now;
-        }
-#endif
+
 #if BENCH_SECONDS > 0
-        if (now - start_us >= (int64_t)BENCH_SECONDS * 1000000) {
-            printf("bench done: %d seconds\n", BENCH_SECONDS);
-            char rom[16];
-            if (medalboot_rom(rom, sizeof(rom))) medalboot_exit_to_menu();   /* the menu started it: go back */
-            display_toast("BENCH DONE", 60000);
-            for (;;) { medal_input_state_t st; medal_input_poll(&st); vTaskDelay(pdMS_TO_TICKS(50)); }
-        }
+            if (now - start_us >= (int64_t)BENCH_SECONDS * 1000000) {
+                /* the same fields, over the whole of the measurement */
+                double t = (now - start_us) / 1e6;
+                uint64_t total = all.m68k + all.z80 + all.ym + all.video + all.strips + all.idle + all.input;
+                printf("bench fps=%.1f m68k=%.1fms z80=%.1fms ym=%.1fms video=%.1fms strips=%.1fms idle=%.1fms "
+                       "skipped=%lu/%lu heap=%lu minheap=%lu vmode=%s skip=%d sound=%s "
+                       "emu=%.1f input=%.1fms other=%.1fms rate=%d core=%s under=%lu frame=%lu "
+                       "auto=%d layers=%d rowscroll=%d ymq=%d idleskip=%d tilecache=%d seconds=%.1f\n",
+                       all.drawn / t, all.m68k / 1e3 / t, all.z80 / 1e3 / t, all.ym / 1e3 / t, all.video / 1e3 / t,
+                       all.strips / 1e3 / t, all.idle / 1e3 / t,
+                       (unsigned long)all.skipped, (unsigned long)all.emulated,
+                       (unsigned long)esp_get_free_heap_size(), (unsigned long)esp_get_minimum_free_heap_size(),
+                       VIDEO_MODE_NAME, FRAME_SKIP, SOUND_NAME,
+                       all.emulated / t, all.input / 1e3 / t, ((now - start_us) - (int64_t)total) / 1e3 / t, SOUND_RATE, CPU_CORE_NAME,
+                       (unsigned long)(underruns() - underruns_before), (unsigned long)cps1_frame_count(),
+                       FRAME_SKIP_AUTO, LAYERS, ROWSCROLL, YM_QUALITY, IDLE_SKIP, TILE_CACHE_KB, t);
+                printf("bench done: %d seconds\n", BENCH_SECONDS);
+                char rom[16];
+                if (medalboot_rom(rom, sizeof(rom))) medalboot_exit_to_menu();   /* the menu started it: go back */
+                display_toast("BENCH DONE", 60000);
+                for (;;) { medal_input_state_t st; medal_input_poll(&st); vTaskDelay(pdMS_TO_TICKS(50)); }
+            }
 #endif
+        }
     }
 }

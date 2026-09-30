@@ -6,12 +6,12 @@
 #   tools/bench.sh /dev/cu.usbmodem1101 VIDEO_MODE=CROP FRAME_SKIP=1 SOUND=FM SOUND_RATE=22050
 #
 # Every knob that is not named is put back to its default, so one run does not inherit the
-# last one's settings from the CMake cache. BENCH_SECONDS defaults to 60 here. roms.bin is
-# not flashed: do that once (see the README).
+# last one's settings from the CMake cache. BENCH_SECONDS defaults to 25 here: the first
+# attract fight. roms.bin is not flashed: do that once (see the README).
 set -e
 cd "$(dirname "$0")/.."
 PORT="$1"; shift
-DEFS="-DVIDEO_MODE=SCALE -DFRAME_SKIP=3 -DFRAME_SKIP_AUTO=1 -DLAYERS=15 -DROWSCROLL=1 -DSOUND=OFF -DSOUND_RATE=22050 -DYM_QUALITY=1 -DCPU_CORE=MUSASHI -DIDLE_SKIP=1 -DTILE_CACHE_KB=0 -DSTATS=1 -DBENCH_SECONDS=60"
+DEFS="-DVIDEO_MODE=SCALE -DFRAME_SKIP=3 -DFRAME_SKIP_AUTO=1 -DLAYERS=15 -DROWSCROLL=1 -DSOUND=OFF -DSOUND_RATE=22050 -DYM_QUALITY=1 -DCPU_CORE=MUSASHI -DIDLE_SKIP=1 -DTILE_CACHE_KB=0 -DSTATS=1 -DBENCH_SECONDS=25 -DBENCH_FROM_FRAME=3400"
 for kv in "$@"; do DEFS="$DEFS -D$kv"; done
 docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.3.4 \
     idf.py -B build_docker -DIDF_TARGET=esp32c6 $DEFS build > build_docker.log 2>&1 \
@@ -21,4 +21,4 @@ PY=$(head -1 "$ESPTOOL" | sed 's/^#!//')
 "$ESPTOOL" --chip esp32c6 -p "$PORT" -b 460800 --after no_reset write_flash \
     --flash_mode dio --flash_size 16MB --flash_freq 80m 0x10000 build_docker/shoryuken.bin > /dev/null
 SECS=$(echo "$DEFS" | sed 's/.*-DBENCH_SECONDS=\([0-9]*\).*/\1/')
-"$PY" tools/capture.py "$PORT" $((SECS + 20))
+"$PY" tools/capture.py "$PORT" $((SECS + 90))
