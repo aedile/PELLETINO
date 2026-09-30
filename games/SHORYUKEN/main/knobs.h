@@ -106,9 +106,10 @@
 #endif
 
 /*
- * YM_QUALITY: 1 is the whole chip. 0 is a cheaper one: no LFO (vibrato and tremolo are
- * lost), no noise channel, and channels whose carriers have all decayed to silence are
- * skipped rather than computed.
+ * YM_QUALITY: 1 is the whole chip, with the operators computed at the output rate and the
+ * envelopes and timers at the chip's own. 0 is cheaper and sounds it: no LFO (vibrato and
+ * tremolo are lost), no noise, and the operators are computed at half the output rate with
+ * a straight line drawn between. Both skip channels that cannot be heard, exactly.
  */
 #ifndef YM_QUALITY
 #define YM_QUALITY 1
@@ -116,9 +117,10 @@
 
 /*
  * CPU_CORE:
- *   MUSASHI  Karl Stenerud's 68000. The reference: correct, and the measure of what real
- *            time costs.
- *   OWN      this project's 68000 (core/m68kown.c).
+ *   MUSASHI  Karl Stenerud's 68000, with its tables moved out of RAM (core/m68k/CHANGES.md).
+ *   OWN      a compact 68000 of this project's own, to be written if Musashi could not hold
+ *            10 MHz. It can: in the first attract fight it uses about 290 ms of every
+ *            second. So OWN has not been written, and asking for it stops the build.
  */
 #define CPU_CORE_MUSASHI 0
 #define CPU_CORE_OWN     1
@@ -127,6 +129,9 @@
 #endif
 #define CPU_CORE      KNOB_CAT(CPU_CORE_, KNOB_CPU_CORE)
 #define CPU_CORE_NAME KNOB_STR(KNOB_CPU_CORE)
+#if CPU_CORE == CPU_CORE_OWN
+#error "CPU_CORE=OWN: not written, because Musashi holds real time (see the README)"
+#endif
 
 /*
  * IDLE_SKIP: Street Fighter II's task scheduler goes round sixteen task slots until the
@@ -151,9 +156,7 @@
  * every couple of seconds; in attract mode 8 pages hold 87% of what is executed and 16
  * hold 96%. Costs the RAM and one more load for each read of the program.
  */
-#ifndef PROG_CACHE_KB
-#define PROG_CACHE_KB 0
-#endif
+#include "knobs_m68k.h"      /* PROG_CACHE_KB and OPCODE_TABLE_RAM are defined there */
 
 /*
  * HOT_HANDLERS: 1 puts the 68000 instruction handlers that attract mode actually uses
@@ -169,9 +172,6 @@
  * OPCODE_TABLE_RAM: 1 keeps the table that says which handler an opcode uses in RAM
  * (21 KB); 0 keeps it in flash.
  */
-#ifndef OPCODE_TABLE_RAM
-#define OPCODE_TABLE_RAM 0
-#endif
 
 /*
  * OCCLUSION: 1 finds, before a strip is painted, which pixels the opaque tiles of each
@@ -195,11 +195,17 @@
 #endif
 
 /*
- * TILE_CACHE_KB: 0, 8, 16 or 32. RAM given to a cache of tile rows copied out of flash.
- * 0 reads every tile straight from the mapped partition.
+ * TILE_CACHE_KB: 0, 8, 16 or 32 was to be RAM given to a cache of tile rows copied out of
+ * flash. Its best possible case was measured instead of building it: drawing every tile out
+ * of RAM rather than flash (EXPERIMENT=EXPERIMENT_RAM_TILES, which draws the wrong
+ * picture, fast) saves only what the README says it saves, and with the sound on there is
+ * not 8 KB of heap to give it. So only 0 is built.
  */
 #ifndef TILE_CACHE_KB
 #define TILE_CACHE_KB 0
+#endif
+#if TILE_CACHE_KB != 0
+#error "TILE_CACHE_KB: not built; the most it could buy was measured and is in the README"
 #endif
 
 /* STATS: the once-a-second line over serial. It is the product; turn it off only to see

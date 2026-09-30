@@ -6,8 +6,7 @@ tools/, components/audio_hal, components/display, components/imu,
 components/medal_input and components/medalboot, knobs.cmake, and the files
 core/cps1.c, core/cps1.h, core/cps1_internal.h, core/cps1_mem.h,
 core/cps1_view.h, core/cps1_video.c, core/cps1_sound.c, core/cps1_idle.c,
-core/ym2151.c, core/ym2151.h, core/okim6295.c, core/okim6295.h and
-core/m68kown.c.
+core/ym2151.c, core/ym2151.h, core/okim6295.c and core/okim6295.h.
 
 It does not cover:
 

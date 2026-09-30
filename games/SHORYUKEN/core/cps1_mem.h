@@ -17,7 +17,7 @@
 #define CPS1_MEM_H
 
 #include <stdint.h>
-#include "knobs.h"
+#include "knobs_m68k.h"
 
 #define CPS1_PROG_BYTES 0x100000
 #define CPS1_GFXRAM_BYTES 0x30000

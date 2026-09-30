@@ -15,7 +15,6 @@ entries:
     ym2151 (noflash)
     okim6295 (noflash)
     m68kcpu (noflash)
-    m68kown (noflash)
     # the 147 most used instruction handlers, most used first
     m68kops:m68k_op_dbf_16 (noflash)
     m68kops:m68k_op_move_16_pi_d (noflash)

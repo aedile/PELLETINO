@@ -18,15 +18,6 @@
 #include "knobs.h"
 #include <string.h>
 
-#if CPU_CORE == CPU_CORE_OWN
-#include "m68kown.h"
-#define cpu_init()        m68kown_init()
-#define cpu_reset()       m68kown_reset()
-#define cpu_run(n)        m68kown_run(n)
-#define cpu_irq(l)        m68kown_set_irq(l)
-#define cpu_pc()          m68kown_pc()
-#define cpu_cycles_run()  m68kown_cycles_run()
-#else
 #include "m68k.h"
 #define cpu_init()        do { m68k_init(); m68k_set_cpu_type(M68K_CPU_TYPE_68000); } while (0)
 #define cpu_reset()       m68k_pulse_reset()
@@ -34,7 +25,6 @@
 #define cpu_irq(l)        m68k_set_irq(l)
 #define cpu_pc()          m68k_get_reg(NULL, M68K_REG_PC)
 #define cpu_cycles_run()  m68k_cycles_run()
-#endif
 
 #define CYCLES_PER_FRAME 167680
 #ifndef VBLANK_NUDGE

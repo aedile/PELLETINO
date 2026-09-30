@@ -3,6 +3,7 @@
 """Build, flash and bench a list of configurations, and write the table.
 
 usage: tools/sweep.py <port> [--out results.csv] [--only N,N,...] [--list] [knob=value ...]
+       tools/sweep.py --markdown results.csv      (the table, as the README has it)
 
 Every combination of VIDEO_MODE, FRAME_SKIP, SOUND and SOUND_RATE that means something:
 two video modes, four frame skips, and the sound off or on at three rates with and without
@@ -60,9 +61,28 @@ def derive(r):
 COLS = ['vmode', 'skip', 'sound', 'rate', 'fps', 'emu', 'speed', 'm68k', 'z80', 'ym', 'video', 'strips', 'idle',
         'need', 'heap', 'minheap', 'under']
 
+def markdown(path):
+    """results.csv as the README's table"""
+    rows = list(csv.DictReader(open(path)))
+    head = ('| # | video | skip | sound | rate | drawn fps | machine fps | speed | 68000 | Z80 | sound out | '
+            'video | strips | idle | needs | free heap |')
+    print(head)
+    print('|' + '---|' * (head.count('|') - 1))
+    for r in rows:
+        if r['fps'] == 'failed':
+            print(f"| {r['n']} | {r['vmode']} | {r['skip']} | {r['sound']} | {r['rate']} | failed |" + ' |' * 10)
+            continue
+        snd = r['sound'] != 'OFF'
+        print(f"| {r['n']} | {r['vmode']} | {r['skip']} | {r['sound']} | {r['rate'] if snd else '-'} | {r['fps']} | {r['emu']} | "
+              f"{r['speed']}% | {float(r['m68k']):.0f} | {float(r['z80']):.0f} | {float(r['ym']):.0f} | {float(r['video']):.0f} | "
+              f"{float(r['strips']):.0f} | {float(r['idle']):.0f} | {r['need']} | {int(r['minheap']) // 1024} KB |")
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
+    if sys.argv[1] == '--markdown':
+        markdown(sys.argv[2])
+        return
     port = sys.argv[1]
     out = HERE.parent / 'results.csv'
     only = None

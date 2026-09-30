@@ -36,7 +36,7 @@
 #include "cps1_internal.h"
 #include "knobs.h"
 
-#if IDLE_SKIP && CPU_CORE == CPU_CORE_MUSASHI
+#if IDLE_SKIP
 
 #include "m68kcpu.h"
 
@@ -97,10 +97,6 @@ void cps1_idle_init(const uint16_t *prog)
     if (m68ki_handlers[bra] != wrapped_bra) { real_bra = m68ki_handlers[bra]; m68ki_handlers[bra] = wrapped_bra; }
     pass_end_pc = found_at + 2;
 }
-
-#elif IDLE_SKIP
-
-/* the other 68000 does this for itself (m68kown.c) */
 
 #else
 

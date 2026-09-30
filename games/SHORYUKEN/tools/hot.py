@@ -41,7 +41,6 @@ entries:
     ym2151 (noflash)
     okim6295 (noflash)
     m68kcpu (noflash)
-    m68kown (noflash)
 '''
 
 def main():

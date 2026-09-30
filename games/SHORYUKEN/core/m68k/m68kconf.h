@@ -40,7 +40,7 @@
 #define M68K_TRAP_HAS_CALLBACK      M68K_OPT_OFF
 #define M68K_EMULATE_FC             M68K_OPT_OFF
 /* where jumps land is counted, for choosing which pages of the program to keep in RAM */
-#include "knobs.h"
+#include "knobs_m68k.h"
 #if PROG_CACHE_KB
 #define M68K_MONITOR_PC             M68K_OPT_SPECIFY_HANDLER
 #define M68K_SET_PC_CALLBACK(A)     (cps1_page_hits[((A) >> 12) & 0xff]++)

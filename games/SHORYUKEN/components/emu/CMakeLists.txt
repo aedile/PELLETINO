@@ -9,7 +9,7 @@ else()
 endif()
 idf_component_register(
     SRCS "${CORE_DIR}/cps1.c" "${CORE_DIR}/cps1_video.c" "${CORE_DIR}/cps1_sound.c"
-         "${CORE_DIR}/cps1_idle.c" "${CORE_DIR}/ym2151.c" "${CORE_DIR}/okim6295.c" "${CORE_DIR}/m68kown.c"
+         "${CORE_DIR}/cps1_idle.c" "${CORE_DIR}/ym2151.c" "${CORE_DIR}/okim6295.c"
          "${CORE_DIR}/m68k/m68kcpu.c" "${CORE_DIR}/m68k/m68kops.c"
          "${CORE_DIR}/z80/Z80.c"
     INCLUDE_DIRS "${CORE_DIR}" "${CORE_DIR}/m68k" "${CORE_DIR}/z80" "${CMAKE_CURRENT_SOURCE_DIR}/../../main"
