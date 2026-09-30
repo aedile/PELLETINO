@@ -987,7 +987,7 @@ int m68k_execute(int num_cycles)
 			/* Read an instruction and call its handler */
 			REG_IR = m68ki_read_imm_16();
 			{
-				unsigned int n = m68ki_op_index[REG_IR];
+				unsigned int n = m68ki_handler_of(REG_IR);
 				m68ki_handlers[n]();
 				USE_CYCLES(m68ki_handler_cycles[n]);
 			}

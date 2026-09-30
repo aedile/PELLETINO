@@ -231,17 +231,28 @@ extern "C" void app_main(void)
             double s = (now - report_us) / 1e6;
             sec.ym = t_audio; t_audio = 0;
             uint64_t sum = sec.m68k + sec.z80 + sec.ym + sec.video + sec.strips + sec.idle + sec.input;
+#ifdef VIDEO_PROFILE
+            {
+                extern uint32_t cps1_vp[8];
+                printf("vprof per drawn frame, us: fill=%.0f mask=%.0f cells=%.0f scroll1=%.0f scroll2=%.0f scroll3=%.0f sprites=%.0f high=%.0f\n",
+                       cps1_vp[0] / 160.0 / sec.drawn, cps1_vp[1] / 160.0 / sec.drawn, cps1_vp[2] / 160.0 / sec.drawn, cps1_vp[3] / 160.0 / sec.drawn,
+                       cps1_vp[4] / 160.0 / sec.drawn, cps1_vp[5] / 160.0 / sec.drawn, cps1_vp[6] / 160.0 / sec.drawn, cps1_vp[7] / 160.0 / sec.drawn);
+                memset(cps1_vp, 0, sizeof(cps1_vp));
+            }
+#endif
 #if STATS
             printf("stats fps=%.1f m68k=%.1fms z80=%.1fms ym=%.1fms video=%.1fms strips=%.1fms idle=%.1fms "
                    "skipped=%lu/%lu heap=%lu minheap=%lu vmode=%s skip=%d sound=%s "
-                   "emu=%.1f input=%.1fms other=%.1fms rate=%d core=%s under=%lu frame=%lu pc=%06lX\n",
+                   "emu=%.1f input=%.1fms other=%.1fms rate=%d core=%s under=%lu frame=%lu strips=%lu/%lu pc=%06lX\n",
                    sec.drawn / s, sec.m68k / 1e3 / s, sec.z80 / 1e3 / s, sec.ym / 1e3 / s, sec.video / 1e3 / s,
                    sec.strips / 1e3 / s, sec.idle / 1e3 / s,
                    (unsigned long)sec.skipped, (unsigned long)sec.emulated,
                    (unsigned long)esp_get_free_heap_size(), (unsigned long)esp_get_minimum_free_heap_size(),
                    VIDEO_MODE_NAME, FRAME_SKIP, SOUND_NAME,
                    sec.emulated / s, sec.input / 1e3 / s, ((now - report_us) - (int64_t)sum) / 1e3 / s, SOUND_RATE, CPU_CORE_NAME,
-                   (unsigned long)(underruns() - underruns_before), (unsigned long)cps1_frame_count(), (unsigned long)cps1_pc());
+                   (unsigned long)(underruns() - underruns_before), (unsigned long)cps1_frame_count(),
+                   (unsigned long)render_strips_kept, (unsigned long)(render_strips_kept + render_strips_sent), (unsigned long)cps1_pc());
+            render_strips_kept = render_strips_sent = 0;
 #endif
             all.m68k += sec.m68k; all.z80 += sec.z80; all.ym += sec.ym; all.video += sec.video; all.strips += sec.strips;
             all.idle += sec.idle; all.input += sec.input;
@@ -257,7 +268,7 @@ extern "C" void app_main(void)
                 printf("bench fps=%.1f m68k=%.1fms z80=%.1fms ym=%.1fms video=%.1fms strips=%.1fms idle=%.1fms "
                        "skipped=%lu/%lu heap=%lu minheap=%lu vmode=%s skip=%d sound=%s "
                        "emu=%.1f input=%.1fms other=%.1fms rate=%d core=%s under=%lu frame=%lu "
-                       "auto=%d layers=%d rowscroll=%d ymq=%d idleskip=%d tilecache=%d seconds=%.1f\n",
+                       "auto=%d layers=%d rowscroll=%d ymq=%d idleskip=%d tilecache=%d hot=%d occlusion=%d reuse=%d seconds=%.1f\n",
                        all.drawn / t, all.m68k / 1e3 / t, all.z80 / 1e3 / t, all.ym / 1e3 / t, all.video / 1e3 / t,
                        all.strips / 1e3 / t, all.idle / 1e3 / t,
                        (unsigned long)all.skipped, (unsigned long)all.emulated,
@@ -265,7 +276,7 @@ extern "C" void app_main(void)
                        VIDEO_MODE_NAME, FRAME_SKIP, SOUND_NAME,
                        all.emulated / t, all.input / 1e3 / t, ((now - start_us) - (int64_t)total) / 1e3 / t, SOUND_RATE, CPU_CORE_NAME,
                        (unsigned long)(underruns() - underruns_before), (unsigned long)cps1_frame_count(),
-                       FRAME_SKIP_AUTO, LAYERS, ROWSCROLL, YM_QUALITY, IDLE_SKIP, TILE_CACHE_KB, t);
+                       FRAME_SKIP_AUTO, LAYERS, ROWSCROLL, YM_QUALITY, IDLE_SKIP, TILE_CACHE_KB, HOT_HANDLERS, OCCLUSION, STRIP_REUSE, t);
                 printf("bench done: %d seconds\n", BENCH_SECONDS);
                 char rom[16];
                 if (medalboot_rom(rom, sizeof(rom))) medalboot_exit_to_menu();   /* the menu started it: go back */

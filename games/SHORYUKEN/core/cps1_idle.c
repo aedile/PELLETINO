@@ -93,7 +93,7 @@ void cps1_idle_init(const uint16_t *prog)
 {
     found_at = find_loop(prog);
     if (found_at == 0xffffffff) return;
-    unsigned bra = m68ki_op_index[prog[found_at >> 1]];
+    unsigned bra = m68ki_handler_of(prog[found_at >> 1]);
     if (m68ki_handlers[bra] != wrapped_bra) { real_bra = m68ki_handlers[bra]; m68ki_handlers[bra] = wrapped_bra; }
     pass_end_pc = found_at + 2;
 }

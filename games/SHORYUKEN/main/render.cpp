@@ -36,6 +36,9 @@ static const char *TAG = "RENDER";
 
 static uint16_t *strip;
 static uint16_t cols[VIEW_W], rows[VIEW_H];
+static uint64_t strip_sig[(VIEW_H + STRIP_ROWS - 1) / STRIP_ROWS];
+static bool toast_was_up;
+uint32_t render_strips_sent, render_strips_kept;
 
 void render_init(void)
 {
@@ -55,21 +58,31 @@ void render_frame(void (*between)(void), uint64_t *video_us, uint64_t *strips_us
 {
     int64_t t0 = esp_timer_get_time();
     cps1_frame_begin();
+    /* the toast is drawn into strips as they go past, so while one is up, and once after it
+     * has gone, every strip goes */
+    bool toast_up = display_toast_active();
+    bool everything = !STRIP_REUSE || toast_up || toast_was_up;
+    toast_was_up = toast_up;
     int64_t t1 = esp_timer_get_time();
     *video_us += t1 - t0;
-    display_set_window(0, VIEW_Y, VIEW_W, VIEW_H);
-    t0 = esp_timer_get_time();
-    *strips_us += t0 - t1;
+    t0 = t1;
 
-    for (int y = 0; y < VIEW_H; y += STRIP_ROWS) {
+    for (int y = 0, i = 0; y < VIEW_H; y += STRIP_ROWS, i++) {
         int n = (y + STRIP_ROWS <= VIEW_H) ? STRIP_ROWS : (VIEW_H - y);
+#if STRIP_REUSE
+        uint64_t sig = cps1_strip_signature(y, n);
+        if (!everything && sig == strip_sig[i]) { render_strips_kept++; continue; }
+        strip_sig[i] = sig;
+#endif
         cps1_render(strip, y, n);
         t1 = esp_timer_get_time();
         *video_us += t1 - t0;
+        display_set_window(0, VIEW_Y + y, VIEW_W, n);
         for (int r = 0; r < n; r += HALF_ROWS) {
             int h = (r + HALF_ROWS <= n) ? HALF_ROWS : (n - r);
             display_write_preswapped(strip + r * VIEW_W, h * VIEW_W);
         }
+        render_strips_sent++;
         t0 = esp_timer_get_time();
         *strips_us += t0 - t1;
         if (between) { between(); t0 = esp_timer_get_time(); }

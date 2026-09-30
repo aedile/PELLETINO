@@ -27,10 +27,10 @@ extern "C" {
 
 /* ---- the ROM blob, as tools/convert_roms.py writes it ---- */
 #define CPS1_BLOB_MAGIC 0x42324653   /* "SF2B" */
-#define CPS1_BLOB_VERSION 2
-#define CPS1_BLOB_HEADER_OFF 0x750000 /* the header follows the ROMs */
+#define CPS1_BLOB_VERSION 3
+#define CPS1_BLOB_HEADER_OFF 0x760000 /* the header follows the ROMs */
 #define CPS1_BLOB_HEADER_SIZE 0x1000
-#define CPS1_BLOB_MAP_BYTES 0x710000  /* everything but the samples and the header */
+#define CPS1_BLOB_MAP_BYTES 0x720000  /* everything but the samples and the header */
 typedef struct {
     uint32_t magic, version;
     uint32_t prog_off, prog_size;    /* 68000 program, 16-bit words, little-endian */
@@ -44,12 +44,14 @@ typedef struct {
     uint8_t cpsb_layer_mask[3];      /* scroll1, scroll2, scroll3 enable bits in the layer control */
     uint8_t pad[3];
     char set_name[16];
+    uint32_t opaque_off;             /* the tiles with no transparent pixel, one bit each: 8x8 halves, 16x16, 32x32 */
 } cps1_blob_t;
 
 typedef struct {
     const uint16_t *prog;
     const uint8_t *gfx;
     const uint8_t *z80;
+    const uint8_t *opaque;
     const uint8_t *oki;              /* NULL if the samples are not in memory, and then: */
     void (*oki_read)(uint32_t offset, uint8_t *dst, uint32_t len);
     const cps1_blob_t *cfg;          /* must outlive the machine */
@@ -90,6 +92,12 @@ void cps1_set_view(int out_w, int out_h, const uint16_t *col_src, const uint16_t
 void cps1_frame_begin(void);
 /* rows y0 .. y0+rows-1 of the view, as RGB565 with the bytes already swapped for the panel */
 void cps1_render(uint16_t *dst, int y0, int rows);
+/*
+ * A number that is the same for two frames only if cps1_render() would draw those rows the
+ * same: the registers, the maps, the palette and the sprites that touch them. A caller that
+ * remembers what it drew last can leave the rows alone when this has not changed.
+ */
+uint64_t cps1_strip_signature(int y0, int rows);
 void cps1_set_layers(unsigned mask);  /* LAYER_* bits; the host harness uses it, the device uses the knob */
 
 /* ---- sound ---- */

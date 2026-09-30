@@ -48,7 +48,52 @@ uint16_t *cps1_gfxram;
 cps1_state_t cps1;
 cps1_change_t cps1_changes[CPS1_CHANGES];
 unsigned cps1_nchanges;
+uint32_t cps1_gfx_generation[CPS1_GFXRAM_BYTES / 0x4000];
 unsigned cps1_slice;
+
+#if PROG_CACHE_KB
+/*
+ * The pages of the program that are in RAM. Musashi counts, for each page, the jumps that
+ * land in it (m68kconf.h). Every 128 frames the pages are ranked by that count; a page not
+ * in RAM that has been landed in more than twice as often as the least used page that is
+ * takes its place. Then the counts are halved, so that what the program was doing a
+ * minute ago matters less than what it is doing now.
+ */
+#define CACHE_PAGES (PROG_CACHE_KB / 4)
+const uint16_t *cps1_prog_page[CPS1_PROG_BYTES >> 12];
+unsigned short cps1_page_hits[256];
+static uint16_t page_copy[CACHE_PAGES][0x1000 / 2];
+static int16_t page_in[CACHE_PAGES];             /* which page each copy holds, -1 for none */
+
+static void prog_cache_reset(void)
+{
+    for (int i = 0; i < (CPS1_PROG_BYTES >> 12); i++) cps1_prog_page[i] = cps1_prog + i * (0x1000 / 2);
+    for (int i = 0; i < CACHE_PAGES; i++) page_in[i] = -1;
+    memset(cps1_page_hits, 0, sizeof(cps1_page_hits));
+}
+
+static void prog_cache_update(void)
+{
+    for (;;) {
+        int hot = -1, cold = 0;
+        unsigned hot_hits = 0;
+        for (int i = 0; i < 256; i++)
+            if (cps1_page_hits[i] > hot_hits && cps1_prog_page[i] == cps1_prog + i * (0x1000 / 2)) { hot = i; hot_hits = cps1_page_hits[i]; }
+        if (hot < 0) break;
+        unsigned cold_hits = 0xffffffff;
+        for (int i = 0; i < CACHE_PAGES; i++) {
+            unsigned h = page_in[i] < 0 ? 0 : 1 + cps1_page_hits[page_in[i]];
+            if (h < cold_hits) { cold = i; cold_hits = h; }
+        }
+        if (cold_hits && hot_hits < 2 * cold_hits) break;
+        if (page_in[cold] >= 0) cps1_prog_page[page_in[cold]] = cps1_prog + page_in[cold] * (0x1000 / 2);
+        memcpy(page_copy[cold], cps1_prog + hot * (0x1000 / 2), 0x1000);
+        cps1_prog_page[hot] = page_copy[cold];
+        page_in[cold] = (int16_t)hot;
+    }
+    for (int i = 0; i < 256; i++) cps1_page_hits[i] >>= 1;
+}
+#endif
 
 static cps1_input_t input;
 static uint32_t frame_count;
@@ -75,6 +120,7 @@ void cps1_blob_roms(const cps1_blob_t *b, const void *base, cps1_roms_t *roms)
     roms->prog = (const uint16_t *)(p + b->prog_off);
     roms->gfx = p + b->gfx_off;
     roms->z80 = p + b->z80_off;
+    roms->opaque = p + b->opaque_off;
     roms->oki = NULL;
     roms->oki_read = NULL;
     roms->cfg = b;
@@ -187,12 +233,13 @@ int cps1_int_ack(int level)
 extern int m68ki_remaining_cycles;
 uint64_t cps1_profile_instructions;
 uint32_t cps1_profile_pc[CPS1_PROG_BYTES / 2];
+uint32_t cps1_profile_op[0x10000];        /* by opcode */
 static FILE *trace;
 static int trace_from = -1, trace_to = -1;
 void cps1_profile_hook(unsigned int pc)
 {
     cps1_profile_instructions++;
-    if (pc < CPS1_PROG_BYTES) cps1_profile_pc[pc >> 1]++;
+    if (pc < CPS1_PROG_BYTES) { cps1_profile_pc[pc >> 1]++; cps1_profile_op[cps1_prog[pc >> 1]]++; }
     if (trace_from < 0) {
         trace_from = getenv("TRACE_FROM") ? atoi(getenv("TRACE_FROM")) : 1 << 30;
         trace_to = getenv("TRACE_TO") ? atoi(getenv("TRACE_TO")) : 0;
@@ -211,6 +258,9 @@ void cps1_init(const cps1_roms_t *roms, uint16_t *ram, uint16_t *gfxram)
     cps1.roms = *roms;
     cps1.cfg = *roms->cfg;
     cps1_prog = roms->prog;
+#if PROG_CACHE_KB
+    prog_cache_reset();
+#endif
     cps1_ram = ram;
     cps1_gfxram = gfxram;
     /* SW(A): 1 coin 1 credit. SW(B): difficulty 4 of 8. SW(C): demo sounds on, continue
@@ -281,4 +331,7 @@ void cps1_run_frame(void)
     cps1_sound_end_frame(CYCLES_PER_FRAME);
 #endif
     frame_count++;
+#if PROG_CACHE_KB
+    if ((frame_count & 127) == 0) prog_cache_update();
+#endif
 }

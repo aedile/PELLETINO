@@ -34,6 +34,7 @@ typedef struct {
     uint16_t tl;                     /* total level << 3 */
     uint8_t state, key;
     uint8_t rate[4];
+    uint16_t eg_mask;                /* the envelope moves when the clock has none of these bits set */
     uint8_t dt1, mul, ks, ar, d1r, dt2, d2r, sl, rr, am_on;
 } op_t;
 
@@ -102,6 +103,23 @@ static void op_frequency(ch_t *c, op_t *o, int pm)
     o->step = (uint32_t)(((uint64_t)(uint32_t)s * rate_ratio) >> 8);
 }
 
+/* An envelope at rate r moves on one clock in 2^(11 - r/4), and on every clock from rate 44
+ * up. Which clocks those are is a matter of which low bits of the counter are clear. */
+static inline void op_eg_mask(op_t *o)
+{
+    if (o->state == EG_OFF) { o->eg_mask = 0xffff; return; }
+    unsigned shift = o->rate[o->state] >> 2;
+    o->eg_mask = shift < 11 ? (uint16_t)((1u << (11 - shift)) - 1) : 0;
+}
+
+/* attack ends when the envelope reaches the top, decay when it reaches the sustain level */
+static inline void op_eg_state(op_t *o)
+{
+    if (o->state == EG_ATTACK && o->env == 0) o->state = EG_DECAY;
+    if (o->state == EG_DECAY && o->env >= o->sustain) o->state = EG_SUSTAIN;
+    op_eg_mask(o);
+}
+
 static unsigned eff_rate(unsigned raw, unsigned ksr) { unsigned r = raw ? raw + ksr : 0; return r > 63 ? 63 : r; }
 
 static void op_rates(ch_t *c, op_t *o)
@@ -112,6 +130,7 @@ static void op_rates(ch_t *c, op_t *o)
     o->rate[EG_SUSTAIN] = (uint8_t)eff_rate(o->d2r * 2, ksr);
     o->rate[EG_RELEASE] = (uint8_t)eff_rate(o->rr * 4 + 2, ksr);
     o->sustain = (uint16_t)((o->sl == 15 ? 31 : o->sl) << 5);
+    op_eg_mask(o);
 }
 
 static inline void op_level(const ch_t *c, op_t *o)
@@ -125,7 +144,7 @@ static inline void op_level(const ch_t *c, op_t *o)
 static void chan_refresh(ch_t *c)
 {
     c->dynamic = YM_QUALITY && c->pms && lfo_pmd;
-    for (int i = 0; i < 4; i++) { op_frequency(c, &c->op[i], 0); op_rates(c, &c->op[i]); op_level(c, &c->op[i]); }
+    for (int i = 0; i < 4; i++) { op_frequency(c, &c->op[i], c->dynamic ? lfo_pm : 0); op_rates(c, &c->op[i]); op_level(c, &c->op[i]); }
 }
 
 static void key(ch_t *c, op_t *o, int on)
@@ -139,8 +158,15 @@ static void key(ch_t *c, op_t *o, int on)
     } else if (o->state != EG_OFF) {
         o->state = EG_RELEASE;
     }
+    op_eg_mask(o);
     op_level(c, o);
 }
+
+#if YM_QUALITY
+static void lfo_set_rate(void);
+#else
+#define lfo_set_rate()
+#endif
 
 static void timers_load(unsigned v)
 {
@@ -167,10 +193,10 @@ static void write_reg(unsigned r, unsigned v)
         case 0x11: timer_a_val = (uint16_t)((timer_a_val & 0x3fc) | (v & 3)); break;
         case 0x12: timer_b_val = (uint8_t)v; break;
         case 0x14: timers_load(v); break;
-        case 0x18: lfo_rate = (uint8_t)v; break;
+        case 0x18: lfo_rate = (uint8_t)v; lfo_set_rate(); break;
         case 0x19:
             if (v & 0x80) lfo_pmd = v & 0x7f; else lfo_amd = v & 0x7f;
-            for (int i = 0; i < 8; i++) chan[i].dynamic = YM_QUALITY && chan[i].pms && lfo_pmd;
+            for (int i = 0; i < 8; i++) chan_refresh(&chan[i]);
             break;
         case 0x1b: lfo_wave = v & 3; break;
         }
@@ -188,11 +214,11 @@ static void write_reg(unsigned r, unsigned v)
     }
     op_t *o = &c->op[slot_to_op[(r >> 3) & 3]];
     switch (r & 0xe0) {
-    case 0x40: o->dt1 = (v >> 4) & 7; o->mul = v & 15; op_frequency(c, o, 0); break;
+    case 0x40: o->dt1 = (v >> 4) & 7; o->mul = v & 15; op_frequency(c, o, c->dynamic ? lfo_pm : 0); break;
     case 0x60: o->tl = (uint16_t)((v & 0x7f) << 3); op_level(c, o); break;
     case 0x80: o->ks = (uint8_t)(v >> 6); o->ar = v & 0x1f; op_rates(c, o); break;
     case 0xa0: o->am_on = (uint8_t)(v >> 7); o->d1r = v & 0x1f; op_rates(c, o); op_level(c, o); break;
-    case 0xc0: o->dt2 = (uint8_t)(v >> 6); o->d2r = v & 0x1f; op_frequency(c, o, 0); op_rates(c, o); break;
+    case 0xc0: o->dt2 = (uint8_t)(v >> 6); o->d2r = v & 0x1f; op_frequency(c, o, c->dynamic ? lfo_pm : 0); op_rates(c, o); break;
     case 0xe0: o->sl = (uint8_t)(v >> 4); o->rr = v & 15; op_rates(c, o); break;
     }
 }
@@ -219,7 +245,7 @@ void ym2151_reset(void)
     memset(chan, 0, sizeof(chan));
     for (int i = 0; i < 8; i++) {
         chan[i].pan = 3;
-        for (int k = 0; k < 4; k++) { chan[i].op[k].env = 0x3ff; chan[i].op[k].state = EG_OFF; }
+        for (int k = 0; k < 4; k++) { chan[i].op[k].env = 0x3ff; chan[i].op[k].state = EG_OFF; chan[i].op[k].eg_mask = 0xffff; }
         chan_refresh(&chan[i]);
     }
     reg_addr = 0; status = 0; irq_enable = 0; timer_run = 0;
@@ -228,6 +254,7 @@ void ym2151_reset(void)
     lfo_counter = 0; lfo_am = lfo_pm = 0;
     noise_on = 0; noise_lfsr = 1; noise_acc = 0; noise_out = 0;
     eg_counter = 0; eg_acc = 0; have_held = 0; held = 0;
+    lfo_set_rate();
 }
 
 void ym2151_write(int port, uint8_t v)
@@ -268,12 +295,13 @@ static void eg_clock(void)
         ch_t *c = &chan[ci];
         for (int i = 0; i < 4; i++) {
             op_t *o = &c->op[i];
-            if (o->state == EG_OFF) continue;
-            if (o->state == EG_ATTACK && o->env == 0) o->state = EG_DECAY;
-            if (o->state == EG_DECAY && o->env >= o->sustain) o->state = EG_SUSTAIN;
+            if (eg_counter & o->eg_mask) continue;           /* not its turn, or it is off */
+            /* the state is as the last change of level left it, except that a register
+             * write may have moved the sustain level under it */
+            op_eg_state(o);
+            if (eg_counter & o->eg_mask) continue;
             unsigned rate = o->rate[o->state], shift = rate >> 2;
             uint32_t n = eg_counter << shift;
-            if (n & 0x7ff) continue;
             unsigned inc = (eg_increment[rate] >> (4 * ((n >> (shift <= 11 ? 11 : shift)) & 7))) & 15;
             if (o->state == EG_ATTACK) {
                 if (rate < 62) o->env = (uint16_t)((o->env + (((~(unsigned)o->env) * inc) >> 4)) & 0x3ff);
@@ -282,17 +310,23 @@ static void eg_clock(void)
                 if (e >= 0x3ff) { e = 0x3ff; if (o->state == EG_RELEASE) o->state = EG_OFF; }
                 o->env = (uint16_t)e;
             }
+            op_eg_state(o);
             op_level(c, o);
         }
     }
 }
 
 #if YM_QUALITY
-static void lfo_clock(void)
+static void lfo_set_rate(void)
 {
     /* the rate is a 4.4 floating point step with an implied leading one */
     lfo_step = (uint32_t)(((uint64_t)((0x10u | (lfo_rate & 15)) << (lfo_rate >> 4)) * rate_ratio * BLOCK) >> 20);
+}
+
+static void lfo_clock(void)
+{
     if (!lfo_hold) lfo_counter += lfo_step;
+    if (!(lfo_amd | lfo_pmd)) { lfo_am = 0; lfo_pm = 0; return; }
     unsigned i = (lfo_counter >> 22) & 0xff, am, pm;
     switch (lfo_wave) {
     case 0:  am = i ^ 0xff; pm = i; break;                                  /* sawtooth */
@@ -301,13 +335,17 @@ static void lfo_clock(void)
              pm = ((i & 0x40) ? am : ~am) & 0xff; break;
     default: am = pm = (noise_lfsr >> 17) & 0xff; break;                    /* noise */
     }
-    lfo_am = (int32_t)((am * lfo_amd) >> 7);
-    lfo_pm = ((int32_t)(int8_t)pm * lfo_pmd) >> 7;
+    int32_t new_am = (int32_t)((am * lfo_amd) >> 7);
+    int32_t new_pm = ((int32_t)(int8_t)pm * lfo_pmd) >> 7;
+    int am_moved = new_am != lfo_am, pm_moved = new_pm != lfo_pm;
+    lfo_am = new_am; lfo_pm = new_pm;
+    if (!(am_moved | pm_moved)) return;
     for (int ci = 0; ci < 8; ci++) {
         ch_t *c = &chan[ci];
+        if (!((c->dynamic && pm_moved) || (c->ams && am_moved))) continue;
         for (int k = 0; k < 4; k++) {
-            if (c->dynamic) op_frequency(c, &c->op[k], lfo_pm);
-            if (c->ams && c->op[k].am_on) op_level(c, &c->op[k]);
+            if (c->dynamic && pm_moved) op_frequency(c, &c->op[k], lfo_pm);
+            if (c->ams && am_moved && c->op[k].am_on) op_level(c, &c->op[k]);
         }
     }
 }
@@ -315,11 +353,12 @@ static void lfo_clock(void)
 
 /* ---- the operators ---- */
 
-static inline int32_t op_out(op_t *o, int32_t mod)
+/* one sample of one operator: the sine of its phase, pushed along by whatever modulates it,
+ * and turned down by its envelope */
+static inline int32_t op_value(uint32_t phase, uint32_t att, int32_t mod)
 {
-    unsigned s = (unsigned)(uint16_t)sine[((o->phase >> 22) + (uint32_t)mod) & 0x3ff];
-    o->phase += o->step;
-    unsigned a = (s & 0x7fff) + o->att, sh = a >> 8;
+    unsigned s = (unsigned)(uint16_t)sine[((phase >> 22) + (uint32_t)mod) & 0x3ff];
+    unsigned a = (s & 0x7fff) + att, sh = a >> 8;
     if (sh >= 13) return 0;
     int32_t v = (int32_t)(power[a & 0xff] >> sh);
     return (s & 0x8000) ? -v : v;
@@ -339,34 +378,53 @@ static void chan_render(ch_t *c, int32_t *out, int n, int is_noise)
         c->fb[0] = c->fb[1] = 0;
         return;
     }
-    op_t *o1 = &c->op[0], *o2 = &c->op[1], *o3 = &c->op[2], *o4 = &c->op[3];
+    /*
+     * The four operators are copied into locals for the length of the block, so that the
+     * compiler can keep them in registers, and there is a loop for each way of wiring them.
+     */
+    uint32_t p1 = c->op[0].phase, p2 = c->op[1].phase, p3 = c->op[2].phase, p4 = c->op[3].phase;
+    const uint32_t s1 = c->op[0].step, s2 = c->op[1].step, s3 = c->op[2].step, s4 = c->op[3].step;
+    const uint32_t a1 = c->op[0].att, a2 = c->op[1].att, a3 = c->op[2].att, a4 = c->op[3].att;
     const int gain = c->pan == 3 ? 2 : 1;        /* both sides go to the one speaker */
     const int fbs = c->fb_level ? 10 - c->fb_level : 31;
     int32_t f0 = c->fb[0], f1 = c->fb[1];
-    for (int k = 0; k < n; k++) {
-        int32_t a = op_out(o1, (f0 + f1) >> fbs), b, d, r;
-        f0 = f1; f1 = a;
-        a >>= 1;
-        switch (c->alg) {
-        case 0:  b = op_out(o2, a); d = op_out(o3, b >> 1); r = op_out(o4, d >> 1); break;
-        case 1:  b = op_out(o2, 0); d = op_out(o3, a + (b >> 1)); r = op_out(o4, d >> 1); break;
-        case 2:  b = op_out(o2, 0); d = op_out(o3, b >> 1); r = op_out(o4, a + (d >> 1)); break;
-        case 3:  b = op_out(o2, a); d = op_out(o3, 0); r = op_out(o4, (b >> 1) + (d >> 1)); break;
-        case 4:  b = op_out(o2, a); d = op_out(o3, 0); r = b + op_out(o4, d >> 1); break;
-        case 5:  b = op_out(o2, a); d = op_out(o3, a); r = b + d + op_out(o4, a); break;
-        case 6:  b = op_out(o2, a); d = op_out(o3, 0); r = b + d + op_out(o4, 0); break;
-        default: b = op_out(o2, 0); d = op_out(o3, 0); r = (a << 1) + b + d + op_out(o4, 0); break;
-        }
+
+#define OP(n, mod) op_value(p##n, a##n, (mod)); p##n += s##n
+#define FIRST      int32_t a = OP(1, (f0 + f1) >> fbs); f0 = f1; f1 = a; a >>= 1
+#define EACH       for (int k = 0; k < n; k++)
+    int32_t b, d, r;
 #if YM_QUALITY
-        if (is_noise) {
-            /* channel 8's last operator becomes noise at the level of its envelope */
-            int32_t tone = op_out(o4, 0);        /* undo nothing: the tone is simply not used */
-            (void)tone;
-            r = (c->alg >= 4 ? r : 0) + noise_out * (int32_t)(((o4->att >> 2) ^ 0x3ff) << 1) - 0;
+    if (is_noise) {
+        /* channel 8's last operator is noise at the level of its envelope */
+        const int32_t nz = noise_out * (int32_t)((((a4 >> 2) ^ 0x3ff) & 0x3ff) << 1);
+        EACH {
+            FIRST;
+            switch (c->alg) {
+            case 4:  b = OP(2, a); r = b + nz; p3 += s3; break;
+            case 5:  b = OP(2, a); d = OP(3, a); r = b + d + nz; break;
+            case 6:  b = OP(2, a); d = OP(3, 0); r = b + d + nz; break;
+            case 7:  b = OP(2, 0); d = OP(3, 0); r = (a << 1) + b + d + nz; break;
+            default: r = nz; p2 += s2; p3 += s3; break;
+            }
+            p4 += s4;
+            out[k] += r * gain;
         }
+    } else
 #endif
-        out[k] += r * gain;
+    switch (c->alg) {
+    case 0:  EACH { FIRST; b = OP(2, a); d = OP(3, b >> 1); r = OP(4, d >> 1); out[k] += r * gain; } break;
+    case 1:  EACH { FIRST; b = OP(2, 0); d = OP(3, a + (b >> 1)); r = OP(4, d >> 1); out[k] += r * gain; } break;
+    case 2:  EACH { FIRST; b = OP(2, 0); d = OP(3, b >> 1); r = OP(4, a + (d >> 1)); out[k] += r * gain; } break;
+    case 3:  EACH { FIRST; b = OP(2, a); d = OP(3, 0); r = OP(4, (b >> 1) + (d >> 1)); out[k] += r * gain; } break;
+    case 4:  EACH { FIRST; b = OP(2, a); d = OP(3, 0); r = OP(4, d >> 1); out[k] += (b + r) * gain; } break;
+    case 5:  EACH { FIRST; b = OP(2, a); d = OP(3, a); r = OP(4, a); out[k] += (b + d + r) * gain; } break;
+    case 6:  EACH { FIRST; b = OP(2, a); d = OP(3, 0); r = OP(4, 0); out[k] += (b + d + r) * gain; } break;
+    default: EACH { FIRST; b = OP(2, 0); d = OP(3, 0); r = OP(4, 0); out[k] += ((a << 1) + b + d + r) * gain; } break;
     }
+#undef OP
+#undef FIRST
+#undef EACH
+    c->op[0].phase = p1; c->op[1].phase = p2; c->op[2].phase = p3; c->op[3].phase = p4;
     c->fb[0] = f0; c->fb[1] = f1;
 }
 

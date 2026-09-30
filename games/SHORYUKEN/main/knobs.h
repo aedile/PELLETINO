@@ -7,15 +7,22 @@
  *     idf.py -B build_docker -DVIDEO_MODE=CROP -DFRAME_SKIP=1 -DSOUND=FM build
  *     make -C host KNOBS="-DKNOB_VIDEO_MODE=CROP -DFRAME_SKIP=1"
  *
- * The project's CMakeLists.txt turns each -D<KNOB>=<value> into a compile definition; the
- * knobs that take a word rather than a number arrive as KNOB_<name> and are pasted onto a
- * prefix here. A value given to idf.py is kept in the build directory's CMake cache, so a
+ * knobs.cmake turns each -D<KNOB>=<value> into a #define in a header in the build directory;
+ * the knobs that take a word rather than a number arrive as KNOB_<name> and are pasted onto
+ * a prefix here. A value given to idf.py is kept in the build directory's CMake cache, so a
  * sweep passes every knob on every build (tools/sweep.py does).
  *
  * "Costs" and "buys" are what was measured on the device; the numbers are in the README.
  */
 #ifndef KNOBS_H
 #define KNOBS_H
+
+/* what was given to idf.py, if anything was (knobs.cmake writes it) */
+#if defined(__has_include)
+#if __has_include("knobs_build.h")
+#include "knobs_build.h"
+#endif
+#endif
 
 #define KNOB_CAT_(a, b) a##b
 #define KNOB_CAT(a, b)  KNOB_CAT_(a, b)
@@ -134,6 +141,57 @@
  */
 #ifndef IDLE_SKIP
 #define IDLE_SKIP 1
+#endif
+
+/*
+ * PROG_CACHE_KB: 0, or a multiple of 4 up to 64. RAM given to copies of the 4 KB pages of
+ * the 68000's program that it spends its time in. The program is 1 MB in flash, behind the
+ * same 32 KB cache as the graphics, and every frame that is drawn pushes it out of that
+ * cache. The pages are chosen as it runs, by counting where jumps land, and chosen again
+ * every couple of seconds; in attract mode 8 pages hold 87% of what is executed and 16
+ * hold 96%. Costs the RAM and one more load for each read of the program.
+ */
+#ifndef PROG_CACHE_KB
+#define PROG_CACHE_KB 0
+#endif
+
+/*
+ * HOT_HANDLERS: 1 puts the 68000 instruction handlers that attract mode actually uses
+ * (150 of Musashi's 1700, which are 99% of what is executed) in RAM, where running them
+ * does not go through the flash cache. 0 leaves all of them in flash. The list is
+ * components/emu/linker_hot.lf, made by tools/hot.py from a profile taken on the host.
+ */
+#ifndef HOT_HANDLERS
+#define HOT_HANDLERS 1
+#endif
+
+/*
+ * OPCODE_TABLE_RAM: 1 keeps the table that says which handler an opcode uses in RAM
+ * (21 KB); 0 keeps it in flash.
+ */
+#ifndef OPCODE_TABLE_RAM
+#define OPCODE_TABLE_RAM 0
+#endif
+
+/*
+ * OCCLUSION: 1 finds, before a strip is painted, which pixels the opaque tiles of each
+ * layer will cover, and does not paint what is under them (the converter marks the tiles
+ * that have no transparent pixel). 0 paints every layer in full, back to front. Measured
+ * on the board it costs more than it saves (see the README), so 0 is the default.
+ */
+#ifndef OCCLUSION
+#define OCCLUSION 0
+#endif
+
+/*
+ * STRIP_REUSE: 1 keeps, for each 16-row strip, a signature of everything its picture
+ * depends on (scroll registers, the maps, the palette, the sprites that touch it), and
+ * neither draws nor sends a strip whose signature has not changed since it was last sent.
+ * The panel keeps what it was given. In a fight about one strip in six is spared; on the
+ * title screen nearly all of them. 0 draws and sends every strip of every drawn frame.
+ */
+#ifndef STRIP_REUSE
+#define STRIP_REUSE 1
 #endif
 
 /*

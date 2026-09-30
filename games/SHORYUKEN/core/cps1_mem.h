@@ -17,12 +17,20 @@
 #define CPS1_MEM_H
 
 #include <stdint.h>
+#include "knobs.h"
 
 #define CPS1_PROG_BYTES 0x100000
 #define CPS1_GFXRAM_BYTES 0x30000
 #define CPS1_RAM_BYTES 0x10000
 
 extern const uint16_t *cps1_prog;
+#if PROG_CACHE_KB
+/* the program by 4 KB page: each entry points at the page in flash or at a copy in RAM */
+extern const uint16_t *cps1_prog_page[CPS1_PROG_BYTES >> 12];
+#define CPS1_PROG_WORD(a) (cps1_prog_page[(a) >> 12][((a) & 0xffe) >> 1])
+#else
+#define CPS1_PROG_WORD(a) (cps1_prog[(a) >> 1])
+#endif
 extern uint16_t *cps1_ram;
 extern uint16_t *cps1_gfxram;
 
@@ -33,7 +41,7 @@ static inline unsigned cps1_r16(unsigned a)
 {
     a &= 0xfffffe;
     if (a >= 0xff0000) return cps1_ram[(a & 0xffff) >> 1];
-    if (a < CPS1_PROG_BYTES) return cps1_prog[a >> 1];
+    if (a < CPS1_PROG_BYTES) return CPS1_PROG_WORD(a);
     if (a - 0x900000 < CPS1_GFXRAM_BYTES) return cps1_gfxram[(a - 0x900000) >> 1];
     return cps1_io_r16(a);
 }
@@ -48,7 +56,7 @@ static inline unsigned cps1_r32(unsigned a) { unsigned h = cps1_r16(a); return (
 static inline unsigned cps1_op16(unsigned a)
 {
     a &= 0xfffffe;
-    if (a < CPS1_PROG_BYTES) return cps1_prog[a >> 1];
+    if (a < CPS1_PROG_BYTES) return CPS1_PROG_WORD(a);
     return cps1_r16(a);
 }
 static inline unsigned cps1_op32(unsigned a) { unsigned h = cps1_op16(a); return (h << 16) | cps1_op16(a + 2); }
@@ -73,14 +81,23 @@ static inline void cps1_changing(uint16_t *p)
     cps1_nchanges = n + 1;
 }
 
+/* For the video: how many times each 16 KB of graphics RAM has been changed. A tile map is
+ * 16 KB and begins on a 16 KB boundary, so one count says whether a map has changed. */
+extern uint32_t cps1_gfx_generation[CPS1_GFXRAM_BYTES / 0x4000];
+
 static inline void cps1_w16(unsigned a, unsigned v)
 {
     uint16_t *p;
     a &= 0xfffffe;
-    if (a >= 0xff0000) p = &cps1_ram[(a & 0xffff) >> 1];
-    else if (a - 0x900000 < CPS1_GFXRAM_BYTES) p = &cps1_gfxram[(a - 0x900000) >> 1];
-    else { cps1_io_w16(a, v & 0xffff, 0xffff); return; }
-    if (*p != (uint16_t)v) { cps1_changing(p); *p = (uint16_t)v; }
+    if (a >= 0xff0000) {
+        p = &cps1_ram[(a & 0xffff) >> 1];
+        if (*p != (uint16_t)v) { cps1_changing(p); *p = (uint16_t)v; }
+    } else if (a - 0x900000 < CPS1_GFXRAM_BYTES) {
+        p = &cps1_gfxram[(a - 0x900000) >> 1];
+        if (*p != (uint16_t)v) { cps1_changing(p); *p = (uint16_t)v; cps1_gfx_generation[(a - 0x900000) >> 14]++; }
+    } else {
+        cps1_io_w16(a, v & 0xffff, 0xffff);
+    }
 }
 static inline void cps1_w8(unsigned a, unsigned v)
 {
@@ -88,11 +105,17 @@ static inline void cps1_w8(unsigned a, unsigned v)
     uint16_t *p;
     v &= 0xff;
     a &= 0xffffff;
-    if (a >= 0xff0000) p = &cps1_ram[(a & 0xffff) >> 1];
-    else if (a - 0x900000 < CPS1_GFXRAM_BYTES) p = &cps1_gfxram[(a - 0x900000) >> 1];
-    else { cps1_io_w16(a & ~1u, v << sh, 0xffu << sh); return; }
-    uint16_t w = (uint16_t)((*p & ~(0xffu << sh)) | (v << sh));
-    if (*p != w) { cps1_changing(p); *p = w; }
+    if (a >= 0xff0000) {
+        p = &cps1_ram[(a & 0xffff) >> 1];
+        uint16_t w = (uint16_t)((*p & ~(0xffu << sh)) | (v << sh));
+        if (*p != w) { cps1_changing(p); *p = w; }
+    } else if (a - 0x900000 < CPS1_GFXRAM_BYTES) {
+        p = &cps1_gfxram[(a - 0x900000) >> 1];
+        uint16_t w = (uint16_t)((*p & ~(0xffu << sh)) | (v << sh));
+        if (*p != w) { cps1_changing(p); *p = w; cps1_gfx_generation[(a - 0x900000) >> 14]++; }
+    } else {
+        cps1_io_w16(a & ~1u, v << sh, 0xffu << sh);
+    }
 }
 static inline void cps1_w32(unsigned a, unsigned v) { cps1_w16(a, v >> 16); cps1_w16(a + 2, v & 0xffff); }
 

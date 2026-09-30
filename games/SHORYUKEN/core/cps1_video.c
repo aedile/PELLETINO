@@ -18,11 +18,23 @@
  *
  * The layers are painted back to front into the strip. For the layer under the sprites
  * the pens that belong on top are painted again after the sprites.
+ *
+ * Most of what is painted is painted over: in a fight the sky is a whole layer of tiles
+ * with a whole layer of aeroplane over it. So before a strip is painted, each tile layer
+ * is walked once from the top down, and where a tile that has no transparent pixel (the
+ * converter marks them, one bit a tile) will land is noted in a mask of the strip, one bit
+ * a pixel. Painting then skips every run of eight pixels that a layer above will cover
+ * completely. The sprites are not opaque and cover nothing, but they are skipped under
+ * opaque tiles like anything else.
  */
 #include "cps1_internal.h"
 #include "cps1_mem.h"
 #include "knobs.h"
 #include <string.h>
+#ifdef VIDEO_PROFILE
+#include "esp_cpu.h"
+#define CPS1_CYCLES() esp_cpu_get_cycle_count()
+#endif
 
 #define VIS_X0 64                    /* the visible 384x224 begins here in the 512x262 raster */
 #define VIS_Y0 16
@@ -38,7 +50,22 @@
 static uint16_t pal_raw[0xc00];      /* as the board latched it: 4 bits each of brightness, R, G, B */
 static uint16_t pal565[0xc00];       /* as the panel wants it: RGB565, bytes swapped */
 static uint8_t pal_dirty;
+static uint32_t pal_generation;      /* counts palette copies */
 static uint8_t lut5[16][16], lut6[16][16];
+#ifdef CPS1_PROFILE
+uint64_t cps1_video_groups, cps1_video_skipped, cps1_video_cells;
+#endif
+#ifdef VIDEO_PROFILE
+/* where the time goes, in CPU cycles: the caller defines CPS1_CYCLES() */
+uint32_t cps1_vp[8];                 /* 0 fill, 1 mask, 2 cell rebuilds, 3 scroll1 rows, 4 scroll2 rows, 5 scroll3 rows, 6 sprites, 7 high pass */
+#define VP_BEGIN uint32_t vp_t0_ = CPS1_CYCLES()
+#define VP_END(i) cps1_vp[i] += CPS1_CYCLES() - vp_t0_
+#define VP_MARK(i) do { uint32_t t_ = CPS1_CYCLES(); cps1_vp[i] += t_ - vp_t0_; vp_t0_ = t_; } while (0)
+#else
+#define VP_BEGIN
+#define VP_END(i)
+#define VP_MARK(i)
+#endif
 
 static uint16_t obj[0x400];          /* the sprite list, taken at the vertical blank */
 
@@ -47,6 +74,11 @@ static const uint16_t *col_src, *row_src;
 static uint16_t first_col[CPS1_SCREEN_W + 1];   /* first view column at or right of a screen column */
 static uint16_t first_row[CPS1_SCREEN_H + 1];
 static unsigned layer_mask = 15;
+/* the view is one of two shapes worth a loop of its own: five columns in eight (SCALE), or
+ * one to one (CROP, and the host's native view); anything else takes the general path */
+enum { VIEW_ANY, VIEW_FIVE_OF_EIGHT, VIEW_ONE_TO_ONE };
+static int view_kind;
+static int view_x0;                  /* one to one: the screen column of view column 0 */
 
 /* the frame, as latched by cps1_frame_begin() */
 typedef struct {
@@ -61,8 +93,18 @@ static const uint16_t *rowscroll;    /* NULL unless scroll2 is scrolling line by
 static int rowscroll_offs;
 static int last_sprite;              /* index of the last sprite in obj[], -1 if none */
 
+/* which pixels of the strip the layers above each layer cover with opaque tiles */
+#define MAX_STRIP_ROWS 16
+#define MASK_WORDS 12                /* 384 bits: the host's native view is the widest */
+typedef uint32_t rowmask_t[MASK_WORDS + 1];    /* the last word says whether any bit is set */
+static rowmask_t cover_above[4][MAX_STRIP_ROWS];   /* by position in the layer order */
+static const uint8_t *opaque8, *opaque16, *opaque32; /* the converter's bitmaps */
+
 void cps1_video_init(void)
 {
+    opaque8 = cps1.roms.opaque;                /* a bit for each half of each 8x8 pair: 24 KB */
+    opaque16 = opaque8 + 0x600000 / 32 / 8;    /* a bit for each 16x16 tile: 6 KB */
+    opaque32 = opaque16 + 0x600000 / 128 / 8;  /* a bit for each 32x32 tile: 1.5 KB */
     for (int b = 0; b < 16; b++) {
         int bright = 0x0f + (b << 1);
         for (int n = 0; n < 16; n++) {
@@ -90,6 +132,14 @@ void cps1_set_view(int w, int h, const uint16_t *cols, const uint16_t *rows)
         while (o < h && rows[o] < s) o++;
         first_row[s] = (uint16_t)o;
     }
+    view_kind = VIEW_ANY;
+    int five = 1, one = 1;
+    for (int x = 0; x < w; x++) {
+        if (cols[x] != x * 8 / 5) five = 0;
+        if (cols[x] != cols[0] + x) one = 0;
+    }
+    if (five) view_kind = VIEW_FIVE_OF_EIGHT;
+    else if (one) { view_kind = VIEW_ONE_TO_ONE; view_x0 = cols[0]; }
 }
 
 static const uint16_t *gfxram_at(unsigned reg, unsigned boundary)
@@ -107,16 +157,20 @@ void cps1_palette_latch(void)
     unsigned base = ((unsigned)cps1.a_regs[CPS_A_PALETTE_BASE] << 8) & ~0x3ffu & 0x3ffff;
     unsigned ctrl = cps1.b_regs[cps1.cfg.cpsb_pal_ctrl >> 1];
     unsigned src = base;
+    int changed = 0;
     for (int page = 0; page < 6; page++) {
         if (ctrl & (1u << page)) {
-            if (src + 0x400 <= CPS1_GFXRAM_BYTES)
+            if (src + 0x400 <= CPS1_GFXRAM_BYTES && memcmp(&pal_raw[page * 0x200], &cps1_gfxram[src >> 1], 0x400) != 0) {
                 memcpy(&pal_raw[page * 0x200], &cps1_gfxram[src >> 1], 0x400);
+                changed = 1;
+            }
             src += 0x400;
         } else if (src != base) {
             src += 0x400;
         }
     }
-    pal_dirty = 1;
+    /* the program does this every frame; only a palette that is different counts */
+    if (changed) { pal_dirty = 1; pal_generation++; }
 }
 
 void cps1_objram_latch(void)
@@ -174,16 +228,76 @@ void cps1_frame_begin(void)
  * at that many 32-bit words, leftmost pixel in the low nibble of the first. pens has a
  * bit set for every pen that is to be drawn.
  */
-static inline void draw_row(uint16_t *dst, int tx, int words, const uint32_t *row, int flipx,
-                            const uint16_t *pal, unsigned pens)
+/* are the view columns o .. oe-1 all covered? (oe - o is at most eight) */
+static inline int covered(const uint32_t *cover, int o, int oe)
 {
+    if (o >= oe) return 1;
+    unsigned w = (unsigned)o >> 5, lo = (unsigned)o & 31, n = (unsigned)(oe - o);
+    uint32_t m = (n >= 32 ? 0xffffffffu : ((1u << n) - 1)) << lo;
+    if ((cover[w] & m) != m) return 0;
+    if (lo + n > 32) {
+        uint32_t m2 = (1u << (lo + n - 32)) - 1;
+        return (cover[w + 1] & m2) == m2;
+    }
+    return 1;
+}
+
+/* set bits o .. oe-1 (a tile is at most 32 wide, so two words at most) */
+static inline void mark(uint32_t *cover, int o, int oe)
+{
+    if (o >= oe) return;
+    unsigned w = (unsigned)o >> 5, lo = (unsigned)o & 31, n = (unsigned)(oe - o);
+    cover[w] |= (n >= 32 ? 0xffffffffu : ((1u << n) - 1)) << lo;
+    if (lo + n > 32) cover[w + 1] |= (1u << (lo + n - 32)) - 1;
+    cover[MASK_WORDS] = 1;
+}
+
+static inline void draw_row(uint16_t *dst, int tx, int words, const uint32_t *row, int flipx,
+                            const uint16_t *pal, unsigned pens, const uint32_t *cover)
+{
+    (void)cover;
     for (int g = 0; g < words; g++) {
-        uint32_t w = row[flipx ? words - 1 - g : g];
-        if (w == 0xffffffffu) continue;
         int gx = tx + g * 8;
         int a = gx < 0 ? 0 : gx, b = gx + 8 > CPS1_SCREEN_W ? CPS1_SCREEN_W : gx + 8;
         if (a >= b) continue;
         int o = first_col[a], oe = first_col[b];
+#if OCCLUSION
+#ifdef CPS1_PROFILE
+        cps1_video_groups++;
+        if (cover && covered(cover, o, oe)) { cps1_video_skipped++; continue; }
+#else
+        if (cover && covered(cover, o, oe)) continue;
+#endif
+#endif
+        uint32_t w = row[flipx ? words - 1 - g : g];
+        if (w == 0xffffffffu) continue;
+        if (pens == 0x7fff && a == gx && b == gx + 8) {
+            /* the whole group is on the screen and every pen but 15 is wanted */
+            if (flipx) w = ((w >> 28) & 0xf) | ((w >> 20) & 0xf0) | ((w >> 12) & 0xf00) | ((w >> 4) & 0xf000)
+                         | ((w << 4) & 0xf0000) | ((w << 12) & 0xf00000) | ((w << 20) & 0xf000000) | (w << 28);
+            uint16_t *d = dst + o;
+#define PIX(i, k) do { unsigned n_ = (w >> (4 * (k))) & 15; if (n_ != 15) d[i] = pal[n_]; } while (0)
+            if (view_kind == VIEW_ONE_TO_ONE) {
+                PIX(0, 0); PIX(1, 1); PIX(2, 2); PIX(3, 3); PIX(4, 4); PIX(5, 5); PIX(6, 6); PIX(7, 7);
+                continue;
+            }
+            if (view_kind == VIEW_FIVE_OF_EIGHT) {
+                /* view column x shows screen column x * 8 / 5: of eight screen columns from gx,
+                 * the five shown depend on gx modulo 8 */
+                switch (gx & 7) {
+                case 0: PIX(0, 0); PIX(1, 1); PIX(2, 3); PIX(3, 4); PIX(4, 6); break;
+                case 1: PIX(0, 0); PIX(1, 2); PIX(2, 3); PIX(3, 5); PIX(4, 7); break;
+                case 2: PIX(0, 1); PIX(1, 2); PIX(2, 4); PIX(3, 6); PIX(4, 7); break;
+                case 3: PIX(0, 0); PIX(1, 1); PIX(2, 3); PIX(3, 5); PIX(4, 6); break;
+                case 4: PIX(0, 0); PIX(1, 2); PIX(2, 4); PIX(3, 5); PIX(4, 7); break;
+                case 5: PIX(0, 1); PIX(1, 3); PIX(2, 4); PIX(3, 6); PIX(4, 7); break;
+                case 6: PIX(0, 0); PIX(1, 2); PIX(2, 3); PIX(3, 5); PIX(4, 6); break;
+                default: PIX(0, 1); PIX(1, 2); PIX(2, 4); PIX(3, 5); PIX(4, 7); break;
+                }
+                continue;
+            }
+#undef PIX
+        }
         if (flipx) {
             for (; o < oe; o++) {
                 unsigned n = (w >> ((7 - (col_src[o] - gx)) * 4)) & 15;
@@ -220,16 +334,31 @@ typedef struct {
     const uint16_t *pal;
     int16_t tx;
     uint8_t flip;                    /* bit 0 across, bit 1 down */
+    uint8_t opaque;                  /* no transparent pixel anywhere in it */
     uint16_t pens;
 } cell_t;
+
+static inline int tile_opaque(int which, int32_t off, int odd_column)
+{
+    unsigned i;
+    const uint8_t *m;
+    switch (which) {
+    case 0:  i = (unsigned)(off / 64) * 2 + (unsigned)odd_column; m = opaque8; break;
+    case 1:  i = (unsigned)(off / 128); m = opaque16; break;
+    default: i = (unsigned)(off / 512); m = opaque32; break;
+    }
+    return (m[i >> 3] >> (i & 7)) & 1;
+}
 
 #define MAX_CELLS (CPS1_SCREEN_W / 8 + 1)
 
 /*
  * A tile map, rows y0 .. y0+rows-1 of the view. high = 0 draws the layer; high = 1 draws
- * only the pens its priority masks put above the sprites.
+ * only the pens its priority masks put above the sprites. cover is what the layers above
+ * will cover, and is not drawn. With dst NULL nothing is drawn: instead what this layer's
+ * opaque tiles cover is added to cover, for the layers below.
  */
-static void draw_tilemap(int which, uint16_t *dst, int y0, int rows, int high)
+static void draw_tilemap(int which, uint16_t *dst, int y0, int rows, int high, rowmask_t *cover)
 {
     static const uint16_t pal_base[3] = { PAL_SCROLL1, PAL_SCROLL2, PAL_SCROLL3 };
     const layer_t *l = &layers[which];
@@ -239,7 +368,7 @@ static void draw_tilemap(int which, uint16_t *dst, int y0, int rows, int high)
     cell_t cells[MAX_CELLS];
     int ncells = 0, have_row = -1, have_x = -1;
 
-    for (int r = 0; r < rows; r++, dst += out_w) {
+    for (int r = 0; r < rows; r++, dst = dst ? dst + out_w : dst) {
         int sy = row_src[y0 + r] + VIS_Y0;
         int ty = (sy + l->scrolly) & (64 * size - 1);
         int trow = ty >> shift, line = ty & (size - 1);
@@ -247,6 +376,7 @@ static void draw_tilemap(int which, uint16_t *dst, int y0, int rows, int high)
         if (which == 1 && rowscroll) x += rowscroll[(sy + rowscroll_offs) & 0x3ff];
         x &= 64 * size - 1;
 
+        VP_BEGIN;
         if (trow != have_row || x != have_x) {
             int col = x >> shift, tx = -(x & (size - 1));
             have_row = trow; have_x = x; ncells = 0;
@@ -261,25 +391,47 @@ static void draw_tilemap(int which, uint16_t *dst, int y0, int rows, int high)
                 if (!pens) continue;
                 int32_t off = tile_offset(which, l->map[2 * idx]);
                 if (off < 0) continue;
-                if (which == 0 && (c & 1)) off += 4;      /* odd columns use the right half of the pair */
                 cell_t *cell = &cells[ncells++];
+                cell->opaque = (uint8_t)(!high && tile_opaque(which, off, c & 1));
+                if (which == 0 && (c & 1)) off += 4;      /* odd columns use the right half of the pair */
+#ifdef EXPERIMENT_RAM_TILES
+                { static uint8_t fake[2048]; cell->data = fake + (off & 1023); }
+#else
                 cell->data = cps1.roms.gfx + off;
+#endif
                 cell->pal = &pal565[pal_base[which] + ((attr & 0x1f) << 4)];
                 cell->tx = (int16_t)tx;
                 cell->flip = (uint8_t)((attr >> 5) & 3);
                 cell->pens = (uint16_t)pens;
             }
         }
+        VP_MARK(2);
+        if (!dst) {
+            /* only saying what this row of the layer covers */
+            for (int i = 0; i < ncells; i++) {
+                const cell_t *cell = &cells[i];
+                if (!cell->opaque) continue;
+                int a = cell->tx < 0 ? 0 : cell->tx, b = cell->tx + size > CPS1_SCREEN_W ? CPS1_SCREEN_W : cell->tx + size;
+                if (a < b) mark(cover[r], first_col[a], first_col[b]);
+            }
+            VP_END(1);
+            continue;
+        }
+#ifdef CPS1_PROFILE
+        cps1_video_cells += (uint64_t)ncells;
+#endif
+        const uint32_t *cv = cover[r][MASK_WORDS] ? cover[r] : NULL;    /* nothing over this row: no tests */
         for (int i = 0; i < ncells; i++) {
             const cell_t *cell = &cells[i];
             int ln = (cell->flip & 2) ? size - 1 - line : line;
-            draw_row(dst, cell->tx, words, (const uint32_t *)(cell->data + ln * stride), cell->flip & 1, cell->pal, cell->pens);
+            draw_row(dst, cell->tx, words, (const uint32_t *)(cell->data + ln * stride), cell->flip & 1, cell->pal, cell->pens, cv);
         }
+        VP_END(high ? 7 : 3 + which);
     }
 }
 
 static void draw_block(uint16_t *dst, int y0, int rows, int sx, int sy, const uint8_t *data,
-                       const uint16_t *pal, int flipx, int flipy)
+                       const uint16_t *pal, int flipx, int flipy, rowmask_t *cover)
 {
     int vx = sx - VIS_X0, vy = sy - VIS_Y0;
     if (vx <= -16 || vx >= CPS1_SCREEN_W || vy <= -16 || vy >= CPS1_SCREEN_H) return;
@@ -290,12 +442,12 @@ static void draw_block(uint16_t *dst, int y0, int rows, int sx, int sy, const ui
     for (; o < oe; o++) {
         int line = row_src[o] - vy;
         if (flipy) line = 15 - line;
-        draw_row(dst + (o - y0) * out_w, vx, 2, (const uint32_t *)(data + line * 8), flipx, pal, 0x7fff);
+        draw_row(dst + (o - y0) * out_w, vx, 2, (const uint32_t *)(data + line * 8), flipx, pal, 0x7fff, cover[o - y0][MASK_WORDS] ? cover[o - y0] : NULL);
     }
 }
 
 /* Sprites. The first in the list is on top, so they are painted last to first. */
-static void draw_sprites(uint16_t *dst, int y0, int rows)
+static void draw_sprites(uint16_t *dst, int y0, int rows, rowmask_t *cover)
 {
     /* the band of the raster this strip shows */
     int band0 = row_src[y0] + VIS_Y0, band1 = row_src[y0 + rows - 1] + VIS_Y0;
@@ -322,7 +474,11 @@ static void draw_sprites(uint16_t *dst, int y0, int rows)
                 unsigned c = (code & ~0xfu) + ((code + cx) & 0xf) + 0x10 * cy;
                 int32_t off = sprite_offset(c);
                 if (off < 0) continue;
-                draw_block(dst, y0, rows, sx, sy, cps1.roms.gfx + off, pal, flipx, flipy);
+#ifdef EXPERIMENT_RAM_TILES
+                { static uint8_t fake[2048]; draw_block(dst, y0, rows, sx, sy, fake + (off & 1023), pal, flipx, flipy, cover); }
+#else
+                draw_block(dst, y0, rows, sx, sy, cps1.roms.gfx + off, pal, flipx, flipy, cover);
+#endif
             }
         }
     }
@@ -332,18 +488,67 @@ void cps1_render(uint16_t *dst, int y0, int rows)
 {
     const unsigned mask = layer_mask & LAYERS;
     uint16_t bg = pal565[BACKGROUND_PEN];
+    VP_BEGIN;
     for (int i = 0; i < rows * out_w; i++) dst[i] = bg;
+    VP_END(0);
+
+#if OCCLUSION
+    /* from the top down: what each layer will have over it */
+    memset(cover_above, 0, sizeof(cover_above));
+    for (int k = 3; k > 0; k--) {
+        int l = order[k];
+        memcpy(cover_above[k - 1], cover_above[k], sizeof(cover_above[k]));
+        if (l != 0 && layers[l - 1].on && (mask & (1u << (l - 1))))
+            draw_tilemap(l - 1, NULL, y0, rows, 0, cover_above[k - 1]);
+    }
+#endif
 
     for (int k = 0; k < 4; k++) {
         int l = order[k];
         if (l == 0) {
-            if (mask & LAYER_SPRITES) draw_sprites(dst, y0, rows);
+            if (mask & LAYER_SPRITES) { VP_BEGIN; draw_sprites(dst, y0, rows, cover_above[k]); VP_END(6); }
             if (k > 0 && order[k - 1] != 0) {
                 int under = order[k - 1] - 1;
-                if (layers[under].on && (mask & (1u << under))) draw_tilemap(under, dst, y0, rows, 1);
+                if (layers[under].on && (mask & (1u << under))) draw_tilemap(under, dst, y0, rows, 1, cover_above[k]);
             }
         } else if (layers[l - 1].on && (mask & (1u << (l - 1)))) {
-            draw_tilemap(l - 1, dst, y0, rows, 0);
+            draw_tilemap(l - 1, dst, y0, rows, 0, cover_above[k]);
         }
     }
+}
+
+/* ---- what a strip depends on ---- */
+
+static inline uint64_t mix(uint64_t h, uint32_t v) { return (h ^ v) * 0x100000001b3ull; }
+
+uint64_t cps1_strip_signature(int y0, int rows)
+{
+    uint64_t h = 0xcbf29ce484222325ull;
+    const unsigned mask = layer_mask & LAYERS;
+    h = mix(h, pal_generation);
+    h = mix(h, cps1.b_regs[cps1.cfg.cpsb_layer_ctrl >> 1]);
+    h = mix(h, cps1.a_regs[CPS_A_VIDEOCONTROL]);
+    for (int i = 0; i < 4; i++) h = mix(h, prio_mask[i]);
+    int band0 = row_src[y0] + VIS_Y0, band1 = row_src[y0 + rows - 1] + VIS_Y0;
+    for (int i = 0; i < 3; i++) {
+        if (!layers[i].on || !(mask & (1u << i))) { h = mix(h, 0xffffffffu); continue; }
+        h = mix(h, (uint32_t)(layers[i].map - cps1_gfxram));
+        h = mix(h, cps1_gfx_generation[(unsigned)(layers[i].map - cps1_gfxram) >> 13]);
+        h = mix(h, (uint32_t)(layers[i].scrollx | (layers[i].scrolly << 16)));
+        if (i == 1 && rowscroll)
+            for (int sy = band0; sy <= band1; sy++) h = mix(h, rowscroll[(sy + rowscroll_offs) & 0x3ff]);
+    }
+    if (mask & LAYER_SPRITES) {
+        for (int i = last_sprite; i >= 0; i--) {
+            const uint16_t *s = &obj[i * 4];
+            unsigned attr = s[3];
+            int y = s[1] & 0x1ff, ny = ((attr >> 12) & 15) + 1;
+            /* the same test draw_sprites() makes; anything it would consider is in the hash */
+            if (y + ny * 16 <= 512 && (y > band1 || y + ny * 16 <= band0)) continue;
+            h = mix(h, (uint32_t)(s[0] | ((uint32_t)s[1] << 16)));
+            h = mix(h, (uint32_t)(s[2] | ((uint32_t)s[3] << 16)));
+            h = mix(h, (uint32_t)i);
+        }
+    }
+    return h;
 }

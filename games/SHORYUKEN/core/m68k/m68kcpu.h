@@ -381,7 +381,7 @@ typedef signed int int32;
 #define CPU_RUN_MODE     m68ki_cpu.run_mode
 
 /* SHORYUKEN: the cost of an instruction is kept by handler, not by opcode */
-#define CYC_INSTRUCTION_IR (m68ki_handler_cycles[m68ki_op_index[REG_IR]])
+#define CYC_INSTRUCTION_IR (m68ki_handler_cycles[m68ki_handler_of(REG_IR)])
 #define CYC_EXCEPTION    m68ki_cpu.cyc_exception
 #define CYC_BCC_NOTAKE_B m68ki_cpu.cyc_bcc_notake_b
 #define CYC_BCC_NOTAKE_W m68ki_cpu.cyc_bcc_notake_w

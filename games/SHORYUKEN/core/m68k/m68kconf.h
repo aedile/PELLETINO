@@ -39,9 +39,22 @@
 #define M68K_ILLG_HAS_CALLBACK      M68K_OPT_OFF
 #define M68K_TRAP_HAS_CALLBACK      M68K_OPT_OFF
 #define M68K_EMULATE_FC             M68K_OPT_OFF
-#define M68K_MONITOR_PC             M68K_OPT_OFF
-/* a host build with -DCPS1_PROFILE counts and traces instructions through this */
+/* where jumps land is counted, for choosing which pages of the program to keep in RAM */
 #include "knobs.h"
+#if PROG_CACHE_KB
+#define M68K_MONITOR_PC             M68K_OPT_SPECIFY_HANDLER
+#define M68K_SET_PC_CALLBACK(A)     (cps1_page_hits[((A) >> 12) & 0xff]++)
+extern unsigned short cps1_page_hits[256];
+#else
+#define M68K_MONITOR_PC             M68K_OPT_OFF
+#endif
+
+/* the opcode table: in RAM unless told otherwise */
+#if !OPCODE_TABLE_RAM
+#define M68K_GROUP_ATTR const
+#define M68K_ROW_ATTR const
+#endif
+/* a host build with -DCPS1_PROFILE counts and traces instructions through this */
 #ifdef CPS1_PROFILE
 #define M68K_INSTRUCTION_HOOK       M68K_OPT_SPECIFY_HANDLER
 #define M68K_INSTRUCTION_CALLBACK(pc) cps1_profile_hook(pc)

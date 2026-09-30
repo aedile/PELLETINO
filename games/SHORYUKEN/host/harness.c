@@ -147,6 +147,11 @@ int main(int argc, char **argv)
     /* HASH_LOG=file: a hash of every picture and of graphics RAM, for comparing two builds */
     FILE *hash_log = getenv("HASH_LOG") ? fopen(getenv("HASH_LOG"), "w") : NULL;
 
+    /* STRIP_REUSE=1: leave a strip alone when its signature says it would come out the same */
+    int reuse = getenv("STRIP_REUSE") != NULL;
+    static uint64_t strip_sig[64];
+    uint64_t strips_reused = 0, strips_rendered = 0;
+
     const double fps = 1e6 / CPS1_FRAME_US;
     int frames = (int)(seconds * fps), saved = 0;
     double next_save = 0, audio_acc = 0;
@@ -178,9 +183,32 @@ int main(int argc, char **argv)
         /* every frame is drawn, so the video time below is the cost at FRAME_SKIP=0 */
         t0 = now_us();
         cps1_frame_begin();
-        for (int y = 0; y < h; y += strip_rows)
-            cps1_render(picture + y * w, y, y + strip_rows <= h ? strip_rows : h - y);
+        for (int y = 0, i = 0; y < h; y += strip_rows, i++) {
+            int n = y + strip_rows <= h ? strip_rows : h - y;
+            if (reuse) {
+                uint64_t sig = cps1_strip_signature(y, n);
+                if (sig == strip_sig[i]) { strips_reused++; continue; }
+                strip_sig[i] = sig;
+            }
+            cps1_render(picture + y * w, y, n);
+            strips_rendered++;
+        }
         t_video += now_us() - t0; drawn++;
+        if (reuse && n == frames - 1)
+            printf("strips: %llu drawn, %llu reused (%.1f%%)\n", (unsigned long long)strips_rendered, (unsigned long long)strips_reused,
+                   100.0 * strips_reused / (strips_reused + strips_rendered));
+        if (getenv("STRIP_IDENTICAL")) {
+            /* how many strips are exactly what they were last frame */
+            static uint32_t last_hash[64]; static uint64_t same, total;
+            for (int y = 0, i = 0; y < h; y += strip_rows, i++) {
+                int n = y + strip_rows <= h ? strip_rows : h - y;
+                uint32_t hh = 2166136261u;
+                for (int k = 0; k < n * w; k++) hh = (hh ^ picture[y * w + k]) * 16777619u;
+                if (hh == last_hash[i]) same++;
+                total++; last_hash[i] = hh;
+            }
+            if (n == frames - 1) printf("strips identical to the previous frame: %.1f%%\n", 100.0 * same / total);
+        }
 
         if (hash_log) {
             /* FNV-1a over the picture and over graphics RAM: one line a frame */
@@ -214,6 +242,20 @@ int main(int argc, char **argv)
         extern uint32_t cps1_profile_pc[];
         printf("68000: %.0f instructions a second of machine time, %.2f cycles each if it never idled\n",
                cps1_profile_instructions / emu_s, (double)CPS1_M68K_CLOCK * emu_s / cps1_profile_instructions);
+        if (getenv("PROFILE_OUT")) {
+            /* for tools/hot.py: how often each opcode ran, and each 4 KB of the program */
+            extern uint32_t cps1_profile_op[];
+            FILE *pf = fopen(getenv("PROFILE_OUT"), "w");
+            for (int i = 0; i < 0x10000; i++) if (cps1_profile_op[i]) fprintf(pf, "op %04X %u\n", i, cps1_profile_op[i]);
+            for (int pg = 0; pg < 0x100; pg++) {
+                uint64_t n = 0;
+                for (int i = 0; i < 0x800; i++) n += cps1_profile_pc[pg * 0x800 + i];
+                if (n) fprintf(pf, "page %02X %llu\n", pg, (unsigned long long)n);
+            }
+            fclose(pf);
+        }
+        { extern uint64_t cps1_video_groups, cps1_video_skipped, cps1_video_cells;
+          printf("video: per frame %.0f tile rows, %.0f groups of 8, %.0f of them skipped as covered\n", cps1_video_cells / (double)drawn, cps1_video_groups / (double)drawn, cps1_video_skipped / (double)drawn); }
         printf("hottest instructions:");
         for (int k = 0; k < 24; k++) {
             uint32_t best = 0; int bi = -1;

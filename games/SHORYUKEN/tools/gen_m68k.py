@@ -9,9 +9,13 @@ pointers and 64 KB of cycle counts for each of five CPU types. This board has
 512 KB of RAM in all, so the tables are worked out here instead and written as
 constants that the linker puts in flash:
 
-  m68ki_op_index[65536]    uint16  which handler an opcode uses      128 KB, flash
-  m68ki_handlers[N]        pointer the handlers themselves           ~7 KB, RAM
-  m68ki_handler_cycles[N]  uint8   what each costs on a 68000        ~2 KB, RAM
+  m68ki_op_group[8192]     uint16  by opcode >> 3: a handler, or a row   16 KB
+  m68ki_op_rows[N * 8]     uint16  the rows, for groups that need one     5 KB
+  m68ki_handlers[N]        pointer the handlers themselves                7 KB
+  m68ki_handler_cycles[N]  uint8   what each costs on a 68000             2 KB
+
+which is 30 KB where Musashi's were 576 KB, and small enough to be kept in RAM, where
+looking an opcode up does not go through the flash cache.
 
 Musashi keeps the cost by opcode, 64 KB of it. Here it is kept by handler: a handler that
 is listed with two different costs gets two entries, so the index that finds the handler
@@ -75,6 +79,21 @@ def main():
     def rows(vals, per, fmt):
         return '\n'.join('\t' + ','.join(fmt % v for v in vals[i:i + per]) + ',' for i in range(0, len(vals), per))
 
+    # Two levels. Opcodes that differ only in their low three bits (a register number, as a
+    # rule) mostly share a handler, so the table is by opcode >> 3, and a group whose eight
+    # opcodes do not all share one points at a row of eight instead.
+    groups, rowlist, rowof = [], [], {}
+    for g in range(0x2000):
+        row = tuple(index[g * 8:g * 8 + 8])
+        if len(set(row)) == 1:
+            groups.append(row[0])
+        else:
+            if row not in rowof:
+                rowof[row] = len(rowlist)
+                rowlist.append(row)
+            groups.append(0x8000 | rowof[row])
+    flat = [v for r in rowlist for v in r]
+
     out = [
         '/* SPDX-License-Identifier: MIT */',
         '/*',
@@ -82,7 +101,7 @@ def main():
         ' *',
         ' * The instruction handlers are Musashi\'s, Copyright 1998-2001 Karl Stenerud, MIT licence',
         ' * (see readme.txt). The tables at the end are what m68ki_build_opcode_table() would have',
-        ' * built at start-up for a 68000, worked out ahead of time so they can live in flash.',
+        ' * built at start-up for a 68000, worked out ahead of time and packed.',
         ' */',
         handlers_src.rstrip(),
         '',
@@ -98,14 +117,20 @@ def main():
         '\n'.join(f'\t{n},' for n in names),
         '};',
         '',
-        'const unsigned short m68ki_op_index[0x10000] =',
-        '{',
-        rows(index, 16, '%4d'),
-        '};',
-        '',
         f'unsigned char M68K_HANDLER_ATTR m68ki_handler_cycles[{len(names)}] =',
         '{',
         rows(cycles, 32, '%2d'),
+        '};',
+        '',
+        '/* by opcode >> 3: a handler, or with the top bit set, a row of m68ki_op_rows */',
+        'M68K_GROUP_ATTR unsigned short m68ki_op_group[0x2000] =',
+        '{',
+        rows(groups, 16, '0x%04x'),
+        '};',
+        '',
+        f'M68K_ROW_ATTR unsigned short m68ki_op_rows[{len(flat)}] =',
+        '{',
+        rows(flat, 8, '%4d'),
         '};',
         '',
     ]
@@ -116,21 +141,38 @@ def main():
         '#ifndef M68KOPS__HEADER',
         '#define M68KOPS__HEADER',
         '',
-        '/* the handler pointers are few and hot, so they are data (RAM); the two 64K-entry',
-        ' * tables are constants (flash) */',
+        '#include "m68kconf.h"',
+        '',
+        '/* Where the tables live is the builder\'s choice (m68kconf.h): nothing here says const,',
+        ' * so without an attribute they are data and are in RAM. */',
         '#ifndef M68K_HANDLER_ATTR',
         '#define M68K_HANDLER_ATTR',
         '#endif',
+        '#ifndef M68K_GROUP_ATTR',
+        '#define M68K_GROUP_ATTR',
+        '#endif',
+        '#ifndef M68K_ROW_ATTR',
+        '#define M68K_ROW_ATTR',
+        '#endif',
         f'#define M68KI_NUM_HANDLERS {len(names)}',
         f'extern void (* M68K_HANDLER_ATTR m68ki_handlers[{len(names)}])(void);',
-        'extern const unsigned short m68ki_op_index[0x10000];',
         f'extern unsigned char M68K_HANDLER_ATTR m68ki_handler_cycles[{len(names)}];',
+        'extern M68K_GROUP_ATTR unsigned short m68ki_op_group[0x2000];',
+        f'extern M68K_ROW_ATTR unsigned short m68ki_op_rows[{len(flat)}];',
+        '',
+        '/* which handler an opcode uses */',
+        'static inline unsigned int m68ki_handler_of(unsigned int op)',
+        '{',
+        '\tunsigned int g = m68ki_op_group[op >> 3];',
+        '\treturn (g & 0x8000) ? m68ki_op_rows[((g & 0x7fff) << 3) | (op & 7)] : g;',
+        '}',
         '',
         '#endif /* M68KOPS__HEADER */',
         '',
     ]))
     legal = sum(1 for i in index if i)
-    print(f'{len(entries)} table entries, {len(names)} handlers in use, {legal} legal 68000 opcodes')
+    print(f'{len(entries)} table entries, {len(names)} handlers in use, {legal} legal 68000 opcodes; '
+          f'tables: {len(groups) * 2} + {len(flat) * 2} + {len(names) * 5} bytes')
 
 if __name__ == '__main__':
     main()

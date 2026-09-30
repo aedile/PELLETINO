@@ -3,14 +3,30 @@
 #ifndef M68KOPS__HEADER
 #define M68KOPS__HEADER
 
-/* the handler pointers are few and hot, so they are data (RAM); the two 64K-entry
- * tables are constants (flash) */
+#include "m68kconf.h"
+
+/* Where the tables live is the builder's choice (m68kconf.h): nothing here says const,
+ * so without an attribute they are data and are in RAM. */
 #ifndef M68K_HANDLER_ATTR
 #define M68K_HANDLER_ATTR
 #endif
+#ifndef M68K_GROUP_ATTR
+#define M68K_GROUP_ATTR
+#endif
+#ifndef M68K_ROW_ATTR
+#define M68K_ROW_ATTR
+#endif
 #define M68KI_NUM_HANDLERS 1701
 extern void (* M68K_HANDLER_ATTR m68ki_handlers[1701])(void);
-extern const unsigned short m68ki_op_index[0x10000];
 extern unsigned char M68K_HANDLER_ATTR m68ki_handler_cycles[1701];
+extern M68K_GROUP_ATTR unsigned short m68ki_op_group[0x2000];
+extern M68K_ROW_ATTR unsigned short m68ki_op_rows[2528];
+
+/* which handler an opcode uses */
+static inline unsigned int m68ki_handler_of(unsigned int op)
+{
+	unsigned int g = m68ki_op_group[op >> 3];
+	return (g & 0x8000) ? m68ki_op_rows[((g & 0x7fff) << 3) | (op & 7)] : g;
+}
 
 #endif /* M68KOPS__HEADER */
