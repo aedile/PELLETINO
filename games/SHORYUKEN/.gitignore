@@ -20,3 +20,5 @@ host/out*/
 .DS_Store
 __pycache__/
 build_docker.log
+knobs.txt
+results.csv

@@ -20,7 +20,7 @@ the first attract fight. Two columns are worked out here:
 
 A row can be reproduced on its own with the command in its last column.
 """
-import csv, re, subprocess, sys
+import csv, re, subprocess, sys, time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -42,14 +42,37 @@ def parse(line):
         d[k] = v[:-2] if v.endswith('ms') else v
     return d
 
-def run(port, knobs):
+def board_answers(port):
+    """can esptool reach the chip (and reset it, which it does on the way out)?"""
+    p = subprocess.run(['esptool.py', '--chip', 'esp32c6', '-p', port, 'chip_id'], capture_output=True, text=True)
+    return p.returncode == 0
+
+def wait_for_board(port):
+    """A board that stopped before it started talks to nobody, and only hands can wake it:
+    hold BOOT, tap reset, let go. Wait for that rather than fail every row after this one."""
+    if board_answers(port):
+        return
+    print('board: silent. Put it in download mode (hold BOOT, tap reset, let go of BOOT); '
+          'the sweep carries on when it answers.', flush=True)
+    while not board_answers(port):
+        time.sleep(10)
+    print('board: answering again', flush=True)
+
+def run(port, knobs, tries=3):
     args = [f'{k}={v}' for k, v in knobs.items()]
-    p = subprocess.run([str(HERE / 'bench.sh'), port, *args], capture_output=True, text=True)
-    lines = [l for l in p.stdout.splitlines() if l.startswith('bench fps=')]
-    if not lines:
+    tail = ''
+    for attempt in range(tries):
+        wait_for_board(port)
+        p = subprocess.run([str(HERE / 'bench.sh'), port, *args], capture_output=True, text=True)
+        lines = [l for l in p.stdout.splitlines() if l.startswith('bench fps=')]
+        if lines:
+            return parse(lines[-1]), None
         tail = '\n'.join((p.stdout + p.stderr).splitlines()[-15:])
-        return None, tail
-    return parse(lines[-1]), None
+        if p.returncode in (2, 3):
+            print(f'  attempt {attempt + 1}: the board did not start (bench.sh exit {p.returncode}); trying again', flush=True)
+            continue
+        break                          # a build error, or a bench that ran but printed no result
+    return None, tail
 
 def derive(r):
     busy = sum(float(r[k]) for k in ('m68k', 'z80', 'ym', 'video', 'strips', 'input', 'other'))
