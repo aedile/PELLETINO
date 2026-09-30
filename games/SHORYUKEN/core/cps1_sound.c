@@ -210,19 +210,39 @@ void cps1_sound_end_frame(int32_t m68k_cycles)
 #endif
 }
 
+#ifdef SOUND_PROFILE
+#include "esp_cpu.h"
+uint32_t cps1_sp[3], cps1_sp_samples;      /* cycles in the YM2151, the MSM6295, the mixing */
+#define SP_T() esp_cpu_get_cycle_count()
+#else
+#define SP_T() 0
+#endif
+
 void cps1_render_audio(int16_t *out, int samples)
 {
     int32_t mix[128];
+#ifdef SOUND_PROFILE
+    cps1_sp_samples += (uint32_t)samples;
+#endif
+    uint32_t t0 = SP_T(), t1;
+    (void)t0; (void)t1;
     while (samples > 0) {
         int n = samples > 128 ? 128 : samples;
         memset(mix, 0, sizeof(int32_t) * (size_t)n);
+        t0 = SP_T();
         ym2151_render(mix, n);
+#ifdef SOUND_PROFILE
+        t1 = SP_T(); cps1_sp[0] += t1 - t0; t0 = t1;
+#endif
         /* the board mixes the YM2151 at 0.35 a side and the MSM6295 at 0.30 */
         for (int i = 0; i < n; i++) mix[i] = (mix[i] * 45) >> 7;
 #if SOUND == SOUND_FM_ADPCM
         int32_t pcm[128];
         memset(pcm, 0, sizeof(int32_t) * (size_t)n);
         okim6295_render(pcm, n);
+#ifdef SOUND_PROFILE
+        t1 = SP_T(); cps1_sp[1] += t1 - t0; t0 = t1;
+#endif
         for (int i = 0; i < n; i++) mix[i] += (pcm[i] * 77) >> 8;
 #endif
         for (int i = 0; i < n; i++) {

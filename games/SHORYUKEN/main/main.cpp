@@ -231,6 +231,20 @@ extern "C" void app_main(void)
             double s = (now - report_us) / 1e6;
             sec.ym = t_audio; t_audio = 0;
             uint64_t sum = sec.m68k + sec.z80 + sec.ym + sec.video + sec.strips + sec.idle + sec.input;
+#ifdef SOUND_PROFILE
+            {
+                extern uint32_t cps1_sp[3], cps1_sp_samples;
+                printf("sprof samples=%lu ym=%.1fms (%.0f cycles a sample) oki=%.1fms, the rest of the audio path %.1fms\n",
+                       (unsigned long)cps1_sp_samples, cps1_sp[0] / 160e3, cps1_sp_samples ? (double)cps1_sp[0] / cps1_sp_samples : 0.0,
+                       cps1_sp[1] / 160e3, sec.ym / 1e3 - (cps1_sp[0] + cps1_sp[1]) / 160e3);
+                extern uint32_t ym_prof[4];
+                printf("yprof per sample, cycles: lfo=%.0f channels=%.0f envelope=%.0f; channels computed per sample %.2f\n",
+                       (double)ym_prof[0] / cps1_sp_samples, (double)ym_prof[1] / cps1_sp_samples, (double)ym_prof[2] / cps1_sp_samples,
+                       (double)ym_prof[3] / cps1_sp_samples);
+                memset(ym_prof, 0, sizeof(ym_prof));
+                memset(cps1_sp, 0, sizeof(cps1_sp)); cps1_sp_samples = 0;
+            }
+#endif
 #ifdef VIDEO_PROFILE
             {
                 extern uint32_t cps1_vp[8];

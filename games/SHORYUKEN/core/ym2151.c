@@ -35,6 +35,7 @@ typedef struct {
     uint8_t state, key;
     uint8_t rate[4];
     uint16_t eg_mask;                /* the envelope moves when the clock has none of these bits set */
+    uint8_t eg_level, index;         /* how many bits that is (16: never), and which of the 32 this is */
     uint8_t dt1, mul, ks, ar, d1r, dt2, d2r, sl, rr, am_on;
 } op_t;
 
@@ -74,6 +75,14 @@ static uint32_t eg_increment[64];
 #define BLOCK 8                      /* synthesised samples between envelope updates */
 static const uint8_t slot_to_op[4] = { 0, 2, 1, 3 };      /* registers go M1 M2 C1 C2 */
 
+#ifdef SOUND_PROFILE
+#include "esp_cpu.h"
+uint32_t ym_prof[4];                 /* cycles: lfo, channels, envelope; and channels actually computed */
+#define YT() esp_cpu_get_cycle_count()
+#else
+#define YT() 0
+#endif
+
 /* ---- what the registers mean ---- */
 
 static uint32_t phase_step(unsigned kc, unsigned kf, int delta)
@@ -105,11 +114,23 @@ static void op_frequency(ch_t *c, op_t *o, int pm)
 
 /* An envelope at rate r moves on one clock in 2^(11 - r/4), and on every clock from rate 44
  * up. Which clocks those are is a matter of which low bits of the counter are clear. */
+/* eg_turn[k]: the operators whose envelope moves when the clock's low k bits are zero */
+static uint32_t eg_turn[12];
+
 static inline void op_eg_mask(op_t *o)
 {
-    if (o->state == EG_OFF) { o->eg_mask = 0xffff; return; }
-    unsigned shift = o->rate[o->state] >> 2;
-    o->eg_mask = shift < 11 ? (uint16_t)((1u << (11 - shift)) - 1) : 0;
+    unsigned level;
+    /* off, or silent and not attacking: nothing will move it until the next key-on */
+    if (o->state == EG_OFF || (o->env >= 0x3ff && o->state != EG_ATTACK)) level = 16;
+    else {
+        unsigned shift = o->rate[o->state] >> 2;
+        level = shift < 11 ? 11 - shift : 0;
+    }
+    if (level == o->eg_level) return;
+    if (o->eg_level < 12) eg_turn[o->eg_level] &= ~(1u << o->index);
+    if (level < 12) eg_turn[level] |= 1u << o->index;
+    o->eg_level = (uint8_t)level;
+    o->eg_mask = level < 16 ? (uint16_t)((1u << level) - 1) : 0xffff;
 }
 
 /* attack ends when the envelope reaches the top, decay when it reaches the sustain level */
@@ -243,9 +264,13 @@ void ym2151_init(int clock, int rate)
 void ym2151_reset(void)
 {
     memset(chan, 0, sizeof(chan));
+    memset(eg_turn, 0, sizeof(eg_turn));
     for (int i = 0; i < 8; i++) {
         chan[i].pan = 3;
-        for (int k = 0; k < 4; k++) { chan[i].op[k].env = 0x3ff; chan[i].op[k].state = EG_OFF; chan[i].op[k].eg_mask = 0xffff; }
+        for (int k = 0; k < 4; k++) {
+            op_t *o = &chan[i].op[k];
+            o->env = 0x3ff; o->state = EG_OFF; o->eg_mask = 0xffff; o->eg_level = 16; o->index = (uint8_t)(i * 4 + k);
+        }
         chan_refresh(&chan[i]);
     }
     reg_addr = 0; status = 0; irq_enable = 0; timer_run = 0;
@@ -291,28 +316,31 @@ int ym2151_clocks_to_overflow(void)
 static void eg_clock(void)
 {
     eg_counter++;
-    for (int ci = 0; ci < 8; ci++) {
-        ch_t *c = &chan[ci];
-        for (int i = 0; i < 4; i++) {
-            op_t *o = &c->op[i];
-            if (eg_counter & o->eg_mask) continue;           /* not its turn, or it is off */
-            /* the state is as the last change of level left it, except that a register
-             * write may have moved the sustain level under it */
-            op_eg_state(o);
-            if (eg_counter & o->eg_mask) continue;
-            unsigned rate = o->rate[o->state], shift = rate >> 2;
-            uint32_t n = eg_counter << shift;
-            unsigned inc = (eg_increment[rate] >> (4 * ((n >> (shift <= 11 ? 11 : shift)) & 7))) & 15;
-            if (o->state == EG_ATTACK) {
-                if (rate < 62) o->env = (uint16_t)((o->env + (((~(unsigned)o->env) * inc) >> 4)) & 0x3ff);
-            } else {
-                unsigned e = o->env + inc;
-                if (e >= 0x3ff) { e = 0x3ff; if (o->state == EG_RELEASE) o->state = EG_OFF; }
-                o->env = (uint16_t)e;
-            }
-            op_eg_state(o);
-            op_level(c, o);
+    /* every operator whose turn it is: those whose k is no more than the clock's trailing zeros */
+    unsigned t = eg_counter ? (unsigned)__builtin_ctz(eg_counter) : 31;
+    uint32_t due = 0;
+    for (unsigned k = 0; k <= t && k < 12; k++) due |= eg_turn[k];
+    while (due) {
+        unsigned i = (unsigned)__builtin_ctz(due);
+        due &= due - 1;
+        ch_t *c = &chan[i >> 2];
+        op_t *o = &c->op[i & 3];
+        /* the state is as the last change of level left it, except that a register
+         * write may have moved the sustain level under it */
+        op_eg_state(o);
+        if (eg_counter & o->eg_mask) continue;
+        unsigned rate = o->rate[o->state], shift = rate >> 2;
+        uint32_t n = eg_counter << shift;
+        unsigned inc = (eg_increment[rate] >> (4 * ((n >> (shift <= 11 ? 11 : shift)) & 7))) & 15;
+        if (o->state == EG_ATTACK) {
+            if (rate < 62) o->env = (uint16_t)((o->env + (((~(unsigned)o->env) * inc) >> 4)) & 0x3ff);
+        } else {
+            unsigned e = o->env + inc;
+            if (e >= 0x3ff) { e = 0x3ff; if (o->state == EG_RELEASE) o->state = EG_OFF; }
+            o->env = (uint16_t)e;
         }
+        op_eg_state(o);
+        op_level(c, o);
     }
 }
 
@@ -369,15 +397,37 @@ static const uint8_t carriers[8] = { 8, 8, 8, 8, 10, 14, 14, 15 };
 
 static void chan_render(ch_t *c, int32_t *out, int n, int is_noise)
 {
-    /* nothing to hear: move the phases on so that they are where they would be, and go */
+    /*
+     * An operator whose attenuation is 0xd00 or more gives 0 whatever its phase: the
+     * attenuation plus the sine's, shifted down eight, is thirteen or more, and the power
+     * table is shifted right by that. A channel none of whose carriers can give anything is
+     * not computed; the phases are moved on to where they would be, and if the first
+     * operator (the one with feedback) can be heard, it alone is run, so that its feedback
+     * is what it would have been.
+     */
+#ifndef YM_COMPUTE_ALL
     int heard = 0;
     for (int i = 0; i < 4; i++)
-        if ((carriers[c->alg] >> i) & 1) heard |= c->op[i].att < (0x3ff << 2);
+        if ((carriers[c->alg] >> i) & 1) heard |= c->op[i].att < 0xd00;
     if (!heard || !c->pan) {
-        for (int i = 0; i < 4; i++) c->op[i].phase += c->op[i].step * (uint32_t)n;
-        c->fb[0] = c->fb[1] = 0;
+        for (int i = 1; i < 4; i++) c->op[i].phase += c->op[i].step * (uint32_t)n;
+        op_t *m = &c->op[0];
+        if (m->att < 0xd00) {
+            const int fbs = c->fb_level ? 10 - c->fb_level : 31;
+            int32_t f0 = c->fb[0], f1 = c->fb[1];
+            uint32_t p = m->phase;
+            for (int k = 0; k < n; k++) { int32_t a = op_value(p, m->att, (f0 + f1) >> fbs); p += m->step; f0 = f1; f1 = a; }
+            m->phase = p; c->fb[0] = f0; c->fb[1] = f1;
+        } else {
+            m->phase += m->step * (uint32_t)n;
+            c->fb[0] = c->fb[1] = 0;
+        }
         return;
     }
+#endif
+#ifdef SOUND_PROFILE
+    ym_prof[3] += (uint32_t)n;
+#endif
     /*
      * The four operators are copied into locals for the length of the block, so that the
      * compiler can keep them in registers, and there is a loop for each way of wiring them.
@@ -432,6 +482,8 @@ static void synth(int32_t *out, int n)
 {
     while (n > 0) {
         int b = n > BLOCK ? BLOCK : n;
+        uint32_t y0 = YT(), y1;
+        (void)y0; (void)y1;
 #if YM_QUALITY
         lfo_clock();
         if (noise_on) {
@@ -442,9 +494,18 @@ static void synth(int32_t *out, int n)
             noise_out = ((noise_lfsr >> 17) & 1) ? -1 : 1;
         }
 #endif
+#ifdef SOUND_PROFILE
+        y1 = YT(); ym_prof[0] += y1 - y0; y0 = y1;
+#endif
         for (int ci = 0; ci < 8; ci++) chan_render(&chan[ci], out, b, YM_QUALITY && noise_on && ci == 7);
+#ifdef SOUND_PROFILE
+        y1 = YT(); ym_prof[1] += y1 - y0; y0 = y1;
+#endif
         eg_acc += eg_per_block * (uint32_t)b / BLOCK;
         while (eg_acc >= 0x10000) { eg_acc -= 0x10000; eg_clock(); }
+#ifdef SOUND_PROFILE
+        y1 = YT(); ym_prof[2] += y1 - y0;
+#endif
         out += b; n -= b;
     }
 }
