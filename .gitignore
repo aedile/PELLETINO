@@ -1,5 +1,6 @@
 # game source is vendored under games/ (see VENDORED.md for upstream mirrors)
-roms/
+roms/*
+!roms/.gitkeep
 *.zip
 __pycache__/
 .venv/
