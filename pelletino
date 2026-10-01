@@ -4,7 +4,7 @@
 #
 #   ./pelletino              what this build contains
 #   ./pelletino pick         choose which games go in (when more fit than the flash holds)
-#   ./pelletino build        artwork + partition table + firmware
+#   ./pelletino build        artwork + partition table + launcher firmware (not the games)
 #   ./pelletino flash [port] write it all to a connected medal
 #
 # Run ./pelletino help for the rest.
@@ -120,7 +120,7 @@ cmd_help() {
     ./pelletino              what this build contains, and what it is missing
     ./pelletino games        the approved list, and which ROMs you have
     ./pelletino pick         choose which games fit this build (when they overflow)
-    ./pelletino build        artwork + partition table + firmware
+    ./pelletino build        artwork + partition table + launcher firmware (the games: install)
     ./pelletino flash [port] write everything to a connected medal
     ./pelletino clean        remove build output
 

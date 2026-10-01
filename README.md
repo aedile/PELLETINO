@@ -105,7 +105,7 @@ The steps it runs are also available one at a time:
 ```sh
 ./pelletino games      # the approved list, and which ROMs you already have
 ./pelletino pick       # choose a build when more games are present than fit
-./pelletino build      # artwork + partition table + launcher firmware
+./pelletino build      # artwork + partition table + launcher firmware (not the games)
 ./pelletino flash      # write it all to a connected board
 ```
 
@@ -145,28 +145,35 @@ Every game's source is vendored in, so one clone builds everything.
 cp ~/wherever/galaga.zip roms/
 ```
 
-Use MAME names. We ship no ROMs and finding them is your responsibility.
+Use MAME names, in lower case, `.zip` and all. We ship no ROMs and finding
+them is your responsibility.
 
-### 4. Build
+### 4. Build and flash
 
 ```sh
-./pelletino build
+./install.sh               # or: ./pelletino install
 ```
 
-Packs the artwork, generates `partitions.csv` and the build manifest, then
-compiles the launcher in Docker. First run pulls the IDF image, which is large
-and slow exactly once.
+This is the step that makes games. It converts each ROM, builds that game's
+firmware and the launcher in Docker, fetches the artwork, generates the
+partition table, and flashes everything to a connected board. The first run
+pulls the IDF image, which is large and slow exactly once. With no board
+connected it builds and stops; plug one in and run `./pelletino flash`.
 
-### 5. Flash
+`./pelletino build` on its own builds **only the launcher** and packs the
+artwork. It is for changing the menu, the music or the lineup after the games
+exist. Run it alone on a fresh clone and every game on the wheel reads
+`NOT INSTALLED`, because nothing has built them.
+
+### 5. Flash again later
 
 ```sh
 ./pelletino flash          # add a port if it guesses wrong: ./pelletino flash /dev/cu.usbmodem101
 ```
 
-Writes the bootloader, the partition table, the launcher, the artwork blob, and
-each game that has been built, to its own slot. Games you haven't built leave
-their slot empty and show as `NOT INSTALLED` in the menu. Flash them later
-without rebuilding anything else.
+Writes the bootloader, the partition table, the launcher, the artwork, and
+each game that has been built, to its own slot. Use it to put the same build
+on another board, or after `./pelletino build`.
 
 ### 6. First boot
 
