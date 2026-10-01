@@ -196,6 +196,9 @@ def main():
     flash = b.get('flash_mb', 16) * 1024 * K
 
     if not any(not r.get('builtin') for r in rows):      # Credits is always there; it is not a game
+        if args.check:                                   # a report, not a build: say so and stop
+            print('\n  no games yet: put an approved ROM zip in roms/ (./pelletino games lists them), then ./install.sh\n')
+            return
         die('nothing to build - put an approved ROM zip in roms/ (see games.toml)')
     nslots = sum(1 for r in rows if not r.get('owner') and not r.get('builtin'))
     if nslots > OTA_MAX:
