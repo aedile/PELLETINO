@@ -26,6 +26,7 @@ static const char *TAG = "midi";
 static ay8910_t     ay;
 static tml_message *song, *cur;
 static uint64_t     samples_played;
+static bool         made_any;        /* a sample has come out since the last rewind */
 static uint8_t      v_note[VOICES], v_vol[VOICES];
 
 static void wr(uint8_t reg, uint8_t val) { ay_address_w(&ay, reg); ay_data_w(&ay, val); }
@@ -82,6 +83,7 @@ static void note_off(uint8_t note)
 
 static void midi_rewind(void)
 {
+    made_any = false;
     cur = song;
     samples_played = 0;
     all_off();
@@ -125,7 +127,14 @@ static void midi_render(int16_t *buf, int samples, int rate)
             }
             cur = cur->next;
         }
-        if (!cur) { midi_rewind(); continue; }          /* loop back to the top */
+        if (!cur) {
+            /* Loop back to the top - unless the whole song went by without a sample
+             * being made, which is a file whose every event is at time zero, and
+             * would be this loop for ever. Such a file is silence. */
+            if (!made_any) { memset(buf, 0, (size_t)samples * sizeof(int16_t)); return; }
+            midi_rewind();
+            continue;
+        }
 
         uint64_t due = (uint64_t)cur->time * (unsigned)rate / 1000ull;
         int n = (due > samples_played) ? (int)(due - samples_played) : 1;
@@ -138,6 +147,7 @@ static void midi_render(int16_t *buf, int samples, int rate)
         memset(buf, 0, (size_t)n * sizeof(int16_t));
         ay_render(&ay, buf, n, rate);
         buf += n; samples -= n; samples_played += (unsigned)n;
+        made_any = true;
     }
 }
 

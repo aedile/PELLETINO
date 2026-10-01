@@ -15,7 +15,7 @@ README. What you play, and whether you are entitled to it, is between you and
 whoever owns it. Say who wrote it in music/credits.txt; the credits roll on the
 medal shows that file.
 """
-import os, shutil, subprocess, sys, tempfile, urllib.request
+import os, shutil, struct, subprocess, sys, tempfile, urllib.request, zipfile
 
 ROOT  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MUSIC = os.path.join(ROOT, 'music')
@@ -36,9 +36,16 @@ def find_tune(path, tmp):
     if ext == '.midi': ext = '.mid'
     if ext in KINDS: return path, ext
     if ext in ('.zip', '.7z'):
-        # bsdtar reads both, and ships with macOS and most Linux distributions
-        if subprocess.run(['tar', '-xf', path, '-C', tmp]).returncode != 0:
-            die(f'could not unpack {os.path.basename(path)} (is it a real {ext} archive?)')
+        if ext == '.zip':
+            try:
+                with zipfile.ZipFile(path) as z: z.extractall(tmp)
+            except (zipfile.BadZipFile, OSError) as e:
+                die(f'could not unpack {os.path.basename(path)}: {e}')
+        else:
+            tool = shutil.which('7z') or shutil.which('7zz') or shutil.which('7za')
+            if not tool: die('a .7z needs a 7-Zip tool on the PATH (7z, 7zz or 7za): brew install sevenzip, or apt install p7zip-full')
+            if subprocess.run([tool, 'x', '-y', f'-o{tmp}', path], stdout=subprocess.DEVNULL).returncode != 0:
+                die(f'could not unpack {os.path.basename(path)} (is it a real {ext} archive?)')
         found = sorted(os.path.join(r, f) for r, _, fs in os.walk(tmp) for f in fs
                        if os.path.splitext(f)[1].lower() in KINDS + ('.midi',))
         if not found: die('no .nsf or .mid inside that archive')
@@ -57,7 +64,53 @@ def describe(path, ext):
         return (f'NSF: "{field(0x0e)}", {field(0x4e)}, {d[6]} tracks'
                 + (', uses expansion sound (those channels will be missing)' if d[0x7b] else '')), d[6]
     if d[:4] != b'MThd': die('that .mid does not start with a MIDI header')
-    return f'MIDI: {len(d)} bytes', 0
+    return f'MIDI: {len(d)} bytes, {check_midi(d)} notes', 0
+
+def check_midi(d):
+    """What the launcher's loader would refuse, said here with a reason. Returns the note count."""
+    if len(d) < 14 or struct.unpack('>I', d[4:8])[0] != 6: die('that .mid has a damaged MThd header')
+    fmt, ntracks, division = struct.unpack('>HHH', d[8:14])
+    if fmt > 2: die(f'that .mid is format {fmt}; only 0, 1 and 2 exist')
+    if division & 0x8000: die('that .mid uses SMPTE timing, which the launcher does not play')
+    if division == 0 or ntracks == 0: die('that .mid has no tracks, or a division of 0')
+    notes, at = 0, 14
+    for t in range(ntracks):
+        if d[at:at+4] != b'MTrk' or at + 8 > len(d): die(f'that .mid ends inside track {t + 1} of {ntracks}')
+        n = struct.unpack('>I', d[at+4:at+8])[0]
+        if at + 8 + n > len(d): die(f'track {t + 1} of that .mid says it is {n} bytes, past the end of the file')
+        notes += count_notes(d[at+8:at+8+n])
+        at += 8 + n
+    if notes == 0: die('that .mid has no notes in it')
+    return notes
+
+def count_notes(track):
+    """Note-on events in one track, walking its running-status stream."""
+    i, status, notes = 0, 0, 0
+    while i < len(track):
+        while i < len(track) and track[i] & 0x80: i += 1           # delta time
+        i += 1
+        if i >= len(track): break
+        b = track[i]
+        if b & 0x80: status = b; i += 1
+        if status == 0xff:                                          # meta event: type, length, data
+            if i + 1 >= len(track): break
+            i += 1; n, i = varlen(track, i); i += n
+        elif status in (0xf0, 0xf7):                                # sysex: length, data
+            n, i = varlen(track, i); i += n
+        else:
+            kind = status & 0xf0
+            if kind in (0xc0, 0xd0): i += 1
+            else:
+                if kind == 0x90 and i + 1 < len(track) and track[i + 1]: notes += 1
+                i += 2
+    return notes
+
+def varlen(d, i):
+    v = 0
+    while i < len(d):
+        v = (v << 7) | (d[i] & 0x7f); i += 1
+        if not d[i - 1] & 0x80: break
+    return v, i
 
 def main():
     a = sys.argv[1:]

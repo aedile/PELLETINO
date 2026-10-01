@@ -90,7 +90,11 @@ the zlib licence:
 > not be misrepresented as being the original software. 3. This notice may not be
 > removed or altered from any source distribution.
 
-The file is vendored unaltered and keeps its own header notice. It parses the
+The file keeps its own header notice. It is altered, as the licence asks be
+plainly marked, and the header says where: three checks in its loader so that
+a damaged or hostile file cannot take the firmware down (a division of 0 is
+rejected, the track buffer's allocation is checked, and the track length is
+assembled without a signed shift). Nothing else is changed. It parses the
 MIDI files; the AY-3-8910 playback around it is this project's own and 0BSD.
 
 ### The NES sound chip and NSF player: ours

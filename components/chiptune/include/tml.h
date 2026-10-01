@@ -1,4 +1,10 @@
 /* TinyMidiLoader - v0.7 - Minimalistic midi parsing library - https://github.com/schellingb/TinySoundFont
+
+   ALTERED for PELLETINO (see LICENSING.md), in tml_load_tsf_stream, so that a damaged or
+   hostile file cannot take the firmware down: the MThd check rejects a division of 0
+   (it tested both fields with && and let it through); the track buffer's allocation is
+   checked; and the track length is assembled in unsigned arithmetic, where it was a
+   signed shift. Nothing else is changed.
                                      no warranty implied; use at your own risk
    Do this:
       #define TML_IMPLEMENTATION
@@ -396,7 +402,7 @@ TMLDEF tml_message* tml_load(struct tml_stream* stream)
 	if (midi_header[12] & 0x80) { TML_ERROR("File uses unsupported SMPTE timing"); return messages; }
 	num_tracks = (int)(midi_header[10] << 8) | midi_header[11];
 	division = (int)(midi_header[12] << 8) | midi_header[13]; //division is ticks per beat (quarter-note)
-	if (num_tracks <= 0 && division <= 0) { TML_ERROR("Doesn't look like a MIDI file: invalid track or division values"); return messages; }
+	if (num_tracks <= 0 || division <= 0) { TML_ERROR("Doesn't look like a MIDI file: invalid track or division values"); return messages; }
 
 	// Allocate temporary tracks array for parsing
 	tracks = (struct tml_track*)TML_MALLOC(sizeof(struct tml_track) * num_tracks);
@@ -413,9 +419,14 @@ TMLDEF tml_message* tml_load(struct tml_stream* stream)
 			{ TML_WARN("Invalid MTrk header"); break; }
 
 		// Get size of track data and read into buffer (allocate bigger buffer if needed)
-		track_length = track_header[7] | (track_header[6] << 8) | (track_header[5] << 16) | (track_header[4] << 24);
+		track_length = (int)((unsigned)track_header[7] | ((unsigned)track_header[6] << 8) | ((unsigned)track_header[5] << 16) | ((unsigned)track_header[4] << 24));
 		if (track_length < 0) { TML_WARN("Invalid MTrk header"); break; }
-		if (trackbufsize < track_length) { TML_FREE(trackbuf); trackbuf = (unsigned char*)TML_MALLOC(trackbufsize = track_length); }
+		if (trackbufsize < track_length)
+		{
+			unsigned char* bigger = (unsigned char*)TML_MALLOC(track_length);
+			if (!bigger) { TML_WARN("Track too large to load"); break; }
+			TML_FREE(trackbuf); trackbuf = bigger; trackbufsize = track_length;
+		}
 		if (stream->read(stream->data, trackbuf, track_length) != track_length) { TML_WARN("Unexpected end of file"); break; }
 
 		t->Idx = p.message_count;
