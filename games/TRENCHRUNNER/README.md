@@ -99,18 +99,6 @@ back to loud. That's for wearing the medal somewhere it needs to be quiet. The
 game keeps running silently underneath, and the setting holds in the menu and
 every other game.
 
-### The easter egg
-
-Keep holding the MIDDLE button. At thirteen seconds the sound comes on, the
-game stops, and the medal plays a video clip from its flash. When the clip
-ends the game restarts at its attract screen, like a fresh power-up. Each long
-hold plays the next clip in turn, and pressing fire during a clip ends it
-early.
-
-The clips are not part of this repository. Adding your own is covered under
-*Building from Source* below. A medal without a media image simply ignores the
-long hold.
-
 ### Charging
 
 - **Charging port:** USB-C on the side of the medal
@@ -135,12 +123,6 @@ long hold.
 - The first second after power-on is silent while the game boots; that's
   normal.
 
-**Long hold does nothing**
-- The medal has no media image. See *Adding video clips* below.
-
-**Screen shows a red square**
-- The firmware found no media partition. Reflash with the partition table in
-  this repository (16 MB flash).
 
 ---
 
@@ -171,7 +153,6 @@ difference is what you flash onto it.
   Docker so there is nothing else to set up.
 - **Python 3** for the ROM converter, and **esptool** for flashing
   (`pip install esptool`).
-- **ffmpeg**, only if you want to add video clips.
 - **The ROMs.** See below.
 
 ### Hardware Specifications
@@ -180,7 +161,7 @@ difference is what you flash onto it.
 |-----------|---------------|
 | **MCU** | ESP32-C6, single RISC-V core at 160 MHz |
 | **RAM** | 512 KB SRAM (about 270 KB used by the emulator) |
-| **Flash** | 16 MB (1 MB firmware, the rest for video clips) |
+| **Flash** | 16 MB; the firmware with its ROMs is under 1 MB |
 | **Display** | ST7789 240×280, 40 MHz SPI with DMA |
 | **Audio** | ES8311 codec over I2S, mono, 20 050 Hz |
 | **IMU** | QMI8658 6-axis, used as the flight yoke |
@@ -248,22 +229,6 @@ wrong if any is.
    The medal reboots into the game. If the board never appears on USB, the
    cable is almost always the reason.
 
-### Adding video clips
-
-Put a couple of short videos somewhere and run:
-
-```bash
-tools/encode_media.sh clip1.mp4 clip2.mp4
-python3 -m esptool --chip esp32c6 --port /dev/cu.usbmodem101 -b 921600 \
-    write_flash 0x110000 media/media.bin
-```
-
-The script encodes each clip as 240×136 MJPEG at 24 frames per second with
-32 kHz mono MP3 audio, packs them into one image, and the second command
-writes that image to the `media` partition. Reflashing the firmware leaves the
-clips alone. Roughly 15 MB is available, which is around a minute of video per
-5 MB. The `media/` folder is ignored by git.
-
 ### The marquee
 
 The black bars above and below the picture can carry text in the game's own
@@ -313,9 +278,8 @@ then moved to the medal.
 | `main/main.cpp` | Runs the emulation against the wall clock, tops up the audio DMA, reads the buttons, and dispatches the long-hold gestures. |
 | `main/render.cpp` | Rasterizes each vector list into an 8-bit frame buffer in its own task and streams it to the panel, so the 15 ms transfer overlaps with emulation. |
 | `main/input.cpp` | Turns the accelerometer into a yoke, debounces the buttons, and times the long holds. |
-| `main/egg.cpp` | The clip player: JPEG frames through the decoder in the ESP32-C6's ROM straight into 16-row panel strips, MP3 through libhelix into the audio stream. It borrows the renderer's frame buffer while the game is stopped and needs about 36 KB of heap on top. |
 | `main/marquee.cpp` | The stroke font and scroller for the letterbox bars. |
-| `components/` | The display, IMU and audio drivers shared with PELLETINO, and the libhelix MP3 decoder. |
+| `components/` | The display, IMU and audio drivers shared with PELLETINO, and the medal controls and boot handshake every game here shares. |
 
 ### Making it fit in 160 MHz
 
@@ -370,9 +334,11 @@ and the boot speech came out garbled.
 |---|---|---|
 | `0x0000` | 32 KB | bootloader |
 | `0x8000` | 4 KB | partition table |
-| `0x9000` | 24 KB | NVS (unused) |
+| `0x9000` | 24 KB | NVS: the high scores and the settings |
 | `0x10000` | 1 MB | firmware, ROMs embedded |
-| `0x110000` | 14.9 MB | `media` partition: the packed video clips |
+
+Under PELLETINO this image is relocated into a game slot and the launcher's
+table is the one on the device.
 
 ---
 
@@ -391,7 +357,6 @@ TRENCHRUNNER/
 │   ├── main.cpp              real-time loop, gestures, stats
 │   ├── render.cpp/h          vector rasterizer and panel output task
 │   ├── input.cpp/h           tilt yoke, buttons, long holds
-│   ├── egg.cpp/h             video clip player
 │   ├── marquee.cpp/h         letterbox-bar text
 │   └── roms/                 generated ROM header (ignored by git)
 ├── components/
@@ -399,18 +364,17 @@ TRENCHRUNNER/
 │   ├── imu/                  QMI8658 driver (from PELLETINO)
 │   ├── audio_hal/            ES8311 + I2S with DMA-locked mixing
 │   ├── emu/                  builds core/ for the ESP32, pins it in RAM
-│   └── helix_mp3/            libhelix MP3 decoder (RPSL)
+│   ├── medal_input/          the buttons, the tilt zero, the backlight (shared)
+│   └── medalboot/            the boot handshake with the launcher, and the high scores (shared)
 ├── host/                   Mac/Linux harness for the core
 │   ├── harness.c             boots the ROMs, scripts inputs, dumps frames and WAV
 │   └── ppm2png.py            frame converter
 ├── tools/
-│   ├── convert_roms.py       ROM set -> C header, with CRC checks
-│   ├── encode_media.sh       videos -> MJPEG + MP3
-│   └── pack_media.py         clips -> media.bin
+│   └── convert_roms.py       ROM set -> C header, with CRC checks
 ├── partitions.csv          16 MB flash layout
 ├── sdkconfig.defaults      ESP-IDF configuration
 ├── LICENSE                 0BSD for this project's code
-├── THIRD_PARTY_NOTICES.md  vecx, MAME, libhelix, TJpgDec
+├── THIRD_PARTY_NOTICES.md  vecx, MAME
 └── LICENSES/GPL-3.0.txt
 ```
 
@@ -439,13 +403,9 @@ bits set the coinage; `0x02` is one coin per play.
 #define PITCH_SIGN (+1.0f)          // flip if pitch is reversed
 ```
 
-**Long holds**, `main/input.cpp`:
-
-```cpp
-#define HOLD_SOUND_US   3000000     // sound toggle
-#define HOLD_EGG_US    13000000     // video clip
-#define PWR_LONG_PRESS_MS 1000      // power off
-```
+**The buttons** are `components/medal_input`, shared by every game here: the
+sound is both buttons together, a five-second hold of the middle button leaves
+for the menu, a one-second hold of the top button powers off.
 
 **Orientation**, `main/render.cpp`: `ORIENTATION_PORTRAIT 1` is the upright
 layout; `0` restores the sideways layout, which uses more of the panel but
@@ -498,14 +458,6 @@ against each other on every frame and reports any mismatch.
   state. Plug it straight into the computer with a known data cable and press
   the BOTTOM (reset) button.
 
-**`no media image at 0x110000` in the serial log**
-- Expected until you flash `media/media.bin`. The game runs normally; only the
-  long hold is inert.
-
-**`scratch ... < ...` or `MP3 decoder init failed` in the log**
-- The clip player couldn't get memory. It needs the renderer's frame buffer
-  plus about 36 KB of heap; check what else the firmware is allocating.
-
 **Reading the serial log**
 - 115200 baud on the same USB port. Every five seconds the firmware prints a
   line with emulated and drawn frame counts, milliseconds per second spent in
@@ -546,9 +498,6 @@ included** and are not licensed by this project:
 - **MAME** ports (BSD-3-Clause): the vector generator, the matrix processor,
   the POKEY and the TMS5220 are written from MAME's `avgdvg.cpp`,
   `starwars_m.cpp`, `pokey.cpp` and `tms5220.cpp`.
-- **libhelix-mp3** by RealNetworks, `components/helix_mp3/`, RealNetworks
-  Public Source License. Used by the clip player only.
-- **TJpgDec** by ChaN, as shipped in the ESP32-C6 ROM, used by the clip player.
 - **ESP-IDF** by Espressif Systems, Apache 2.0.
 - The ST7789, QMI8658 and ES8311 drivers come from PELLETINO and are 0BSD.
 

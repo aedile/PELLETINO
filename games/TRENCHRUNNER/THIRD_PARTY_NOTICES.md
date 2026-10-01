@@ -64,18 +64,3 @@ The ST7789 display, QMI8658 IMU and ES8311 codec drivers under `components/`
 come from PELLETINO, https://github.com/aedile/PELLETINO, by the same
 author, and are covered by this project's 0BSD license.
 
-## libhelix-mp3 (RealNetworks Public Source License)
-
-`components/helix_mp3/` is the fixed-point MP3 decoder from RealNetworks' Helix
-project, copyright (c) 1995-2002 RealNetworks, Inc., used for the easter-egg
-clips. It is licensed under the RealNetworks Public Source License 1.0 (RPSL),
-or alternatively the RealNetworks Community Source License; both are in the
-component directory (`RPSL.txt`, `RCSL.txt`, `LICENSE.txt`). The RPSL has
-notice and source-availability conditions of its own that apply to that
-component; the source is unmodified here.
-
-## TJpgDec (ChaN)
-
-JPEG frames are decoded by the TJpgDec decoder that Espressif ships in the
-ESP32-C6 mask ROM (`esp32c6/rom/tjpgd.h`), copyright (C) ChaN, used under its
-permissive license: redistribution permitted, provided as is, no warranty.
