@@ -24,15 +24,20 @@ static const esp_partition_t *find_game(const char *rom)
     return esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, rom);
 }
 
+/* A slot that exists is not a game: the partition table lays every slot out before
+ * anything is flashed into it, and an empty one reads as blank. So installed means
+ * the slot holds an application too - the descriptor every image starts with. */
 bool game_installed(const char *rom)
 {
-    return find_game(rom) != NULL;
+    const esp_partition_t *p = find_game(rom);
+    esp_app_desc_t desc;
+    return p && esp_ota_get_partition_description(p, &desc) == ESP_OK;
 }
 
 bool game_launch(const char *rom)
 {
     const esp_partition_t *p = find_game(rom);
-    if (!p) {
+    if (!p || !game_installed(rom)) {
         ESP_LOGW(TAG, "%s is not installed", rom);
         return false;
     }

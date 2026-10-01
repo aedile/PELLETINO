@@ -63,7 +63,7 @@ static void menu_frame(void)
  * the one picked last time: they get the send-off - the coin, the logo coming out
  * of the screen, the flash. A medal that is only switching on gets its game.
  */
-static void launch(const char *rom, bool chosen)
+static bool launch(const char *rom, bool chosen)
 {
     menu_init();                        /* may not have been needed until now */
     /* A shared slot (Pac-Man riding Ms. Pac-Man's image) records its own ROM as the
@@ -81,7 +81,17 @@ static void launch(const char *rom, bool chosen)
     chip_stop();
     audio_update();
     medalboot_note_attempt();
-    game_launch(mqart_boot_label(rom));   /* does not return */
+    if (game_launch(mqart_boot_label(rom))) return true;    /* does not return */
+
+    /* It could not be booted - a slot that was never flashed, most likely. Undo what
+     * was just recorded, or the medal would try the same thing at every power-on,
+     * and give the menu back with its music. */
+    ESP_LOGW(TAG, "%s would not boot", rom);
+    medalboot_clear_selected();
+    menu_set_mode(MENU_BROWSE);
+    if (chip_has_music()) chip_play();
+    display_toast("NOT INSTALLED", 2000);
+    return false;
 }
 
 /*
@@ -222,6 +232,7 @@ static void tour(void)
             ESP_LOGI(TAG, "tour: %d of %d: %s (%s)", next % games + 1, games, e->title, e->rom);
             medalboot_set_selected(e->rom);
             launch(e->rom, false);
+            ESP_LOGE(TAG, "tour: %s would not boot", e->rom);
         }
     }
 }
@@ -284,8 +295,9 @@ extern "C" void app_main(void)
             menu_render();
             vTaskDelay(pdMS_TO_TICKS(2500));
             menu_set_mode(MENU_BROWSE);
+        } else if (launch(sel, false)) {   /* does not return */
         } else {
-            launch(sel, false);  /* does not return */
+            menu_select_rom(sel);          /* it would not boot: the menu, open on it */
         }
 #endif
     }
@@ -333,8 +345,8 @@ extern "C" void app_main(void)
                 if (!strcmp(label, "@credits")) credits_run();
                 menu_set_mode(MENU_BROWSE);
             } else if (rom && game_installed(mqart_boot_label(rom))) {
-                medalboot_set_selected(rom);   /* sticky from now on */
-                launch(rom, true);             /* does not return */
+                medalboot_set_selected(rom);   /* sticky from now on, unless it will not boot */
+                launch(rom, true);             /* does not return, unless it will not boot */
             }
             busy = true;
         }
