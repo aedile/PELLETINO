@@ -64,7 +64,8 @@ static void restore(void)
         memcpy(saved, seen, (size_t)total);
         SAY("%s: %d bytes of scores put back, best %u", g->rom, total, (unsigned)hiscore_top());
     } else {
-        SAY("%s: nothing kept yet, best %u", g->rom, (unsigned)hiscore_top());
+        if (g->whole) SAY("%s: nothing kept yet", g->rom);     /* its memory means nothing until the game has run */
+        else SAY("%s: nothing kept yet, best %u", g->rom, (unsigned)hiscore_top());
         copy_out(saved);                /* nothing kept yet: what the game starts with is the baseline */
     }
     state = WATCHING;
