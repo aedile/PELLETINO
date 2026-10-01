@@ -12,6 +12,15 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# the tools read games.toml with tomllib, which arrived in Python 3.11
+python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null \
+    || { echo "pelletino needs Python 3.11 or newer as python3 (this is $(python3 --version 2>&1 || echo 'none'))" >&2; exit 1; }
+
+# On Linux, run the IDF container as this user, or everything it builds is root's; it
+# then needs a HOME it can write to. Docker Desktop on macOS maps ownership itself.
+DOCKER_USER=()
+if [ "$(uname -s)" = Linux ]; then DOCKER_USER=(-u "$(id -u):$(id -g)" -e HOME=/tmp); fi
+
 IDF_IMAGE=espressif/idf:v5.3.4
 VENV=.venv
 BUILD=build_docker
@@ -27,6 +36,11 @@ need_docker() {
 }
 
 ensure_venv() {
+    # a .venv made by an older Python is replaced: it would not have tomllib either
+    if [ -x "$VENV/bin/python" ] && ! "$VENV/bin/python" -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; then
+        say "replacing $VENV, which was made by an older Python"
+        rm -rf "$VENV"
+    fi
     if [ ! -x "$VENV/bin/python" ]; then
         say "creating $VENV (one time)"
         python3 -m venv "$VENV"
@@ -78,7 +92,7 @@ cmd_build() {
     python3 tools/configure.py
     say "building firmware"
     mkdir -p build
-    if ! docker run --rm -v "$PWD":/project -w /project "$IDF_IMAGE" \
+    if ! docker run --rm ${DOCKER_USER[@]+"${DOCKER_USER[@]}"} -v "$PWD":/project -w /project "$IDF_IMAGE" \
         idf.py -B "$BUILD" -DIDF_TARGET=esp32c6 build > build/launcher.log 2>&1; then
         grep -E 'error|Error' build/launcher.log | head -12
         warn "the launcher did not build - the full log is build/launcher.log"

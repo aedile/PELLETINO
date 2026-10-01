@@ -99,15 +99,13 @@ def resolve(cfg, picked='auto'):
         forced = g.get('enabled')
         if builtin:
             on, why = (forced is not False), 'built into the launcher'
-        elif forced is None:
-            on = has_payload and (picked is None or rom in picked)
         else:
-            on = bool(forced)
-        why = ('forced on' if forced is True else
-               'disabled in games.toml' if forced is False else
-               payload_desc if has_payload else ('no ROM' if not data_p else f'no {data_file}'))
-        if forced is None and has_payload and picked is not None and rom not in picked:
-            why = 'not picked (pelletino pick)'
+            on = (has_payload and (picked is None or rom in picked)) if forced is None else bool(forced)
+            why = ('forced on' if forced is True else
+                   'disabled in games.toml' if forced is False else
+                   payload_desc if has_payload else ('no ROM' if not data_p else f'no {data_file}'))
+            if forced is None and has_payload and picked is not None and rom not in picked:
+                why = 'not picked (pelletino pick)'
         if owner:
             why = f'shares {owner}' + ('' if has_payload else f' (no roms/{rom}.zip)')
             if forced is None and picked is not None and rom not in picked:
@@ -197,7 +195,7 @@ def main():
     b, rows, skipped = resolve(cfg)
     flash = b.get('flash_mb', 16) * 1024 * K
 
-    if not rows:
+    if not any(not r.get('builtin') for r in rows):      # Credits is always there; it is not a game
         die('nothing to build - put an approved ROM zip in roms/ (see games.toml)')
     nslots = sum(1 for r in rows if not r.get('owner') and not r.get('builtin'))
     if nslots > OTA_MAX:
@@ -231,9 +229,14 @@ def main():
         for r in skipped:
             print(f'    {r["title"]:<{w}}  {r["why"]}')
 
-    stray = sorted(f[:-4] for f in os.listdir(ROMS) if f.endswith('.zip')) if os.path.isdir(ROMS) else []
+    stray = sorted(f for f in os.listdir(ROMS) if f.lower().endswith('.zip')) if os.path.isdir(ROMS) else []
     known = {g['rom'] for g in cfg.get('game', [])}
-    extra = [s for s in stray if s not in known]
+    extra = [s for s in stray if s[:-4] not in known]
+    # the name has to be exactly MAME's, in lower case, .zip and all: that is what is opened
+    miscased = [s for s in extra if s.lower()[:-4] in known]
+    extra = [s[:-4] for s in extra if s not in miscased]
+    if miscased:
+        print(f'\n  not used - the name must be lower case: ' + ', '.join(f'{s} (rename to {s.lower()})' for s in miscased))
     if extra:
         print(f'\n  ignored, not on the approved list: {", ".join(extra)}')
 

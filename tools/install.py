@@ -76,7 +76,8 @@ def survey(cfg):
     """Group the approved games by the project that builds them."""
     roms_dir = os.path.join(ROOT, 'roms')
     os.makedirs(roms_dir, exist_ok=True)
-    present = {f[:-4] for f in os.listdir(roms_dir) if f.lower().endswith('.zip')}
+    # exactly MAME's name, in lower case, .zip and all - that is the file name that is opened
+    present = {f[:-4] for f in os.listdir(roms_dir) if f.endswith('.zip')}
     known = {g['rom']: g for g in cfg.get('game', [])}
     projects = {}                                        # project -> every rom it builds from
     for g in cfg.get('game', []):
@@ -120,12 +121,23 @@ def convert(project, roms, tmp, log):
             return f'roms/{rom}.zip was not accepted: {last_lines(log)}'
     return None
 
+def docker_user():
+    """On Linux, run the container as this user, or every file it writes is root's.
+    The image then needs a HOME it can write to (/tmp inside the container does), and
+    the compiler cache has to be a directory of this user's rather than a Docker volume,
+    which would be root's too. On macOS Docker Desktop maps ownership itself."""
+    if sys.platform.startswith('linux'):
+        cache = os.path.join(ROOT, 'build', 'ccache')
+        os.makedirs(cache, exist_ok=True)
+        return ['-u', f'{os.getuid()}:{os.getgid()}', '-e', 'HOME=/tmp', '-v', f'{cache}:/ccache']
+    return ['-v', 'pelletino_ccache:/ccache']
+
 def build(project, log):
     gdir = os.path.join(ROOT, 'games', project)
-    cmd = ['docker', 'run', '--rm', '-v', f'{gdir}:/project', '-w', '/project',
+    cmd = ['docker', 'run', '--rm'] + docker_user() + ['-v', f'{gdir}:/project', '-w', '/project',
            # one compiler cache for every game: they share most of ESP-IDF, so after the
            # first game the rest compile mostly from cache
-           '-e', 'IDF_CCACHE_ENABLE=1', '-e', 'CCACHE_DIR=/ccache', '-v', 'pelletino_ccache:/ccache',
+           '-e', 'IDF_CCACHE_ENABLE=1', '-e', 'CCACHE_DIR=/ccache',
            IDF_IMAGE, 'idf.py', '-B', 'build_docker', '-DIDF_TARGET=esp32c6', 'build']
     if run(cmd, log) != 0:
         return f'firmware did not build: {last_lines(log)}'
@@ -143,19 +155,24 @@ def main():
     if a.help: print(__doc__); return
 
     started = time.time()
-    preflight(not a.no_flash)
     cfg = C.load()
     present, known, projects = survey(cfg)
 
-    say('looking in roms/')
+    say('looking in roms/')                              # before Docker: no ROMs, nothing to build
     approved = sorted(r for r in present if r in known)
     strangers = sorted(r for r in present if r not in known)
+    miscased = sorted(f for f in os.listdir(os.path.join(ROOT, 'roms'))
+                      if f.lower().endswith('.zip') and not f.endswith('.zip') or
+                      (f.endswith('.zip') and f[:-4] not in known and f[:-4].lower() in known))
+    if miscased:
+        note(f'{Y}not used - the name must be lower case: ' + ', '.join(f'{f} (rename to {f.lower()})' for f in miscased) + X)
     if not approved:
         print(f'\n  There are no ROMs in roms/ that this project knows how to run.\n'
-              f'  Put zip files there using their MAME names - for example roms/galaga.zip -\n'
+              f'  Put zip files there using their MAME names, in lower case - for example roms/galaga.zip -\n'
               f'  and run this again. To see every name it accepts:  ./pelletino games\n')
         if strangers: print(f'  Found but not supported: {", ".join(strangers)}\n')
         sys.exit(1)
+    preflight(not a.no_flash)
     note(f'{len(approved)} game ROM{"s" if len(approved) != 1 else ""} found: ' + ', '.join(known[r].get('title', r) for r in approved))
     if strangers: note(f'{D}not supported, ignored: {", ".join(strangers)}{X}')
 
