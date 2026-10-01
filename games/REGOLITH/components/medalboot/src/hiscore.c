@@ -14,7 +14,10 @@
 #define SETTLED       10        /* looks it has to stay the same for: about five seconds */
 
 static const hiscore_t *g;
+#define TABLE_MAX 2048          /* the largest table any game keeps: Pole Position's whole 2 KB */
+
 static uint8_t *seen, *saved;   /* the table as last looked at, and as last written to flash */
+static uint8_t  now[TABLE_MAX]; /* and as it is this frame */
 static int      total;
 static enum { IDLE, WAITING, WATCHING } state;
 static int      frame, still, waited;
@@ -80,6 +83,7 @@ void hiscore_begin(const hiscore_t *game)
         if (g->ranges[r].len == 0) return;
         total += g->ranges[r].len;
     }
+    if (total > TABLE_MAX) { SAY("%s: a %d-byte table is more than the %d this keeps", g->rom, total, TABLE_MAX); return; }
     seen  = malloc((size_t)total);
     saved = malloc((size_t)total);
     if (!seen || !saved) { free(seen); free(saved); seen = saved = NULL; return; }
@@ -140,7 +144,6 @@ void hiscore_frame(void)
     if (++frame % CHECK_EVERY) return;
     if (g->whole) return;                       /* saved on the way out, and only then */
 
-    uint8_t now[total];
     copy_out(now);
     if (memcmp(now, seen, (size_t)total) != 0) {
         memcpy(seen, now, (size_t)total);       /* still moving */
