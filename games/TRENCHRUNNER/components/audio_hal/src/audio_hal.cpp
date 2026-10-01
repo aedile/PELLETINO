@@ -343,6 +343,9 @@ void audio_set_power_state(bool enabled)
             i2s_del_channel(i2s_tx_handle);
             i2s_tx_handle = nullptr;
         }
+        // and forget what was waiting to go into it: with the sound back on, the
+        // first thing heard should not be the tail of what was playing when it went off
+        pending_off = pending_len = 0;
         
         ESP_LOGI(TAG, "Audio + I2S disabled (silence detected)");
     }
