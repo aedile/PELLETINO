@@ -5484,7 +5484,7 @@ static void Z7C_0000_01ii()
 	CHECK_PRIVILEGED_INSTR();
 	GET_IMM2(OP0,NIB3);
 	uint16_t fcw = Z->fcw;
-	fcw |= ((~imm2) << 11) & 0x1800;
+	fcw |= ((unsigned)(~imm2) << 11) & 0x1800;
 	CHANGE_FCW(fcw);
 }
 

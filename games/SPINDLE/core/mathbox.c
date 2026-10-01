@@ -150,7 +150,7 @@ void mathbox_go(mathbox_t *mb, uint8_t opcode, uint8_t data)
         do {
             REGd = (int16_t)(REGd - REGc);
             msb = ((mb_q & 0x8000) != 0);
-            mb_q = (int16_t)(mb_q << 1);
+            mb_q = (int16_t)((uint16_t)mb_q << 1);
             if (REGd >= 0) mb_q++;
             else           REGd = (int16_t)(REGd + REGc);
             REGd = (int16_t)(REGd << 1);
