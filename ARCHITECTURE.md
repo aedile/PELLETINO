@@ -8,10 +8,11 @@ Hardware: Waveshare ESP32-C6-LCD-1.69 — 240×280 ST7789V2, 16 MB flash,
 
 ## Why chain-boot instead of one image
 
-Six game firmwares already exist as independent projects, and their `display.cpp`
-has diverged between them. Merging them into shared components would be a large
-refactor with real regression risk on games that currently work, to reclaim about
-3 MB of duplicated IDF runtime out of 16 MB that is otherwise unused.
+The games were written as independent firmwares, twenty-seven of them now, and
+each carries its own copy of the shared components. Merging them into one image
+would be a large refactor with real regression risk on games that work, to
+reclaim the duplicated IDF runtime out of flash that the chain-boot layout
+spends on it instead.
 
 Flash is the cheap resource here. Each game keeps its own repo and its own image.
 
@@ -39,9 +40,9 @@ someone. The selection lives in NVS and survives power cycles.
 | In a game, **hold the button 5 s** | forgets the selection, returns to the menu |
 | **Hold the button while powering on** | forgets the selection, shows the menu |
 
-Taps do nothing at all, so it cannot be started by a knock in a pocket. The
-menu fills a progress bar while the button is held — without it nobody knows how
-long "a few seconds" means.
+A tap turns the wheel and nothing more, so a knock in a pocket cannot start a
+game. The menu fills a progress bar while the button is held, and swells the
+logo under a rising tone, so that the hold can be felt as well as seen.
 
 The power-on escape is the one that always works, and it is worth knowing about
 before you need it.
@@ -87,7 +88,7 @@ a 6×6×5 colour cube, a few named colours, and 56 entries the wheel reloads wit
 the colours of whichever screenshot is behind it. It is converted to the panel's
 RGB565 twenty rows at a time on the way out, through a 10 KB strip, which is
 also where the scanlines are put in. With the wheel up and music playing there
-is 323 KB of heap free.
+is 320 KB of heap free.
 
 The artwork partition is memory-mapped and pictures are decoded a row at a time
 straight out of flash into the frame buffer. **Flash-mapped addresses cannot be

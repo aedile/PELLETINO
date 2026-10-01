@@ -2,6 +2,11 @@
 
 **An arcade in your pocket. Up to seventeen games at a time, picked from twenty-seven. Spin the wheel, hold the button on a game, and it boots straight into that game from then on. One $20 ESP32-C6 board, 16 MB of flash, no SD card, no PSRAM.**
 
+<p align="center">
+  <img src="games/GHOSTERAMA/photos/FIESTA_MEDAL_2026_ASSEMBLED.png" width="340" alt="PELLETINO assembled as a wearable medal, with Pac-Man on its screen">
+</p>
+<!-- TODO: a gameplay GIF of the wheel and a game, recorded on the device, goes here -->
+
 PELLETINO is the menu. Every game is a separate firmware image in its own flash
 slot and the launcher chain-boots it, so a game gets the whole chip to itself
 while it runs. The partition table, the artwork and the menu are all generated
@@ -449,7 +454,7 @@ The wheel shows a logo for each game and a screenshot behind it. **Both are
 copyrighted, so we ship neither and host neither.** You have two options:
 
 - **Fetch:** `./pelletino art` downloads them to your machine from
-  [Arcade Database](http://adb.arcadeitalia.net), a third-party archive that
+  [Arcade Database](https://adb.arcadeitalia.net), a third-party archive that
   files everything under the MAME name. `./install.sh` does this for you. See
   `tools/fetch_art.py` for the `PELLETINO_ART_BASE` override.
 - **Supply your own:** `art/logo/<rom>.png` (transparent background) and
@@ -521,7 +526,6 @@ and the menu, how memory is used, and why chain-booting beat one big image.
   off**, and has less to spare: 95% of full speed on average, with dips in busy
   scenes.
   [`games/WALKERRUN/README.md`](games/WALKERRUN/README.md) has the numbers.
-- **No hero video or photos yet** in this repository.
 
 ---
 
@@ -633,7 +637,7 @@ the decades of work the MAME team has put into documenting these machines.
 - [**Galagino**](https://github.com/harbaum/galagino) by Till Harbaum showed that
   arcade machines fit on an ESP32. The "you supply the ROMs" approach here
   follows his.
-- [**Arcade Database**](http://adb.arcadeitalia.net/) is where `./pelletino art`
+- [**Arcade Database**](https://adb.arcadeitalia.net/) is where `./pelletino art`
   downloads logos and screenshots from. They host them. This project does not.
 - The board is Waveshare's
   [ESP32-C6-LCD-1.69](https://www.waveshare.com/wiki/ESP32-C6-LCD-1.69).

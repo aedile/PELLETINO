@@ -2,10 +2,11 @@ PELLETINO is released under the Zero-Clause BSD license (0BSD): no attribution,
 no notice preservation, no conditions. It is meant to be free for everyone.
 
 That covers the code written for this project: the launcher (main/), the shared
-components (components/display, components/imu, components/mqart,
-components/medalboot, components/medal_input, components/audio_hal), the build
-and asset tools (tools/), the host harness (host/), and the packed artwork
-tooling (lcd/).
+components (components/audio_hal, components/chiptune, components/display,
+components/fest, components/imu, components/medalboot, components/mqart, and the
+copies of them and of medal_input that each game carries under games/*/components/),
+the build and asset tools (tools/), and the host harnesses (host/ and
+games/*/host/).
 
 It does NOT cover, and cannot relax the terms of, the third-party emulator cores
 and libraries that individual games are built from, nor the game ROMs and
