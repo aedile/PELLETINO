@@ -64,6 +64,7 @@ static int mv_to_percent(int mv)
 }
 
 static void sample(void);
+static unsigned readings;            /* how many times the ADC has been read */
 
 static adc_oneshot_unit_handle_t adc;
 static adc_cali_handle_t cali;
@@ -109,6 +110,7 @@ static void sample(void)
     if (!adc || adc_oneshot_read(adc, BAT_ADC_CH, &raw) != ESP_OK) return;
     if (!cali || adc_cali_raw_to_voltage(cali, raw, &mv) != ESP_OK) mv = raw * 3300 / 4095;
     last_mv = mv * DIVIDER;
+    readings++;
 
     pct = mv_to_percent(last_mv);
 }
@@ -132,10 +134,12 @@ void battery_tick(void)
 
     /* Say so before it runs out: once as it gets low, once more when there are
      * minutes left. Three readings in a row, because one can be a sag. */
-    static int warned, run, seen_mv;
+    static int warned, run;
+    static unsigned seen;
     int level = pct < 0 ? 0 : pct <= BATT_CRIT_PCT ? 2 : pct <= BATT_LOW_PCT ? 1 : 0;
-    if (last_mv != seen_mv) {
-        seen_mv = last_mv;
+    bool fresh = readings != seen;                      /* a new reading, not the same one again */
+    seen = readings;
+    if (fresh) {
         run = level ? run + 1 : 0;
         if (pct > BATT_LOW_PCT + 5) warned = 0;         /* it has been charged since */
     }
@@ -147,7 +151,9 @@ void battery_tick(void)
     }
 
     /* A big SPI push or a loud passage sags the rail for a few milliseconds. Only
-     * a run of low readings, seconds apart, means the pack is actually flat. */
+     * a run of low readings, seconds apart, means the pack is actually flat - so
+     * strikes are counted per reading, not per call, which is every frame. */
+    if (!fresh) return;
     if (last_mv && last_mv < CUTOFF_MV) {
         if (++strikes >= CUTOFF_STRIKES) {
             ESP_LOGW(TAG, "%d mV: cutting power to protect the cell", last_mv);
