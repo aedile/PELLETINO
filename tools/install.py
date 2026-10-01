@@ -140,7 +140,11 @@ def build(project, log):
            '-e', 'IDF_CCACHE_ENABLE=1', '-e', 'CCACHE_DIR=/ccache',
            IDF_IMAGE, 'idf.py', '-B', 'build_docker', '-DIDF_TARGET=esp32c6', 'build']
     if run(cmd, log) != 0:
-        return f'firmware did not build: {last_lines(log)}'
+        why = last_lines(log)
+        # A build directory left by a failed configure remembers the failure (a missing
+        # file, say) even once it is fixed. Start the next attempt clean.
+        shutil.rmtree(os.path.join(gdir, 'build_docker'), ignore_errors=True)
+        return f'firmware did not build: {why}'
     return None
 
 # ---------------------------------------------------------------- the whole thing
