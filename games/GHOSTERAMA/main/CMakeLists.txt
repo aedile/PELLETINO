@@ -1,7 +1,13 @@
+# The FIESTA intro video player only builds when its data has been generated (movie/,
+# step 2.5 of the README); the header it needs is JPEG frames as C and is not committed.
+set(FIESTA_VIDEO "")
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/../movie/fiesta_data.h")
+    set(FIESTA_VIDEO "src/fiesta_video.c")
+endif()
+
 idf_component_register(
-    SRCS 
+    SRCS ${FIESTA_VIDEO}
         "src/main.cpp"
-        "src/fiesta_video.c"
         "src/game_state.c"
     INCLUDE_DIRS 
         "include"

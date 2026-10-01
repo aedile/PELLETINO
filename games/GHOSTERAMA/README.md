@@ -395,6 +395,9 @@ cd movie
 ```
 
 This generates `fiesta_data.h` with the compressed MJPEG video data.
+The player (`main/src/fiesta_video.c`) is only compiled when that header exists,
+and only plays when `PLAY_FIESTA_VIDEO` is 1 in `main/src/main.cpp`; a fresh
+clone builds without either.
 
 #### Step 3: Configure ESP-IDF
 
