@@ -72,7 +72,7 @@ involved, but that is where it came from.
 - [The wheel](#the-wheel)
 - [Music](#music)
 - [Credits, on the device](#credits-on-the-device)
-- [Street Fighter II, two ways](#street-fighter-ii-two-ways)
+- [Street Fighter II](#street-fighter-ii)
 - [Artwork](#artwork)
 - [Two games, one slot](#two-games-one-slot)
 - [How a build is laid out](#how-a-build-is-laid-out)
@@ -335,7 +335,7 @@ What tilt and BOOT do in each game:
 | Star Wars | `starwars` | flight yoke: twist yaws, tip pitches | fire (also starts, in free play) |
 | Empire Strikes Back | `esb` | flight yoke: twist yaws, tip pitches | fire (also starts, in free play) |
 | Pole Position | `polepos` | steer like a wheel | shift gear (the throttle is automatic) |
-| Street Fighter II | `sf2` | nothing: it shows its attract mode ([see below](#street-fighter-ii-two-ways)) | jab punch (nothing, if you built the video) |
+| Street Fighter II | `sf2` | nothing: it runs its attract mode ([see below](#street-fighter-ii)) | jab punch |
 
 Pole Position starts on a coin (free play) and holds the accelerator down for
 you, so the whole game is the wheel plus a tap to shift gear.
@@ -434,15 +434,27 @@ The music is credited there too. Put the composer of whatever you supplied in
 
 ---
 
-## Street Fighter II, two ways
+## Street Fighter II
 
-Street Fighter II is on the wheel as a showpiece: it runs its attract mode and
-nobody plays it, since a six-button fight is not something a tilt sensor and two
-buttons can do. It comes two ways, and a build holds one of them, because each
-needs a data partition and a build has room for one.
+Street Fighter II ships emulated (`games/SHORYUKEN`): the real `sf2` ROM on a
+CPS-1 emulator, a 68000, a Z80, a YM2151 and an MSM6295, with its sound. It is
+on the wheel as a showpiece. It runs its attract mode, the top button inserts a
+coin and the middle button is a jab punch, but a six-button fight is not
+something a tilt sensor and two buttons can do.
 
-**As a video** (`games/HADOUKEN`, switched off as shipped). A looping clip of
-the attract mode in a 5.5 MB data partition, decoded on the board.
+- `./install.sh` makes `games/SHORYUKEN/roms.bin` from your `sf2.zip` and
+  builds it. There is nothing else to do.
+- It holds real time with the sound off, and 99% of it with the sound at
+  11 kHz, which is how it ships. It was built as a bench for what a CPS-1
+  costs on this chip, and [its README](games/SHORYUKEN/README.md) has every
+  measurement.
+- The ROM lives in a 7.6 MB data partition, so a build with it has room for
+  about 13 games.
+
+**There is also a video version** (`games/HADOUKEN`), which came first and is
+switched off. It plays a looping clip of the attract mode from a 5.5 MB data
+partition, which leaves room for more games. A build holds one or the other,
+because each needs the data partition and a build has one.
 
 - Encode and pack a clip with `games/HADOUKEN/tools/pack_media.py`. It
   letterboxes to the portrait panel and writes `media.bin`. See that script for
@@ -451,17 +463,6 @@ the attract mode in a 5.5 MB data partition, decoded on the board.
 - To have the video in a build, put the clip at `games/HADOUKEN/media.bin`,
   delete HADOUKEN's `enabled = false` line in `games.toml` and give SHORYUKEN
   one.
-
-**Emulated** (`games/SHORYUKEN`, the default). The real `sf2` ROM
-on a CPS-1 emulator: a 68000, a Z80, a YM2151 and an MSM6295, in a 7.6 MB data
-partition. It holds real time with the sound off, and 99% of it with the sound
-at 11 kHz; the top button inserts a coin and the middle button is a punch. It
-was built as a bench for what a CPS-1 costs on this chip, and
-[its README](games/SHORYUKEN/README.md) has every measurement. `./install.sh`
-makes `games/SHORYUKEN/roms.bin` from your `sf2.zip`. Its partition is 2 MB
-bigger than the video's, so a build with it has room for about 13 games; the
-shipped `games.toml` has it on and the video off, and either can be swapped
-for the other there.
 
 Any game can carry a data partition this way (`data_kb` and `data_file` in
 `games.toml`). Only one game per build may, and it is labelled `media`, which
