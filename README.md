@@ -23,7 +23,7 @@ makefile.
 
 | | |
 |---|---|
-| Games | **27** in `games.toml`, **16** flash slots per build |
+| Games | **27** in `games.toml`; **16** flash slots a build, which is 17 games, because Pac-Man and Ms. Pac-Man share one image and one slot |
 | Launcher firmware | 324 KB in a 512 KB slot |
 | Artwork | 477 KB for 17 games (three logos and a screenshot each), in its own partition |
 | Free heap in the menu with music playing | 320 KB of 512 KB |
@@ -72,7 +72,7 @@ involved, but that is where it came from.
 - [The wheel](#the-wheel)
 - [Music](#music)
 - [Credits, on the device](#credits-on-the-device)
-- [Adding a video "game"](#adding-a-video-game)
+- [Street Fighter II, two ways](#street-fighter-ii-two-ways)
 - [Artwork](#artwork)
 - [Two games, one slot](#two-games-one-slot)
 - [How a build is laid out](#how-a-build-is-laid-out)
@@ -271,7 +271,7 @@ initials included, and put back the next time the game starts.
 - **In the menu:** a game with a saved score alternates its footer between the
   maker and `HI` with the best score.
 - **Which games:** every game that keeps a high score. Lunar Lander does not
-  keep one, and Street Fighter II is a video.
+  keep one, and Street Fighter II only shows its attract mode.
 
 Where each game keeps its scores comes from MAME's `hiscore.dat`, which lists
 the addresses for thousands of games. Games whose cabinets kept scores on a
@@ -332,7 +332,7 @@ What tilt and BOOT do in each game:
 | Star Wars | `starwars` | flight yoke: twist yaws, tip pitches | fire (also starts, in free play) |
 | Empire Strikes Back | `esb` | flight yoke: twist yaws, tip pitches | fire (also starts, in free play) |
 | Pole Position | `polepos` | steer like a wheel | shift gear (the throttle is automatic) |
-| Street Fighter II | `sf2` | nothing (it is a video, see below) | nothing |
+| Street Fighter II | `sf2` | nothing: it shows its attract mode, as a video or emulated (see below) | nothing, or jab punch when emulated |
 
 Pole Position starts on a coin (free play) and holds the accelerator down for
 you, so the whole game is the wheel plus a tap to shift gear.
@@ -431,20 +431,37 @@ The music is credited there too. Put the composer of whatever you supplied in
 
 ---
 
-## Adding a video "game"
+## Street Fighter II, two ways
 
-A game slot can hold a looping video clip instead of an emulator. Street Fighter
-II ships as its attract-mode reel. The clip lives in its own data partition.
+Street Fighter II is on the wheel as a showpiece: it runs its attract mode and
+nobody plays it, since a six-button fight is not something a tilt sensor and two
+buttons can do. It comes two ways, and a build holds one of them, because each
+needs a data partition and a build has room for one.
+
+**As a video** (`games/HADOUKEN`, the default). A looping clip of the attract
+mode in a 5.5 MB data partition, decoded on the board.
 
 - Encode and pack a clip with `games/HADOUKEN/tools/pack_media.py`. It
   letterboxes to the portrait panel and writes `media.bin`. See that script for
   the size limit and encoding settings; a longer clip needs a bigger `data_kb`
   in `games.toml`.
-- The video slot is switched on by `games/HADOUKEN/media.bin` existing, the same
+- The video is switched on by `games/HADOUKEN/media.bin` existing, the same
   way a ROM zip switches on an emulated game.
 
-Only one game per build may carry a data partition (it is labelled `media`, which
-is the label the player looks for).
+**Emulated** (`games/SHORYUKEN`, switched off as shipped). The real `sf2` ROM
+on a CPS-1 emulator: a 68000, a Z80, a YM2151 and an MSM6295, in a 7.6 MB data
+partition. It holds real time with the sound off, and 99% of it with the sound
+at 11 kHz; the top button inserts a coin and the middle button is a punch. It
+was built as a bench for what a CPS-1 costs on this chip, and
+[its README](games/SHORYUKEN/README.md) has every measurement. To build a
+medal with it: in `games.toml`, give HADOUKEN `enabled = false` and SHORYUKEN
+`enabled = true`, make `games/SHORYUKEN/roms.bin` from your `sf2.zip` with its
+`tools/convert_roms.py`, and build. Its partition is 2 MB bigger than the
+video's, so that build has room for two or three fewer games.
+
+Any game can carry a data partition this way (`data_kb` and `data_file` in
+`games.toml`). Only one game per build may, and it is labelled `media`, which
+is the label the game looks for.
 
 ---
 
@@ -486,7 +503,7 @@ nvs / otadata / phy_init         housekeeping
 launcher            0x20000      the PELLETINO menu (factory app)
 mqart                            the wheel's artwork (lcd/marquees.bin)
 ota_0..ota_N                     one app slot per game, labelled with its ROM
-media               (optional)   a video clip's data partition
+media               (optional)   a data partition: the video clip, or Street Fighter II's ROM
 ```
 
 `tools/configure.py` generates `partitions.csv` and `build/manifest.json` from
@@ -508,7 +525,7 @@ and the menu, how memory is used, and why chain-booting beat one big image.
   limit on games per build, not flash size, and it is why `pelletino pick`
   exists. Two games that share hardware can share one image and one slot.
 - **Arkanoid and Rally-X are switched off in `games.toml` as shipped**, to make
-  room for the full Street Fighter II clip. Delete that line to bring one
+  room for Street Fighter II's data partition. Delete that line to bring one
   back, and leave something else out.
 - **The battery percentage is an estimate.** It comes from a standard 3.7 V
   LiPo discharge curve (the table at the top of `main/battery.c`), read while
@@ -616,6 +633,8 @@ project is not affiliated with or endorsed by any of them.
 | [Z80 emulator](https://fms.komkon.org/EMUL8/) | Marat Fayzullin | the CPU in most of the games | free for non-commercial use |
 | [vecx](https://github.com/jhawthorn/vecx) MC6809 | Valavan Manohararajah | Star Wars, Empire Strikes Back, Joust, Gyruss | GPL-3.0 |
 | [chips](https://github.com/floooh/chips) 6502 | Andre Weissflog | Centipede | zlib |
+| [Musashi](https://github.com/kstenerud/Musashi) 68000 | Karl Stenerud | Street Fighter II, emulated | MIT |
+| [ymfm](https://github.com/aaronsgiles/ymfm) | Aaron Giles | the YM2151's tables, in Street Fighter II's own sound core | BSD-3-Clause |
 | [MAME](https://www.mamedev.org/) ([source](https://github.com/mamedev/mame)) | Nicola Salmoria, Aaron Giles and every contributor since | the reference for how each machine behaves: memory maps, interrupt timing, palettes, sound levels | BSD-3-Clause |
 
 The cores under `games/*/core/` were written for this project using MAME's
@@ -628,7 +647,7 @@ the decades of work the MAME team has put into documenting these machines.
 | What | Who | Used for | License |
 |---|---|---|---|
 | [TinyMidiLoader](https://github.com/schellingb/TinySoundFont) | Bernhard Schelling | reading MIDI files | zlib |
-| Helix MP3 decoder ([a widely used mirror](https://github.com/ultraembedded/libhelix-mp3)) | RealNetworks | the sound on the Street Fighter II video | RPSL |
+| Helix MP3 decoder ([a widely used mirror](https://github.com/ultraembedded/libhelix-mp3)) | RealNetworks | the sound on the Street Fighter II video (not the emulated one) | RPSL |
 | [font8x8](https://github.com/dhepper/font8x8) | Daniel Hepper | all the text on the screen | public domain |
 | [ESP-IDF](https://github.com/espressif/esp-idf) | Espressif Systems | the framework all of it runs on | Apache-2.0 |
 

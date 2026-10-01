@@ -119,13 +119,24 @@ around it.
 > Star Wars (TRENCHRUNNER), Gyruss (TOCCATA — also non-commercial, above),
 > Joust (OSTRICH), Empire Strikes Back (WALKERRUN).
 
-## RealNetworks RPSL (the Street Fighter II video and the easter-egg clips)
+## RealNetworks RPSL (the Street Fighter II video)
 
-The MP3 side of the Street Fighter II video "game" (HADOUKEN), and the old
-easter-egg clips in the Star Wars / Empire projects, use RealNetworks' Helix
+The MP3 side of the Street Fighter II video (HADOUKEN) uses RealNetworks' Helix
 fixed-point MP3 decoder under the RealNetworks Public Source License. That
-component keeps its own notice and source-availability terms; see the component
-directory and each game's `THIRD_PARTY_NOTICES.md`.
+component keeps its own notice and source-availability terms; see
+`games/HADOUKEN/components/helix_mp3/` and the game's `THIRD_PARTY_NOTICES.md`.
+It is the only game that uses it: the Star Wars and Empire projects, which once
+played clips too, no longer carry it.
+
+## Street Fighter II, emulated (SHORYUKEN)
+
+The emulated Street Fighter II is three cores and a reference: Musashi (the
+68000, by Karl Stenerud, MIT, modified as `core/m68k/CHANGES.md` records),
+Marat Fayzullin's Z80 (non-commercial, unmodified), tables from ymfm (Aaron
+Giles, BSD-3-Clause) inside a YM2151 written for this project, and MAME's
+CPS-1 driver as the description of the hardware (BSD-3-Clause, nothing ported).
+The Z80 puts it in the non-commercial bucket above, and nothing in it is GPL.
+`games/SHORYUKEN/THIRD_PARTY_NOTICES.md` has the full notices.
 
 ## Fully permissive games (BSD-3-Clause / MIT — these could even be sold)
 

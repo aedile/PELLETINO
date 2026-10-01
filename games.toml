@@ -65,7 +65,7 @@ title = "Arkanoid"
 by = "Taito 1986"
 project = "VAUS"
 slot_kb = 768
-enabled = false      # cut for the full Street Fighter clip
+enabled = false      # cut to make room for Street Fighter II's data partition
 
 [[game]]
 rom = "gyruss"
@@ -115,7 +115,7 @@ title = "Rally-X"
 by = "Namco 1980"
 project = "SMOKESCREEN"
 slot_kb = 512
-enabled = false      # cut for the full Street Fighter clip
+enabled = false      # cut to make room for Street Fighter II's data partition
 
 [[game]]
 rom = "tempest"
