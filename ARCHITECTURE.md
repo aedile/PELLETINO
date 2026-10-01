@@ -120,21 +120,23 @@ artwork flash separately, so changing the art needs no rebuild.
 ## Flash budget (16 MB)
 
 The numbers below are for a lineup with the emulated Street Fighter II: 13
-game slots plus its 7.6 MB data partition. `./pelletino` prices any other pick
-live, and `./pelletino pick` chooses one that fits.
+games in 12 slots, plus its data partition. `./pelletino` prices any other
+pick live, and `./pelletino pick` chooses one that fits.
 
 | Region | Size | Notes |
 |---|---|---|
+| housekeeping | 128 KB | bootloader, partition table, `nvs`, `otadata`, `phy_init` |
 | `launcher` | 512 KB | built: 324 KB |
-| `mqart` | 640 KB | about 30 KB a game |
-| 13 game slots | ~7.0 MB | right-sized per game, not uniform |
-| `media` (SF2 ROM) | 7.6 MB | the one data partition; what makes flash the binding limit |
-| free | 0.1 MB | not enough for even the smallest game (384 KB) |
+| `mqart` | 512 KB | about 30 KB a game, plus a quarter spare |
+| 12 game slots | 7,360 KB | right-sized per game, not uniform |
+| `media` (SF2 ROM) | 7,616 KB | the one data partition; what makes flash the binding limit |
+| free | 256 KB | not enough for even the smallest game (384 KB) |
 
-With the video in place of the emulator (5.5 MB), 16 slots fit.
+With the video in place of the emulator (5,504 KB) there is room for more games
+than there are slots, and the limit becomes the slots: **`ota_0` through
+`ota_15` is ESP-IDF's hard cap.**
 
-**All 16 OTA slots are used — `ota_0` through `ota_15` is ESP-IDF's hard cap.**
-That is why 16 slots hold 17 games: GHOSTERAMA carries both Pac-Man and
+Sixteen slots can hold 17 games: GHOSTERAMA carries both Pac-Man and
 Ms. Pac-Man in one image and picks between them at boot. WALKERRUN's firmware
 can carry Star Wars or Empire Strikes Back, but one at a time, from the ROM
 header it is built with, so those two still take a slot each. Any other pair

@@ -128,9 +128,10 @@ ROM for are left out: no slot, no menu entry, no wasted flash.
 ### 1. Prerequisites
 
 - **Docker**, running. The toolchain lives in `espressif/idf:v5.3.4`; nothing
-  else is installed on your machine.
+  else is installed on your machine. macOS and Linux both work.
 - **`esptool.py`** on the host (`brew install esptool`, or `pip install esptool`).
-  Flashing cannot run inside Docker, because Docker Desktop on macOS can't reach USB.
+  Flashing runs on the host rather than in Docker, because Docker Desktop on
+  macOS can't reach USB.
 - **Python 3.11+** for the build tooling. It creates its own `.venv` on first
   build; you don't need to prepare anything.
 
@@ -198,6 +199,8 @@ button for five seconds in the game, or hold it while powering on.
 | Menu says `NO ARTWORK` | The `mqart` partition was never written. Re-run `./pelletino flash`. |
 | Every game says `NOT INSTALLED` | Expected before any game firmware is built. The launcher works; the slots are empty. |
 | The launcher is silent | No music supplied, or the sound is off (`MUTED` in the header). See [Music](#music) and [Sound](#sound). |
+| `esptool` says `No serial data received`, or the board prints `waiting for download` | Its USB port has stopped answering. Unplug it and plug it back in. If that does not do it, hold the middle button while plugging in. |
+| A game says `NOT INSTALLED` after `./pelletino build` | `build` only builds the launcher. Run `./install.sh`. |
 
 ---
 
@@ -275,8 +278,8 @@ initials included, and put back the next time the game starts.
 
 Where each game keeps its scores comes from MAME's `hiscore.dat`, which lists
 the addresses for thousands of games. Games whose cabinets kept scores on a
-battery-backed chip (Joust, Pole Position, Star Wars) have that chip's contents
-saved instead. The shared code is `hiscore.c` in the `medalboot` component, and
+battery-backed chip (Joust, Pole Position, Star Wars, Empire Strikes Back) have
+that chip's contents saved instead. The shared code is `hiscore.c` in the `medalboot` component, and
 each game's table is in its `main/scores.h`.
 
 ### Backlight
@@ -332,7 +335,7 @@ What tilt and BOOT do in each game:
 | Star Wars | `starwars` | flight yoke: twist yaws, tip pitches | fire (also starts, in free play) |
 | Empire Strikes Back | `esb` | flight yoke: twist yaws, tip pitches | fire (also starts, in free play) |
 | Pole Position | `polepos` | steer like a wheel | shift gear (the throttle is automatic) |
-| Street Fighter II | `sf2` | nothing: it shows its attract mode, as a video or emulated (see below) | nothing, or jab punch when emulated |
+| Street Fighter II | `sf2` | nothing: it shows its attract mode ([see below](#street-fighter-ii-two-ways)) | jab punch (nothing, if you built the video) |
 
 Pole Position starts on a coin (free play) and holds the accelerator down for
 you, so the whole game is the wheel plus a tap to shift gear.
@@ -445,8 +448,9 @@ the attract mode in a 5.5 MB data partition, decoded on the board.
   letterboxes to the portrait panel and writes `media.bin`. See that script for
   the size limit and encoding settings; a longer clip needs a bigger `data_kb`
   in `games.toml`.
-- The video is switched on by `games/HADOUKEN/media.bin` existing, the same
-  way a ROM zip switches on an emulated game.
+- To have the video in a build, put the clip at `games/HADOUKEN/media.bin`,
+  delete HADOUKEN's `enabled = false` line in `games.toml` and give SHORYUKEN
+  one.
 
 **Emulated** (`games/SHORYUKEN`, the default). The real `sf2` ROM
 on a CPS-1 emulator: a 68000, a Z80, a YM2151 and an MSM6295, in a 7.6 MB data
@@ -537,7 +541,12 @@ and the menu, how memory is used, and why chain-booting beat one big image.
   boot partition back at the launcher) can boot-loop, because control never
   reaches the menu. `ARCHITECTURE.md` covers the handshake.
 - **Three games save their scores but show no number in the menu:** Moon
-  Patrol, Rally-X and Star Wars. Their score formats have not been decoded yet.
+  Patrol, Rally-X and Empire Strikes Back. Their score formats have not been
+  decoded yet.
+- **Street Fighter II is a showpiece.** It runs its attract mode; there is no
+  way to play a six-button fight with a tilt sensor and two buttons.
+- **The board's USB port can stop answering after many resets in a row.** It
+  only happens while flashing or logging repeatedly, and unplugging it clears it.
 - **Dig Dug shows 10000 at the top of the screen after a restore** until a game
   has been played. The table itself is restored.
 - **Empire Strikes Back (`esb`) runs about as fast as Star Wars with the sound

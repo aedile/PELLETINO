@@ -331,18 +331,20 @@ The accelerometer is not read. It cost 84 ms of every second.
 
 ## Under PELLETINO
 
-`games.toml` has SHORYUKEN as a `[[game]]` with `enabled = false`, because only
-one game in a build may have a data partition and HADOUKEN's video has it. To
-build a medal with this instead:
+`games.toml` has SHORYUKEN as the Street Fighter II that ships, and HADOUKEN's
+video switched off (`enabled = false`), because only one game in a build may
+have a data partition. With `sf2.zip` in `roms/`, `./install.sh` does all of it:
+it makes `roms.bin` with `tools/convert_roms.py`, builds this project and
+flashes both.
 
-1. In `games.toml`, give HADOUKEN `enabled = false` and SHORYUKEN
-   `enabled = true`.
-2. Put `roms.bin` in `games/SHORYUKEN` (`tools/convert_roms.py`) and build
-   `games/SHORYUKEN` with the knobs you want.
-3. `./pelletino build && ./pelletino flash`.
+A firmware built that way, with no knobs given, has the sound on:
+`SOUND=FM_ADPCM` at `SOUND_RATE=11025`. `knobs.cmake` sets that; the defaults in
+`knobs.h`, which the host harness and the bench use, still have the sound off.
+To put other knobs on a medal, build `games/SHORYUKEN` yourself with them before
+`./pelletino build && ./pelletino flash`.
 
 The data partition is 7616 KB, 2 MB more than the video's, so a build with it
-has room for fewer games. `./pelletino` says how many.
+has room for fewer games: about thirteen. `./pelletino` says how many.
 
 Tested on the board with a launcher built that way: the launcher boots into
 SHORYUKEN when it is the selection, a bench returns to the menu when it ends

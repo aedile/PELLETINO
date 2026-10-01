@@ -1,10 +1,15 @@
 # HADOUKEN
 
-**A video clip on an ESP32-C6 Fiesta medal.** Not an emulator: Street Fighter
-II is a 10 MHz 68000 driving five megabytes of graphics through hardware this
-board cannot approach. So this plays its attract mode instead — an MJPEG + MP3
-clip, letterboxed 4:3 on the portrait panel, on a loop — because some attract
-modes are more attractive than others, and this one looks good on a lapel.
+**A video clip on an ESP32-C6 Fiesta medal.** Not an emulator: this plays
+Street Fighter II's attract mode as an MJPEG + MP3 clip, letterboxed 4:3 on the
+portrait panel, on a loop, because some attract modes are more attractive than
+others, and this one looks good on a lapel.
+
+It was written when emulating a 10 MHz 68000 and five megabytes of graphics on
+this board looked out of reach. It turned out not to be: `games/SHORYUKEN` runs
+the real ROM, and that is the Street Fighter II PELLETINO ships with. This one
+is switched off in `games.toml` and is still there for anyone who would rather
+have the video, or a video of anything else.
 
 Anyone building their own medal can put whatever clip they like here.
 
@@ -45,8 +50,9 @@ settings frames are around 6–8 KB. Roughly: **12 fps at 240×180 costs about
 
 Under PELLETINO, drop the file at `games/HADOUKEN/media.bin` and set `data_kb`
 in `games.toml` to its size rounded up — the launcher lays out a `media`
-partition next to the game's slot and flashes the file into it. The file being
-there is what puts the game in the build, the way a ROM zip does for the others.
+partition next to the game's slot and flashes the file into it. Only one game in
+a build may have a data partition, so in `games.toml` also delete HADOUKEN's
+`enabled = false` line and give SHORYUKEN one.
 
 ---
 
