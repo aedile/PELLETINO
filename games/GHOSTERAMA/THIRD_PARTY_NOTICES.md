@@ -1,21 +1,17 @@
 # Third-party code
 
-## Marat Fayzullin's Z80 emulator (non-commercial) — not distributed here
+## Marat Fayzullin's Z80 emulator (non-commercial)
 
-GHOSTERAMA builds against the portable Z80 emulator by Marat Fayzullin,
-copyright (C) Marat Fayzullin 1994-2007, from http://fms.komkon.org/EMUL8/.
-Its terms, from the source headers: "You are not allowed to distribute this
-software commercially. Please, notify me, if you make any changes to this
-file."
+`components/z80_cpu/src/Z80.c`, `Z80.h`, `Codes.h`, `CodesCB.h`, `CodesED.h`,
+`CodesXCB.h`, `CodesXX.h` and `Tables.h` are the portable Z80 emulator by Marat
+Fayzullin, copyright (C) Marat Fayzullin 1994-2007, from
+http://fms.komkon.org/EMUL8/. Its terms, from the source headers: "You are not
+allowed to distribute this software commercially. Please, notify me, if you make
+any changes to this file." The files are unmodified, and the same copy as the
+other Z80 games here carry in `core/z80/`; the project builds them with
+`LSB_FIRST` defined. Our own wrapper is `components/z80_cpu/src/z80_cpu.c`.
 
-**This repository does not ship those files.**
-`components/z80_cpu/src/.gitignore` excludes them; only our own wrapper,
-`components/z80_cpu/src/z80_cpu.c`, is committed. Drop `Z80.c`, `Z80.h`,
-`Codes.h`, `CodesCB.h`, `CodesED.h`, `CodesXCB.h`, `CodesXX.h` and `Tables.h`
-into that directory yourself and build with `LSB_FIRST` defined.
-
-A GHOSTERAMA image built that way still embeds the emulator, so the resulting
-binary may be shared but not sold.
+A GHOSTERAMA image embeds the emulator, so it may be shared but not sold.
 
 ## Everything else
 

@@ -1,6 +1,3 @@
-# Z80 emulator source files (Marat Fayzullin)
-# These should not be checked into the repository
-*.c
-*.h
-# Except our wrapper
-!z80_cpu.c
+# Marat Fayzullin's debugger, which this build does not use
+Debug.c
+ConDebug.c

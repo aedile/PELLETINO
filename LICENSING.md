@@ -34,10 +34,9 @@ Games that embed the Fayzullin Z80 (non-commercial):
 > Invaders (PHALANX), Galaxian (ARMADA), Gyruss (TOCCATA), and the emulated
 > Street Fighter II (SHORYUKEN, whose other cores are MIT and BSD-3-Clause).
 
-Pac-Man / Ms. Pac-Man (GHOSTERAMA) also **builds against** the Fayzullin Z80, so
-a flashed GHOSTERAMA image is non-commercial too — but this repository does not
-ship that code for it. `games/GHOSTERAMA/components/z80_cpu/src/` is gitignored
-except for our own wrapper, and you supply the emulator yourself.
+Pac-Man / Ms. Pac-Man (GHOSTERAMA) embeds the same Fayzullin Z80, in
+`games/GHOSTERAMA/components/z80_cpu/src/`, so a flashed GHOSTERAMA image is
+non-commercial too.
 
 ## Emulator cores and MAME
 

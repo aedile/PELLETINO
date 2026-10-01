@@ -57,14 +57,6 @@ main/roms/*.bin
 *_logo.h
 tileaddr.h
 
-# Z80 emulator source (must be downloaded separately)
-# Download from: http://fms.komkon.org/EMUL8/
-components/z80_cpu/Z80.c
-components/z80_cpu/Z80.h
-components/z80_cpu/Z80-*.zip
-Z80.c
-Z80.h
-
 # Build logs
 *.log
 build_log.txt
