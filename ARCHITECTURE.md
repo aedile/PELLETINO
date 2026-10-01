@@ -119,23 +119,24 @@ artwork flash separately, so changing the art needs no rebuild.
 
 ## Flash budget (16 MB)
 
-The numbers below are for the shipped lineup (9 September 2026): 16 game slots
-plus the Street Fighter II video's 5.5 MB data partition. `./pelletino` prices
-any other pick live, and `./pelletino pick` chooses one that fits.
+The numbers below are for the shipped lineup: 16 game slots plus the Street
+Fighter II video's 5.5 MB data partition. `./pelletino` prices any other pick
+live, and `./pelletino pick` chooses one that fits.
 
 | Region | Size | Notes |
 |---|---|---|
-| `launcher` | 512 KB | built: 245 KB |
+| `launcher` | 512 KB | built: 324 KB |
 | `mqart` | 640 KB | blob: 477 KB, 17 games |
 | 16 game slots | ~9.1 MB | right-sized per game, not uniform |
 | `media` (SF2 video) | 5.5 MB | the one data partition; what makes flash the binding limit |
 | free | 0.31 MB | not enough for even the smallest game (384 KB) |
 
 **All 16 OTA slots are used — `ota_0` through `ota_15` is ESP-IDF's hard cap.**
-If a seventeenth game is ever wanted, collapse a pair that shares hardware onto
-one image and select the ROM at boot: GHOSTERAMA already carries Pac-Man and
-Ms. Pac-Man, and WALKERRUN carries Star Wars and Empire Strikes Back. Each merge
-frees a slot and deletes a duplicated codebase.
+That is why 16 slots hold 17 games: GHOSTERAMA carries both Pac-Man and
+Ms. Pac-Man in one image and picks between them at boot. WALKERRUN's firmware
+can carry Star Wars or Empire Strikes Back, but one at a time, from the ROM
+header it is built with, so those two still take a slot each. Any other pair
+that shares hardware could be merged the same way; each merge frees a slot.
 
 ## Things not to do
 
