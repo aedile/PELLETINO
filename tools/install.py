@@ -81,9 +81,16 @@ def survey(cfg):
     known = {g['rom']: g for g in cfg.get('game', [])}
     projects = {}                                        # project -> every rom it builds from
     for g in cfg.get('game', []):
-        if g.get('builtin') or g.get('data_file') or not g.get('project'): continue
+        if g.get('builtin') or not g.get('project'): continue
         if g.get('enabled') is False: continue
+        # A game whose payload is a data file is built here only if that file is made from
+        # a ROM zip (Street Fighter II's roms.bin is); a video clip is the user's to supply.
+        if g.get('data_file') and not os.path.exists(os.path.join(ROOT, 'games', g['project'], 'tools', 'convert_roms.py')):
+            continue
         projects.setdefault(g['project'], []).append(g['rom'])
+    # the entry that is switched on wins where two share a ROM name (Street Fighter II, two ways)
+    for g in cfg.get('game', []):
+        if g.get('enabled') is not False: known[g['rom']] = g
     return present, known, projects
 
 # ---------------------------------------------------------------- 3. convert and build
@@ -204,6 +211,17 @@ def main():
     built, failed, tried = set(), set(), set()
     first_pass = True
     with tempfile.TemporaryDirectory() as tmp:
+        # A data file made from a ROM zip has to exist before the choosing, which only
+        # counts a game whose payload is there. Making it is a repack, not a build.
+        for project, roms in todo:
+            g = known[roms[0]]
+            if g.get('data_file') and not os.path.exists(os.path.join(ROOT, 'games', project, g['data_file'])):
+                log = os.path.join(LOGS, project + '.log')
+                open(log, 'w').close()
+                why = convert(project, roms, os.path.join(tmp, project + '-data'), log)
+                if why:
+                    failed.update(roms)
+                    for r in roms: skipped[r] = why + f'   (log: build/install-logs/{project}.log)'
         while True:
             cand = [r for r in P.candidates(cfg)
                     if (r['rom'] in buildable and r['rom'] not in failed) or r.get('builtin') or r.get('data_file')]

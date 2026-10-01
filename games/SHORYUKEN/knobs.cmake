@@ -10,6 +10,17 @@
 #
 # CMake keeps a -D value in the build directory's cache until it is given again or the
 # directory is deleted, so a sweep names every knob on every build.
+# The firmware built with no knobs named is the one that goes on a medal under PELLETINO,
+# so it is the configuration to listen to: all the sound, at the rate that holds 99% of
+# real time. knobs.h keeps the bench's own defaults (sound off) for the host harness and
+# for tools/bench.sh, which names every knob on every build.
+if(NOT DEFINED SOUND)
+    set(SOUND FM_ADPCM)
+endif()
+if(NOT DEFINED SOUND_RATE)
+    set(SOUND_RATE 11025)
+endif()
+
 set(SHORYUKEN_KNOB_DEFS "")
 foreach(knob FRAME_SKIP FRAME_SKIP_AUTO LAYERS ROWSCROLL SOUND_RATE YM_QUALITY TILE_CACHE_KB
              STATS BENCH_SECONDS BENCH_FROM_FRAME IDLE_SKIP

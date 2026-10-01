@@ -202,7 +202,11 @@ the configuration holds real time; over it, it cannot.
 
 ## Knobs
 
-All in `main/knobs.h`, each with its cost written next to it. On the command
+All in `main/knobs.h`, each with its cost written next to it. One exception to
+"default first" below: a firmware build that names no knobs (which is how
+PELLETINO's installer builds it) gets `SOUND=FM_ADPCM` and `SOUND_RATE=11025`
+from `knobs.cmake`, the configuration recommended above for the game with its
+sound. The host harness and `tools/bench.sh` keep the defaults in the table. On the command
 line they are `-DKNOB=value` to `idf.py` (or `KNOB=value` to `tools/bench.sh`),
 which `knobs.cmake` turns into a header in the build directory. The host harness
 takes them as `make -C host KNOBS="-DFRAME_SKIP=1 -DKNOB_SOUND=FM"`: the knobs
