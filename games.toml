@@ -138,9 +138,6 @@ by = "Atari 1980"
 project = "SILO"
 slot_kb = 384
 
-# Not an emulator: a video clip. Street Fighter II's attract mode, letterboxed on the
-# portrait panel and looped. The clip lives in a data partition of its own, sized here;
-# the player is 336 KB. Pack a clip with games/HADOUKEN/tools/pack_media.py.
 [[game]]
 rom = "mario"
 title = "Mario Bros."
@@ -211,21 +208,13 @@ by = "Taito 1978"
 project = "PHALANX"
 slot_kb = 448
 
-[[game]]
-rom = "sf2"
-title = "Street Fighter II"
-by = "Capcom 1991"
-project = "HADOUKEN"
-slot_kb = 512
-data_kb = 5504
-data_file = "media.bin"
-
-# Street Fighter II again, emulated this time rather than played back: the real ROM on a
-# CPS-1 emulator, as a bench for measuring what that costs (games/SHORYUKEN/README.md). Off,
-# because only one game per build may have a data partition and the video above has it. To
-# build it instead: HADOUKEN enabled = false, this one enabled = true, and roms.bin in
-# games/SHORYUKEN (its tools/convert_roms.py makes it from sf2.zip). The slot is the largest
-# configuration (686 KB, CROP with all the sound) with ten percent to spare.
+# Street Fighter II comes two ways, and a build holds one, because each needs a data
+# partition and a build has room for one. Both show the attract mode; neither is played.
+#
+# Emulated: the real ROM on a CPS-1 emulator (games/SHORYUKEN/README.md has every
+# measurement). roms.bin is made from sf2.zip by games/SHORYUKEN/tools/convert_roms.py.
+# The slot is the largest configuration (686 KB, CROP with all the sound) with ten percent
+# to spare; the data partition is 2 MB bigger than the video's.
 [[game]]
 rom = "sf2"
 title = "Street Fighter II"
@@ -234,6 +223,18 @@ project = "SHORYUKEN"
 slot_kb = 768
 data_kb = 7616
 data_file = "roms.bin"
+
+# As a video: the attract mode as a clip, letterboxed and looped, in a 5.5 MB data
+# partition. Pack one with games/HADOUKEN/tools/pack_media.py. Switched off; to have this
+# one instead, give SHORYUKEN enabled = false and delete the line below.
+[[game]]
+rom = "sf2"
+title = "Street Fighter II"
+by = "Capcom 1991"
+project = "HADOUKEN"
+slot_kb = 512
+data_kb = 5504
+data_file = "media.bin"
 enabled = false
 
 # --- not in a build yet ------------------------------------------------------

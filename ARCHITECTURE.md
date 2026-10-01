@@ -119,17 +119,19 @@ artwork flash separately, so changing the art needs no rebuild.
 
 ## Flash budget (16 MB)
 
-The numbers below are for the shipped lineup: 16 game slots plus the Street
-Fighter II video's 5.5 MB data partition. `./pelletino` prices any other pick
+The numbers below are for a lineup with the emulated Street Fighter II: 13
+game slots plus its 7.6 MB data partition. `./pelletino` prices any other pick
 live, and `./pelletino pick` chooses one that fits.
 
 | Region | Size | Notes |
 |---|---|---|
 | `launcher` | 512 KB | built: 324 KB |
-| `mqart` | 640 KB | blob: 477 KB, 17 games |
-| 16 game slots | ~9.1 MB | right-sized per game, not uniform |
-| `media` (SF2 video) | 5.5 MB | the one data partition; what makes flash the binding limit |
-| free | 0.31 MB | not enough for even the smallest game (384 KB) |
+| `mqart` | 640 KB | about 30 KB a game |
+| 13 game slots | ~7.0 MB | right-sized per game, not uniform |
+| `media` (SF2 ROM) | 7.6 MB | the one data partition; what makes flash the binding limit |
+| free | 0.1 MB | not enough for even the smallest game (384 KB) |
+
+With the video in place of the emulator (5.5 MB), 16 slots fit.
 
 **All 16 OTA slots are used — `ota_0` through `ota_15` is ESP-IDF's hard cap.**
 That is why 16 slots hold 17 games: GHOSTERAMA carries both Pac-Man and

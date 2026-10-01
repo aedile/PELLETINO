@@ -25,7 +25,7 @@ makefile.
 |---|---|
 | Games | **27** in `games.toml`; **16** flash slots a build, which is 17 games, because Pac-Man and Ms. Pac-Man share one image and one slot |
 | Launcher firmware | 324 KB in a 512 KB slot |
-| Artwork | 477 KB for 17 games (three logos and a screenshot each), in its own partition |
+| Artwork | about 30 KB a game (three logos and a screenshot each), in its own partition |
 | Free heap in the menu with music playing | 320 KB of 512 KB |
 | Menu frame time | 27 to 37 ms, so 30 fps most of the time |
 | Cold boot to the title | ~1.2 s |
@@ -438,8 +438,8 @@ nobody plays it, since a six-button fight is not something a tilt sensor and two
 buttons can do. It comes two ways, and a build holds one of them, because each
 needs a data partition and a build has room for one.
 
-**As a video** (`games/HADOUKEN`, the default). A looping clip of the attract
-mode in a 5.5 MB data partition, decoded on the board.
+**As a video** (`games/HADOUKEN`, switched off as shipped). A looping clip of
+the attract mode in a 5.5 MB data partition, decoded on the board.
 
 - Encode and pack a clip with `games/HADOUKEN/tools/pack_media.py`. It
   letterboxes to the portrait panel and writes `media.bin`. See that script for
@@ -448,16 +448,16 @@ mode in a 5.5 MB data partition, decoded on the board.
 - The video is switched on by `games/HADOUKEN/media.bin` existing, the same
   way a ROM zip switches on an emulated game.
 
-**Emulated** (`games/SHORYUKEN`, switched off as shipped). The real `sf2` ROM
+**Emulated** (`games/SHORYUKEN`, the default). The real `sf2` ROM
 on a CPS-1 emulator: a 68000, a Z80, a YM2151 and an MSM6295, in a 7.6 MB data
 partition. It holds real time with the sound off, and 99% of it with the sound
 at 11 kHz; the top button inserts a coin and the middle button is a punch. It
 was built as a bench for what a CPS-1 costs on this chip, and
-[its README](games/SHORYUKEN/README.md) has every measurement. To build a
-medal with it: in `games.toml`, give HADOUKEN `enabled = false` and SHORYUKEN
-`enabled = true`, make `games/SHORYUKEN/roms.bin` from your `sf2.zip` with its
-`tools/convert_roms.py`, and build. Its partition is 2 MB bigger than the
-video's, so that build has room for two or three fewer games.
+[its README](games/SHORYUKEN/README.md) has every measurement. `./install.sh`
+makes `games/SHORYUKEN/roms.bin` from your `sf2.zip`. Its partition is 2 MB
+bigger than the video's, so a build with it has room for about 13 games; the
+shipped `games.toml` has it on and the video off, and either can be swapped
+for the other there.
 
 Any game can carry a data partition this way (`data_kb` and `data_file` in
 `games.toml`). Only one game per build may, and it is labelled `media`, which
@@ -525,8 +525,9 @@ and the menu, how memory is used, and why chain-booting beat one big image.
   limit on games per build, not flash size, and it is why `pelletino pick`
   exists. Two games that share hardware can share one image and one slot.
 - **Arkanoid and Rally-X are switched off in `games.toml` as shipped**, to make
-  room for Street Fighter II's data partition. Delete that line to bring one
-  back, and leave something else out.
+  room for Street Fighter II's data partition, and with the emulated Street
+  Fighter about thirteen games fit in all. `./pelletino pick` chooses; delete
+  a game's `enabled = false` line to let it be picked.
 - **The battery percentage is an estimate.** It comes from a standard 3.7 V
   LiPo discharge curve (the table at the top of `main/battery.c`), read while
   the board is running, so it dips under load.
