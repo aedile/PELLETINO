@@ -29,8 +29,12 @@ typedef struct {
     const uint8_t *prom_mathbox;  /* 4KB: the four mathbox PROMs concatenated */
     const uint8_t *prom_avg;      /* 256B: 136021-105.1l */
     const uint8_t *rom_slapstic;  /* ESB only: 32KB, four 8KB slapstic banks for 0x8000-0x9FFF (105+106); NULL for Star Wars */
-    const uint8_t *rom_main_page1; /* ESB only: optional separate 24KB image of rom_main's second page (lets it stay in flash); NULL = rom_main + 0x6000 */
-    const uint8_t *rom_main_page1_c; /* ESB only: optional 8KB copy of that page's 0xC000-0xDFFF third (the hot one) */
+    /* Optional: any 8KB piece of the program somewhere else - in RAM, when the whole of it
+     * will not go there in one block. NULL means "where rom_main / rom_bank has it".
+     *   0..2  rom_main, first page:  0xA000, 0xC000, 0xE000   (ESB only)
+     *   3..5  rom_main, second page: 0xA000, 0xC000, 0xE000   (ESB only)
+     *   6, 7  rom_bank, its two pages for 0x6000 */
+    const uint8_t *rom_part[8];
 } sw_roms_t;
 
 typedef struct {
@@ -79,6 +83,7 @@ uint32_t sw_irq_count(void);
 uint32_t sw_frame_count(void);
 uint16_t sw_pc(void);
 uint8_t  sw_nvram_read(int idx);
+uint8_t *sw_mem(uint16_t addr);      /* a byte of the non-volatile RAM by its CPU address, or NULL */
 const uint8_t *sw_ram(void);          /* 0x0000-0x2FFF vector RAM */
 
 #ifdef __cplusplus

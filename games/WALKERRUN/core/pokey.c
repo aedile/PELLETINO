@@ -13,6 +13,7 @@
  */
 #include "pokey.h"
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #define POLY4_LEN  15
@@ -42,6 +43,7 @@ static void gen_polys(void)
     gen_poly(poly5, POLY5_LEN, 5, 3);
     gen_poly(poly9, POLY9_LEN, 9, 5);
     poly17_bits = (uint8_t *)calloc(POLY17_LEN / 8 + 1, 1);
+    if (!poly17_bits) { fprintf(stderr, "pokey: no memory for the 17-bit noise table\n"); abort(); }
     uint32_t lfsr = 0;
     for (int i = 0; i < POLY17_LEN; i++) {
         uint32_t in = ((lfsr >> 16) ^ (lfsr >> 11) ^ 1) & 1;

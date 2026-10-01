@@ -24,4 +24,7 @@ endif()
 # a launcher that boots the next game each time it starts; see tour() in main.cpp
 if(DEFINED ENV{PELLETINO_TOUR})
     target_compile_definitions(${COMPONENT_LIB} PRIVATE PELLETINO_TOUR=1)
+    if(NOT "$ENV{PELLETINO_TOUR}" STREQUAL "1")      # PELLETINO_TOUR=polepos boots that game every time
+        target_compile_definitions(${COMPONENT_LIB} PRIVATE PELLETINO_TOUR_ONLY="$ENV{PELLETINO_TOUR}")
+    endif()
 endif()

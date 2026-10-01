@@ -1,7 +1,7 @@
 # Name,   Type, SubType, Offset,    Size,     Flags
-# 16 MB flash (W25Q128 on the ESP32-C6-LCD-1.69). App 1 MB, then the packed
-# easter-egg media (MJPEG + MP3 clips, see tools/pack_media.py) at 0x110000.
+# Only used when WALKERRUN is built and flashed on its own. Under PELLETINO the
+# launcher's table is the one on the device, and this image is relocated into a
+# game slot - IDF app images are position independent across app partitions.
 nvs,      data, nvs,     0x9000,    0x6000,
 phy_init, data, phy,     0xf000,    0x1000,
 factory,  app,  factory, 0x10000,   0x100000,
-media,    data, 0x40,    0x110000,  0xEE0000,

@@ -42,15 +42,22 @@ static const uint8_t *rpage[256];
 static uint8_t *wpage[256];
 static int is_esb;                  /* rom_slapstic present: ESB memory map */
 
+/* an 8 KB piece of the program: wherever it was put, or where the whole image has it */
+static const uint8_t *piece(int i, const uint8_t *in_whole)
+{
+    return roms.rom_part[i] ? roms.rom_part[i] : in_whole;
+}
+
 static void map_bank(void)
 {
-    const uint8_t *b = roms.rom_bank + (bank_sel ? 0x2000 : 0);
+    int page = bank_sel ? 1 : 0;
+    const uint8_t *b = piece(6 + page, roms.rom_bank + page * 0x2000);
     for (int pg = 0x60; pg < 0x80; pg++) rpage[pg] = b + ((pg - 0x60) << 8);
     if (is_esb) {                   /* ESB: the same latch bit pages 0xA000-0xFFFF too */
-        const uint8_t *m = bank_sel ? (roms.rom_main_page1 ? roms.rom_main_page1 : roms.rom_main + 0x6000) : roms.rom_main;
-        for (int pg = 0xa0; pg < 0x100; pg++) rpage[pg] = m + ((pg - 0xa0) << 8);
-        if (bank_sel && roms.rom_main_page1_c)
-            for (int pg = 0xc0; pg < 0xe0; pg++) rpage[pg] = roms.rom_main_page1_c + ((pg - 0xc0) << 8);
+        for (int third = 0; third < 3; third++) {
+            const uint8_t *m = piece(page * 3 + third, roms.rom_main + page * 0x6000 + third * 0x2000);
+            for (int pg = 0; pg < 0x20; pg++) rpage[0xa0 + third * 0x20 + pg] = m + (pg << 8);
+        }
     }
 }
 
@@ -542,3 +549,11 @@ uint16_t sw_pc(void) { return (uint16_t)e6809_get_pc(); }
 #ifdef SW_DEBUG
 uint8_t sw_dbg_peek(uint16_t a) { return cpu_read(a); }
 #endif
+
+/* the byte at a CPU address, where that is memory worth keeping - the X2212, which held the
+ * high scores and the settings with the power off */
+uint8_t *sw_mem(uint16_t a)
+{
+    if (a >= 0x4500 && a < 0x4600) return &nvram[a & 0xff];
+    return 0;
+}

@@ -209,6 +209,12 @@ static void tour(void)
     }
     if (!games) { ESP_LOGE(TAG, "tour: no games installed"); return; }
     int want = next % games;
+#ifdef PELLETINO_TOUR_ONLY
+    /* or always the one game named when it was built */
+    ESP_LOGI(TAG, "tour: only %s", PELLETINO_TOUR_ONLY);
+    medalboot_set_selected(PELLETINO_TOUR_ONLY);
+    launch(PELLETINO_TOUR_ONLY, false);
+#endif
     for (int i = 0; i < mqart_count(); i++) {
         const mqart_entry_t *e = mqart_get(i);
         if (e->boot[0] == '@' || !game_installed(e->boot)) continue;

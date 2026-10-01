@@ -9,8 +9,6 @@ media/
 # ROMs are not distributable
 starwars/
 starwars.zip
-esb/
-esb.zip
 roms/
 main/roms/*.h
 host/harness
@@ -20,3 +18,4 @@ host/out*/
 *.png
 .DS_Store
 __pycache__/
+host/*.dSYM/

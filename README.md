@@ -1,6 +1,6 @@
 # PELLETINO
 
-**An arcade in your pocket. Up to seventeen games at a time, picked from twenty-six. Spin the wheel, hold the button on a game, and it boots straight into that game from then on. One $20 ESP32-C6 board, 16 MB of flash, no SD card, no PSRAM.**
+**An arcade in your pocket. Up to seventeen games at a time, picked from twenty-seven. Spin the wheel, hold the button on a game, and it boots straight into that game from then on. One $20 ESP32-C6 board, 16 MB of flash, no SD card, no PSRAM.**
 
 PELLETINO is the menu. Every game is a separate firmware image in its own flash
 slot and the launcher chain-boots it, so a game gets the whole chip to itself
@@ -18,7 +18,7 @@ makefile.
 
 | | |
 |---|---|
-| Games | **26** playable, 27 approved in `games.toml`, **16** flash slots per build |
+| Games | **27** in `games.toml`, **16** flash slots per build |
 | Launcher firmware | 324 KB in a 512 KB slot |
 | Artwork | 477 KB for 17 games (three logos and a screenshot each), in its own partition |
 | Free heap in the menu with music playing | 320 KB of 512 KB |
@@ -318,6 +318,7 @@ What tilt and BOOT do in each game:
 | Time Pilot | `timeplt` | 8-way: twist and tip to point the plane | fire |
 | Arkanoid | `arkanoidu` | paddle, absolute (±32° sweep) | fire (once the laser is fitted) |
 | Star Wars | `starwars` | flight yoke: twist yaws, tip pitches | fire (also starts, in free play) |
+| Empire Strikes Back | `esb` | flight yoke: twist yaws, tip pitches | fire (also starts, in free play) |
 | Pole Position | `polepos` | steer like a wheel | shift gear (the throttle is automatic) |
 | Street Fighter II | `sf2` | nothing (it is a video, see below) | nothing |
 
@@ -509,9 +510,10 @@ and the menu, how memory is used, and why chain-booting beat one big image.
   Patrol, Rally-X and Star Wars. Their score formats have not been decoded yet.
 - **Dig Dug shows 10000 at the top of the screen after a restore** until a game
   has been played. The table itself is restored.
-- **Empire Strikes Back (`esb`) is approved but not playable.** It runs on the
-  same vector core as Star Wars, but the scene is heavier and it does not hold
-  frame rate. That is why it has no row in the controls table.
+- **Empire Strikes Back (`esb`) runs about as fast as Star Wars with the sound
+  off**, and has less to spare: 95% of full speed on average, with dips in busy
+  scenes.
+  [`games/WALKERRUN/README.md`](games/WALKERRUN/README.md) has the numbers.
 - **No hero video or photos yet** in this repository.
 
 ---

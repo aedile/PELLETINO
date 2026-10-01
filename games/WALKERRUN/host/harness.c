@@ -209,8 +209,6 @@ int main(int argc, char **argv)
         .prom_mathbox = prom_math,
         .prom_avg = prom_avg,
         .rom_slapstic = rom_slapstic,
-        .rom_main_page1 = NULL,
-        .rom_main_page1_c = NULL,
     };
     sw_init(&roms);
     if (!nosound) sw_attach_sound(rom_sound, sound_size);
